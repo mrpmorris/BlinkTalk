@@ -1,35 +1,40 @@
 ﻿using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class Logger : MonoBehaviour
+namespace BlinkTalk
 {
-	private static bool exceptionHandlerHooked;
-	private static bool hasUnhandledException;
-
-	public static void Log(string message)
+	public class Logger : MonoBehaviour
 	{
-		if (hasUnhandledException)
-			return;
+		private static bool ExceptionHandlerHooked;
+		private static bool HasUnhandledException;
 
-		Debug.Log(message);
-	}
+		public static void Log(string message)
+		{
+			if (HasUnhandledException)
+				return;
 
-	public void Awake()
-	{
-		if (exceptionHandlerHooked)
-			return;
+			Debug.Log(message);
+		}
 
-		Application.logMessageReceived += Application_logMessageReceived;
-		exceptionHandlerHooked = true;
-	}
+		private void Awake()
+		{
+			Log("Logging enabled");
+			if (ExceptionHandlerHooked)
+				return;
 
-	private void Application_logMessageReceived(string condition, string stackTrace, LogType type)
-	{
-		if (type != LogType.Assert && type != LogType.Error && type != LogType.Exception)
-			return;
+			Application.logMessageReceived += Application_logMessageReceived;
+			ExceptionHandlerHooked = true;
+		}
 
-		Debug.LogError(condition);
-		hasUnhandledException = true;
-		Application.logMessageReceived -= Application_logMessageReceived;
+		private void Application_logMessageReceived(string condition, string stackTrace, LogType type)
+		{
+			if (type != LogType.Assert && type != LogType.Error && type != LogType.Exception)
+				return;
+
+			Debug.LogError(condition);
+			HasUnhandledException = true;
+			Application.logMessageReceived -= Application_logMessageReceived;
+			SceneManager.LoadScene("ErrorScene");
+		}
 	}
 }
