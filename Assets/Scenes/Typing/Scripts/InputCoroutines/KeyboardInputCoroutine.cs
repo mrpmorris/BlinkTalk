@@ -11,34 +11,38 @@ namespace BlinkTalk.Typing.InputCoroutines
 		private RectTransform CurrentSelectionGroup;
 
 		private Vector2 TargetScrollPosition;
+		private ScrollRect KeyboardScrollRect;
 		private RectTransform KeyboardSelectorClientArea;
 		private RectTransform[] KeyboardSelectionGroups;
 
 		public IEnumerator Execute()
 		{
-			yield return new WaitForSeconds(0.5f);
-			yield return new WaitForSeconds(0.5f);
-			yield return new WaitForSeconds(0.5f);
+			SetCurrentSelectionGroupIndex(0);
+			while (true)
+			{
+				SetCurrentSelectionGroupIndex(CurrentSelectionGroupIndex + 1);
+				yield return new WaitForSeconds(2);
+			}
 		}
 
-		internal void Initialize(RectTransform keyboardSelectorClientArea, RectTransform[] keyboardSelectionGroups)
+		internal void Initialize(ScrollRect keyboardScrollRect, RectTransform[] keyboardSelectionGroups)
 		{
-			KeyboardSelectorClientArea = keyboardSelectorClientArea;
+			KeyboardScrollRect = keyboardScrollRect;
+			KeyboardSelectorClientArea = keyboardScrollRect.content;
 			KeyboardSelectionGroups = keyboardSelectionGroups;
 			SetCurrentSelectionGroupIndex(keyboardSelectionGroups.Length - 1);
 		}
 
 		private void Update()
 		{
-			KeyboardSelectorClientArea.position = Vector3.Lerp(KeyboardSelectorClientArea.position, TargetScrollPosition, 0.1f);
+			KeyboardSelectorClientArea.position = Vector3.Lerp(KeyboardSelectorClientArea.position, TargetScrollPosition, 0.5f);
 		}
 
 		private void SetCurrentSelectionGroupIndex(int index)
 		{
 			CurrentSelectionGroupIndex = index % KeyboardSelectionGroups.Length;
 			CurrentSelectionGroup = KeyboardSelectionGroups[CurrentSelectionGroupIndex];
-			TargetScrollPosition = CurrentSelectionGroup.rect.position;
-			TargetScrollPosition = new Vector3(0, -TargetScrollPosition.y, 0);
+			TargetScrollPosition = KeyboardScrollRect.GetContentSnapToPosition(CurrentSelectionGroup);
 		}
 	}
 }

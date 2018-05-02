@@ -64,7 +64,9 @@ namespace BlinkTalk.Typing
 			KeyboardSelectionGroups = KeyboardSelectorClientArea.GetChildren().Select(x => x.GetComponent<RectTransform>()).ToArray();
 
 			KeyboardInputCoroutine = gameObject.AddComponent<KeyboardInputCoroutine>();
-			KeyboardInputCoroutine.Initialize(KeyboardSelectorClientArea, KeyboardSelectionGroups);
+			KeyboardInputCoroutine.Initialize(KeyboardSelector, KeyboardSelectionGroups);
+
+			SetState(ControllerState.Typing);
 
 		}
 	}

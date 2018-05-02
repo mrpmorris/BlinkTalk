@@ -32,6 +32,7 @@ namespace BlinkTalk
 				return;
 
 			Debug.LogError(condition);
+			Debug.LogError(stackTrace);
 			HasUnhandledException = true;
 			Application.logMessageReceived -= Application_logMessageReceived;
 			SceneManager.LoadScene("ErrorScene");
