@@ -18,7 +18,7 @@ namespace BlinkTalk
 			Func<TInstance, TValue> getValue = value.Compile();
 			TValue result = getValue(instance);
 			if (result == null)
-				throw new NullReferenceException(value.Body.ToString());
+				throw new NullReferenceException("EnsureAssigned assertion failed: " + value.Body.ToString());
 			return result;
 		}
 	}

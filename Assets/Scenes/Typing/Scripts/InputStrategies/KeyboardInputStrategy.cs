@@ -5,9 +5,11 @@ using UnityEngine.UI;
 
 namespace BlinkTalk.Typing.InputStrategies
 {
-	public class KeyboardInputStrategy: MonoBehaviour, IInputStrategy
+	public class KeyboardInputStrategy: MonoBehaviour, IInputStrategy, IIndicationHandler
 	{
+		private bool IsSelectingKey;
 		private int CurrentSelectionGroupIndex;
+		private float LastShuffleTime;
 		private RectTransform CurrentSelectionGroup;
 
 		private Vector2 TargetScrollPosition;
@@ -23,17 +25,13 @@ namespace BlinkTalk.Typing.InputStrategies
 			SetCurrentSelectionGroupIndex(0);
 		}
 
-		public IEnumerator GetEnumerator()
-		{
-			while (true)
-			{
-				yield return new WaitForSeconds(2);
-				SetCurrentSelectionGroupIndex(CurrentSelectionGroupIndex + 1);
-			}
-		}
-
 		private void Update()
 		{
+			if (!IsSelectingKey && Time.time - LastShuffleTime >= 2f)
+			{
+				SetCurrentSelectionGroupIndex(CurrentSelectionGroupIndex + 1);
+				LastShuffleTime = Time.time;
+			}
 			KeyboardSelectorContent.localPosition = 
 				Vector3.Lerp(KeyboardSelectorContent.localPosition, TargetScrollPosition, 0.5f);
 		}
@@ -44,8 +42,11 @@ namespace BlinkTalk.Typing.InputStrategies
 			CurrentSelectionGroupIndex = index % KeyboardSelectionGroups.Length;
 			CurrentSelectionGroup = KeyboardSelectionGroups[CurrentSelectionGroupIndex];
 			TargetScrollPosition = KeyboardScrollRect.GetSnapToPositionToBringChildIntoView(CurrentSelectionGroup);
-			Debug.Log("TargetScrollPosition = " + TargetScrollPosition);
 		}
 
+		public void OnIndicate()
+		{
+			IsSelectingKey = true;
+		}
 	}
 }
