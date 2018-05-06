@@ -1,6 +1,4 @@
-﻿using BlinkTalk.Typing.InputCoroutines;
-using System;
-using System.Collections;
+﻿using BlinkTalk.Typing.InputStrategies;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
@@ -17,41 +15,7 @@ namespace BlinkTalk.Typing
 
 		private RectTransform KeyboardSelectorClientArea;
 		private RectTransform[] KeyboardSelectionGroups;
-		private ControllerState State = ControllerState.Typing;
-		private Coroutine CurrentInputCoroutine;
-		// Input coroutines
-		private KeyboardInputCoroutine KeyboardInputCoroutine;
-
-		private void SetState(ControllerState newState)
-		{
-			StopCurrentInputCoroutine();
-
-			State = newState;
-			switch (State)
-			{
-				case ControllerState.Typing:
-					SetCurrentInputCoroutine(KeyboardInputCoroutine.Execute());
-					break;
-				case ControllerState.WordPicklist:
-					break;
-				default:
-					throw new NotImplementedException(State.ToString());
-			}
-		}
-
-		private void SetCurrentInputCoroutine(IEnumerator coroutine)
-		{
-			StartCoroutine(coroutine);
-		}
-
-		private void StopCurrentInputCoroutine()
-		{
-			if (CurrentInputCoroutine != null)
-			{
-				StopCoroutine(CurrentInputCoroutine);
-				CurrentInputCoroutine = null;
-			}
-		}
+		private KeyboardInputStrategy KeyboardInputStrategy;
 
 		private void Start()
 		{
@@ -63,11 +27,10 @@ namespace BlinkTalk.Typing
 			KeyboardSelectorClientArea = this.EnsureAssigned(x => x.KeyboardSelector.content);
 			KeyboardSelectionGroups = KeyboardSelectorClientArea.GetChildren().Select(x => x.GetComponent<RectTransform>()).ToArray();
 
-			KeyboardInputCoroutine = gameObject.AddComponent<KeyboardInputCoroutine>();
-			KeyboardInputCoroutine.Initialize(KeyboardSelector, KeyboardSelectionGroups);
+			KeyboardInputStrategy = gameObject.AddComponent<KeyboardInputStrategy>();
+			KeyboardInputStrategy.Initialize(this);
 
-			SetState(ControllerState.Typing);
-
+			StartCoroutine(KeyboardInputStrategy.GetEnumerator());
 		}
 	}
 }

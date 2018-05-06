@@ -1,11 +1,11 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace BlinkTalk.Typing.InputCoroutines
+namespace BlinkTalk.Typing.InputStrategies
 {
-	public class KeyboardInputCoroutine: MonoBehaviour
+	public class KeyboardInputStrategy: MonoBehaviour, IInputStrategy
 	{
 		private int CurrentSelectionGroupIndex;
 		private RectTransform CurrentSelectionGroup;
@@ -15,22 +15,21 @@ namespace BlinkTalk.Typing.InputCoroutines
 		private RectTransform KeyboardSelectorContent;
 		private RectTransform[] KeyboardSelectionGroups;
 
-		public IEnumerator Execute()
+		public void Initialize(TypingController controller)
 		{
+			KeyboardScrollRect = controller.KeyboardSelector;
+			KeyboardSelectorContent = KeyboardScrollRect.content;
+			KeyboardSelectionGroups = KeyboardSelectorContent.GetChildren().Select(x => x.GetComponent<RectTransform>()).ToArray();
 			SetCurrentSelectionGroupIndex(0);
+		}
+
+		public IEnumerator GetEnumerator()
+		{
 			while (true)
 			{
 				yield return new WaitForSeconds(2);
 				SetCurrentSelectionGroupIndex(CurrentSelectionGroupIndex + 1);
 			}
-		}
-
-		internal void Initialize(ScrollRect keyboardScrollRect, RectTransform[] keyboardSelectionGroups)
-		{
-			KeyboardScrollRect = keyboardScrollRect;
-			KeyboardSelectorContent = keyboardScrollRect.content;
-			KeyboardSelectionGroups = keyboardSelectionGroups;
-			SetCurrentSelectionGroupIndex(keyboardSelectionGroups.Length - 1);
 		}
 
 		private void Update()
@@ -41,9 +40,12 @@ namespace BlinkTalk.Typing.InputCoroutines
 
 		private void SetCurrentSelectionGroupIndex(int index)
 		{
+			Canvas.ForceUpdateCanvases();
 			CurrentSelectionGroupIndex = index % KeyboardSelectionGroups.Length;
 			CurrentSelectionGroup = KeyboardSelectionGroups[CurrentSelectionGroupIndex];
 			TargetScrollPosition = KeyboardScrollRect.GetSnapToPositionToBringChildIntoView(CurrentSelectionGroup);
+			Debug.Log("TargetScrollPosition = " + TargetScrollPosition);
 		}
+
 	}
 }
