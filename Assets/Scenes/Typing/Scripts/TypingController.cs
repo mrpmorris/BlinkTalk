@@ -1,4 +1,4 @@
-﻿using BlinkTalk.Typing.InputStrategies;
+﻿using BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -9,9 +9,6 @@ namespace BlinkTalk.Typing
 	public class TypingController : MonoBehaviour
 	{
 		public ScrollRect KeyboardSelector;
-		public ScrollRect MainContentSelector;
-		[Header("Text input feature")]
-		public RectTransform TextInputFeature;
 		public Text InputText;
 		public RectTransform KeyHighlighter;
 		[Space]
@@ -20,21 +17,28 @@ namespace BlinkTalk.Typing
 		private RectTransform KeyboardSelectorClientArea;
 		private RectTransform[] KeyboardSelectionGroups;
 		private KeyboardInputStrategy KeyboardInputStrategy;
+		private TypingControllerInputState State { get { return _state; } set { SetState(value); } }
+		private TypingControllerInputState _state;
 
 		private void Start()
 		{
 			this.EnsureAssigned(x => x.KeyboardSelector);
-			this.EnsureAssigned(x => x.MainContentSelector);
-			this.EnsureAssigned(x => x.TextInputFeature);
 			this.EnsureAssigned(x => x.InputText);
 			this.EnsureAssigned(x => x.IndicateButton).onClick.AddListener(OnIndicateButtonClick);
 			this.EnsureAssigned(x => x.KeyHighlighter);
 
 			KeyboardSelectorClientArea = this.EnsureAssigned(x => x.KeyboardSelector.content);
-			KeyboardSelectionGroups = KeyboardSelectorClientArea.GetChildren().Select(x => x.GetComponent<RectTransform>()).ToArray();
+			KeyboardSelectionGroups = KeyboardSelectorClientArea.GetChildRectTransforms();
 
 			KeyboardInputStrategy = gameObject.AddComponent<KeyboardInputStrategy>();
 			KeyboardInputStrategy.Initialize(this);
+			State = TypingControllerInputState.Keyboard;
+		}
+
+		private void SetState(TypingControllerInputState value)
+		{
+			_state = value;
+			KeyboardInputStrategy.Live = value == TypingControllerInputState.Keyboard;
 		}
 
 		private void OnIndicateButtonClick()
