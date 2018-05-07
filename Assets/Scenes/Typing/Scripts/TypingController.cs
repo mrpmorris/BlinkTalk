@@ -1,4 +1,6 @@
 ﻿using BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies;
+using System;
+using System.Collections;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -8,6 +10,7 @@ namespace BlinkTalk.Typing
 {
 	public class TypingController : MonoBehaviour
 	{
+		public bool HasIndicated { get; private set; }
 		public ScrollRect KeyboardSelector;
 		public Text InputText;
 		public RectTransform KeyHighlighter;
@@ -43,7 +46,15 @@ namespace BlinkTalk.Typing
 
 		private void OnIndicateButtonClick()
 		{
-			ExecuteEvents.Execute<IIndicationHandler>(gameObject, null, (x, _) => x.OnIndicate());
+			HasIndicated = true;
+			StartCoroutine(SetHasIndicatedToFalse());
 		}
+
+		private IEnumerator SetHasIndicatedToFalse()
+		{
+			yield return new WaitForEndOfFrame();
+			HasIndicated = false;
+		}
+
 	}
 }

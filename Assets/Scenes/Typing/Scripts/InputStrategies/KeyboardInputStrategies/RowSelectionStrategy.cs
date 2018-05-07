@@ -21,16 +21,19 @@ namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 			KeyboardScrollRect = controller.KeyboardSelector;
 			KeyboardSelectorContent = KeyboardScrollRect.content;
 			RowSelection = KeyboardSelectorContent.GetChildRectTransforms();
+			Reset();
+		}
+
+		public void Reset()
+		{
 			SetSelectedRowIndex(0);
 		}
 
 		private void Update()
 		{
 			if (Live && Time.time - LastShuffleTime >= TypingInputSettings.RowPauseTime)
-			{
 				SetSelectedRowIndex(SelectedRowIndex + 1);
-				LastShuffleTime = Time.time;
-			}
+
 			KeyboardSelectorContent.localPosition =
 				Vector3.Lerp(KeyboardSelectorContent.localPosition, TargetScrollPosition, TypingInputSettings.RowLerpFactor);
 		}
@@ -41,6 +44,7 @@ namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 			SelectedRowIndex = index % RowSelection.Length;
 			SelectedRow = RowSelection[SelectedRowIndex];
 			TargetScrollPosition = KeyboardScrollRect.GetSnapToPositionToBringChildIntoView(SelectedRow);
+			LastShuffleTime = Time.time;
 		}
 
 	}

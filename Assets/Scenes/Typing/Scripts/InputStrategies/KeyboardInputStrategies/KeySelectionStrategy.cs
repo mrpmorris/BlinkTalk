@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 
 namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 {
@@ -7,6 +8,7 @@ namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 		public bool Live { get; set; }
 
 		private int SelectedKeyIndex;
+		private int CycleNumber;
 		private float LastShuffleTime;
 		private Vector2 TargetHighlighterPosition;
 		private TypingController Controller;
@@ -14,18 +16,20 @@ namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 		private RectTransform SelectedKey;
 		private RectTransform[] KeySelection;
 
+		public string GetKey() => SelectedKey.GetComponent<Text>().text;
+
 		public void Initialize(TypingController controller)
 		{
 			Controller = controller;
 			KeyHighlighter = controller.KeyHighlighter;
 		}
 
-		public void SetRow(RectTransform row)
+		public void Reset(RectTransform row)
 		{
 			KeySelection = row.GetChildRectTransforms();
-			transform.parent = row.transform.parent;
+			transform.SetParent(row.transform.parent, true);
 			SetCurrentKeySelectionIndex(0);
-			LastShuffleTime = Time.time;
+			CycleNumber = 0;
 		}
 
 		private void Update()
@@ -37,19 +41,20 @@ namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 			}
 
 			if (Live && Time.time - LastShuffleTime >= TypingInputSettings.KeyPauseTime)
-			{
 				SetCurrentKeySelectionIndex(SelectedKeyIndex + 1);
-				LastShuffleTime = Time.time;
-			}
+
 			KeyHighlighter.anchoredPosition =
 				Vector2.Lerp(KeyHighlighter.anchoredPosition, TargetHighlighterPosition, TypingInputSettings.KeyLerpFactor);
 		}
 
 		private void SetCurrentKeySelectionIndex(int index)
 		{
+			LastShuffleTime = Time.time;
 			SelectedKeyIndex = index % KeySelection.Length;
 			SelectedKey = KeySelection[SelectedKeyIndex];
 			TargetHighlighterPosition = SelectedKey.anchoredPosition;
+			if (SelectedKeyIndex == 0)
+				CycleNumber++;
 		}
 	}
 }
