@@ -5,45 +5,50 @@ namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 {
 	public class KeySelectionStrategy : MonoBehaviour, IKeySelectionStrategy
 	{
-		private bool Live;
+		private bool Active;
 		private int SelectedKeyIndex;
 		private int CycleNumber;
 		private float LastShuffleTime;
 		private Vector2 TargetHighlighterPosition;
-		private ITypingController Controller;
 		private RectTransform KeyHighlighter;
 		private RectTransform SelectedKey;
 		private RectTransform[] KeySelection;
+		private ITypingController Controller;
+		private IKeyboardInputStrategy KeyboardInputStrategy;
 
 		public string SelectedKeyText => SelectedKey.GetComponent<Text>().text; 
 
-		public void Initialize(ITypingController controller)
+		public void Initialize(ITypingController controller, IKeyboardInputStrategy keyboardInputStrategy)
 		{
 			Controller = controller;
+			KeyboardInputStrategy = keyboardInputStrategy;
 			KeyHighlighter = controller.GetKeyHighlighter();
 		}
 
 		public void Activate(RectTransform row)
 		{
-			Live = true;
+			Active = true;
 			KeySelection = row.GetChildRectTransforms();
 			transform.SetParent(row.transform.parent, true);
 			SetCurrentKeySelectionIndex(0);
 			CycleNumber = 0;
 		}
 
+		public void MayRemainActive(bool value)
+		{
+			if (!value)
+				Active = false;
+		}
+
 		private void Update()
 		{
-			if (Controller.HasIndicated)
-				Live = false;
-
-			if (!Live)
+			if (!Active)
 			{
-				KeyHighlighter.position = new Vector3(0 - KeyHighlighter.rect.width, KeyHighlighter.position.y);
+				KeyHighlighter.anchoredPosition = new Vector2(0 - KeyHighlighter.rect.width, 0);
 				return;
 			}
 
-			if (Live && Time.time - LastShuffleTime >= TypingInputSettings.KeyPauseTime)
+			if (Active && Time.time - LastShuffleTime >= TypingInputSettings.KeyPauseTime)
 				SetCurrentKeySelectionIndex(SelectedKeyIndex + 1);
 
 			KeyHighlighter.anchoredPosition =
@@ -52,12 +57,15 @@ namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 
 		private void SetCurrentKeySelectionIndex(int index)
 		{
+			Canvas.ForceUpdateCanvases();
 			LastShuffleTime = Time.time;
 			SelectedKeyIndex = index % KeySelection.Length;
 			SelectedKey = KeySelection[SelectedKeyIndex];
 			TargetHighlighterPosition = SelectedKey.anchoredPosition;
 			if (SelectedKeyIndex == 0)
 				CycleNumber++;
+			if (CycleNumber == 1 && SelectedKeyIndex > 1)
+				KeyboardInputStrategy.ChildInputStrategyExpired();
 		}
 	}
 }

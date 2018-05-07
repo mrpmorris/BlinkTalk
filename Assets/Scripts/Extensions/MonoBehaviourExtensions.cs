@@ -23,18 +23,5 @@ namespace BlinkTalk
 			return result;
 		}
 
-		public static void ExecuteAtEndOfFrame(this MonoBehaviour instance, Action action)
-		{
-			if (action == null)
-				throw new ArgumentNullException(nameof(action));
-			instance.StartCoroutine(ExecuteAtEndOfFrameCoroutine(action));
-		}
-
-		private static IEnumerator ExecuteAtEndOfFrameCoroutine(Action action)
-		{
-			yield return new WaitForEndOfFrame();
-			action();
-		}
-
 	}
 }

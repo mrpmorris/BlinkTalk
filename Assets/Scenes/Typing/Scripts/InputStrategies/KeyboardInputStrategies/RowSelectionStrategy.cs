@@ -7,7 +7,7 @@ namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 	{
 		public RectTransform SelectedRow { get; private set; }
 
-		public bool Live;
+		public bool Active;
 		private int SelectedRowIndex;
 		private float LastShuffleTime;
 		private Vector2 TargetScrollPosition;
@@ -27,16 +27,18 @@ namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 
 		public void Activate()
 		{
-			Live = true;
+			Active = true;
 			SetSelectedRowIndex(0);
 		}
 
+		public void MayRemainActive(bool value)
+		{
+			if (!value)
+				Active = false;
+		}
 		private void Update()
 		{
-			if (Controller.HasIndicated)
-				Live = false;
-
-			if (Live && Time.time - LastShuffleTime >= TypingInputSettings.RowPauseTime)
+			if (Active && Time.time - LastShuffleTime >= TypingInputSettings.RowPauseTime)
 				SetSelectedRowIndex(SelectedRowIndex + 1);
 
 			KeyboardSelectorContent.localPosition =

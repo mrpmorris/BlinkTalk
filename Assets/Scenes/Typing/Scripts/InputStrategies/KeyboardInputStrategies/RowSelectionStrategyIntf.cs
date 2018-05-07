@@ -7,5 +7,6 @@ namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 		RectTransform SelectedRow { get; }
 		void Initialize(ITypingController controller);
 		void Activate();
+		void MayRemainActive(bool value);
 	}
 }

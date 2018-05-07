@@ -6,5 +6,7 @@ namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 	{
 		void Initialize(ITypingController controller);
 		void Activate();
+		void MayRemainActive(bool value);
+		void ChildInputStrategyExpired();
 	}
 }

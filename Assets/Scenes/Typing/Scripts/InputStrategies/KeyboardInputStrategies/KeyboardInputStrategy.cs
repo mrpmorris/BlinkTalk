@@ -5,9 +5,9 @@ namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 {
 	public class KeyboardInputStrategy : MonoBehaviour, IKeyboardInputStrategy
 	{
-		private bool Live;
+		private bool Active;
 		private KeyboardInputStrategyState _state;
-		private KeyboardInputStrategyState State {  get { return _state; } set { SetState(value);  } }
+		private KeyboardInputStrategyState State { get { return _state; } set { SetState(value); } }
 		private ITypingController Controller;
 		private IRowSelectionStrategy RowSelectionStrategy;
 		private IKeySelectionStrategy KeySelectionStrategy;
@@ -16,19 +16,47 @@ namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 		{
 			Controller = controller;
 			RowSelectionStrategy.Initialize(Controller);
-			KeySelectionStrategy.Initialize(Controller);
+			KeySelectionStrategy.Initialize(Controller, this);
 		}
 
 		public void Activate()
 		{
-			Live = true;
+			Active = true;
 			State = KeyboardInputStrategyState.SelectingRow;
+		}
+
+		public void MayRemainActive(bool value)
+		{
+			if (!value) 
+				Active = false;
+
+			RowSelectionStrategy.MayRemainActive(false);
+			KeySelectionStrategy.MayRemainActive(false);
+		}
+
+		public void ChildInputStrategyExpired()
+		{
+			switch(State)
+			{
+				case KeyboardInputStrategyState.SelectingKey:
+					State = KeyboardInputStrategyState.SelectingRow;
+					break;
+
+				case KeyboardInputStrategyState.SelectingRow:
+					break;
+
+				default:
+					throw new NotImplementedException(State + "");
+			}
 		}
 
 		private void SetState(KeyboardInputStrategyState value)
 		{
 			_state = value;
-			switch(State)
+			RowSelectionStrategy.MayRemainActive(value == KeyboardInputStrategyState.SelectingRow);
+			KeySelectionStrategy.MayRemainActive(value == KeyboardInputStrategyState.SelectingKey);
+
+			switch (State)
 			{
 				case KeyboardInputStrategyState.SelectingRow:
 					RowSelectionStrategy.Activate();
@@ -50,15 +78,15 @@ namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 		private void Update()
 		{
 			if (Controller.HasIndicated)
-				this.ExecuteAtEndOfFrame(Indicate);
+				Indicate();
 		}
 
 		private void Indicate()
 		{
-			if (!Live)
+			if (!Active)
 				return;
 
-			switch(State)
+			switch (State)
 			{
 				case KeyboardInputStrategyState.SelectingRow:
 					SetState(KeyboardInputStrategyState.SelectingKey);

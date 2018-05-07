@@ -7,7 +7,6 @@ namespace BlinkTalk
 	{
 		public static Vector2 GetSnapToPositionToBringChildIntoView(this ScrollRect instance, RectTransform child)
 		{
-			Canvas.ForceUpdateCanvases();
 			Vector2 viewportLocalPosition = instance.viewport.localPosition;
 			Vector2 childLocalPosition	 = child.localPosition;
 			Vector2 result = new Vector2(
