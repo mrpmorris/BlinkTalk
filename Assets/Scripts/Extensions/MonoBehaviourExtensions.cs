@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Linq.Expressions;
 using UnityEngine;
 
@@ -21,5 +22,19 @@ namespace BlinkTalk
 				throw new NullReferenceException("EnsureAssigned assertion failed: " + value.Body.ToString());
 			return result;
 		}
+
+		public static void ExecuteAtEndOfFrame(this MonoBehaviour instance, Action action)
+		{
+			if (action == null)
+				throw new ArgumentNullException(nameof(action));
+			instance.StartCoroutine(ExecuteAtEndOfFrameCoroutine(action));
+		}
+
+		private static IEnumerator ExecuteAtEndOfFrameCoroutine(Action action)
+		{
+			yield return new WaitForEndOfFrame();
+			action();
+		}
+
 	}
 }

@@ -5,33 +5,27 @@ namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 {
 	public class KeySelectionStrategy : MonoBehaviour, IKeySelectionStrategy
 	{
-		public bool Live { get; set; }
-
+		private bool Live;
 		private int SelectedKeyIndex;
 		private int CycleNumber;
 		private float LastShuffleTime;
 		private Vector2 TargetHighlighterPosition;
-		private TypingController Controller;
+		private ITypingController Controller;
 		private RectTransform KeyHighlighter;
 		private RectTransform SelectedKey;
 		private RectTransform[] KeySelection;
 
-		public string SelectedKeyText
-		{
-			get
-			{
-				return SelectedKey.GetComponent<Text>().text; ;
-			}
-		}
+		public string SelectedKeyText => SelectedKey.GetComponent<Text>().text; 
 
-		public void Initialize(TypingController controller)
+		public void Initialize(ITypingController controller)
 		{
 			Controller = controller;
-			KeyHighlighter = controller.KeyHighlighter;
+			KeyHighlighter = controller.GetKeyHighlighter();
 		}
 
-		public void Reset(RectTransform row)
+		public void Activate(RectTransform row)
 		{
+			Live = true;
 			KeySelection = row.GetChildRectTransforms();
 			transform.SetParent(row.transform.parent, true);
 			SetCurrentKeySelectionIndex(0);
@@ -40,6 +34,9 @@ namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 
 		private void Update()
 		{
+			if (Controller.HasIndicated)
+				Live = false;
+
 			if (!Live)
 			{
 				KeyHighlighter.position = new Vector3(0 - KeyHighlighter.rect.width, KeyHighlighter.position.y);

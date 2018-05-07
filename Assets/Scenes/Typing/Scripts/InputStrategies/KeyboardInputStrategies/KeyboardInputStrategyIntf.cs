@@ -4,7 +4,7 @@ namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 {
 	public interface IKeyboardInputStrategy
 	{
-		bool Live { get; set; }
-		void Initialize(TypingController controller);
+		void Initialize(ITypingController controller);
+		void Activate();
 	}
 }
