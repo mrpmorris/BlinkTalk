@@ -3,14 +3,14 @@ using UnityEngine;
 
 namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 {
-	public class KeyboardInputStrategy : MonoBehaviour, IInputStrategy
+	public class KeyboardInputStrategy : MonoBehaviour, IKeyboardInputStrategy
 	{
 		public bool Live { get { return _live; } set { SetLive(value); } }
 
 		private KeyboardInputStrategyState State {  get { return _state; } set { SetState(value);  } }
 		private TypingController Controller;
-		private RowSelectionStrategy RowSelectionStrategy;
-		private KeySelectionStrategy KeySelectionStrategy;
+		private IRowSelectionStrategy RowSelectionStrategy;
+		private IKeySelectionStrategy KeySelectionStrategy;
 		private bool _live;
 		private KeyboardInputStrategyState _state;
 
@@ -47,8 +47,8 @@ namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 
 		private void Awake()
 		{
-			RowSelectionStrategy = gameObject.AddComponent<RowSelectionStrategy>();
-			KeySelectionStrategy = gameObject.AddComponent<KeySelectionStrategy>();
+			RowSelectionStrategy = gameObject.AddServiceComponent<IRowSelectionStrategy, RowSelectionStrategy>();
+			KeySelectionStrategy = gameObject.AddServiceComponent<IKeySelectionStrategy, KeySelectionStrategy>();
 		}
 
 		private void Update()
@@ -68,7 +68,7 @@ namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 					SetState(KeyboardInputStrategyState.SelectingKey);
 					break;
 				case KeyboardInputStrategyState.SelectingKey:
-					Debug.Log(KeySelectionStrategy.GetKey());
+					Debug.Log(KeySelectionStrategy.SelectedKeyText);
 					SetState(KeyboardInputStrategyState.SelectingRow);
 					break;
 				default: throw new NotImplementedException(State + "");

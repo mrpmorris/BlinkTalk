@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 {
-	public class KeySelectionStrategy : MonoBehaviour, IInputStrategy
+	public class KeySelectionStrategy : MonoBehaviour, IKeySelectionStrategy
 	{
 		public bool Live { get; set; }
 
@@ -16,7 +16,13 @@ namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 		private RectTransform SelectedKey;
 		private RectTransform[] KeySelection;
 
-		public string GetKey() => SelectedKey.GetComponent<Text>().text;
+		public string SelectedKeyText
+		{
+			get
+			{
+				return SelectedKey.GetComponent<Text>().text; ;
+			}
+		}
 
 		public void Initialize(TypingController controller)
 		{

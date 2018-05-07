@@ -19,7 +19,7 @@ namespace BlinkTalk.Typing
 
 		private RectTransform KeyboardSelectorClientArea;
 		private RectTransform[] KeyboardSelectionGroups;
-		private KeyboardInputStrategy KeyboardInputStrategy;
+		private IKeyboardInputStrategy KeyboardInputStrategy;
 		private TypingControllerInputState State { get { return _state; } set { SetState(value); } }
 		private TypingControllerInputState _state;
 
@@ -33,7 +33,7 @@ namespace BlinkTalk.Typing
 			KeyboardSelectorClientArea = this.EnsureAssigned(x => x.KeyboardSelector.content);
 			KeyboardSelectionGroups = KeyboardSelectorClientArea.GetChildRectTransforms();
 
-			KeyboardInputStrategy = gameObject.AddComponent<KeyboardInputStrategy>();
+			KeyboardInputStrategy = (IKeyboardInputStrategy)gameObject.AddComponent<KeyboardInputStrategy>();
 			KeyboardInputStrategy.Initialize(this);
 			State = TypingControllerInputState.Keyboard;
 		}

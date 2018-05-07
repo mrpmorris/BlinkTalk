@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 {
-	public class RowSelectionStrategy: MonoBehaviour, IInputStrategy
+	public class RowSelectionStrategy: MonoBehaviour, IRowSelectionStrategy
 	{
 		public bool Live { get; set; }
 		public RectTransform SelectedRow { get; private set; }
