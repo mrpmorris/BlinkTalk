@@ -92,7 +92,7 @@ namespace BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies
 						  SetState(KeyboardInputStrategyState.SelectingKey);
 						  break;
 					 case KeyboardInputStrategyState.SelectingKey:
-						  Controller.AddLetter(KeySelectionStrategy.SelectedKeyText[0]);
+						  //TODO: PeteM - Implement KeySelectionStrategy.SelectedKeyText
 						  SetState(KeyboardInputStrategyState.SelectingRow);
 						  break;
 					 default: throw new NotImplementedException(State + "");

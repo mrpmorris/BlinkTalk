@@ -74,5 +74,20 @@ namespace BlinkTalk.Typing
 				HasIndicated = false;
 		  }
 
+		  public void AddSpace()
+		  {
+				InputText.text += " ";
+		  }
+
+		  public void BackSpace()
+		  {
+				if (InputText.text.Length > 0)
+					 InputText.text = InputText.text.Remove(InputText.text.Length - 1);
+		  }
+
+		  public void ClearText()
+		  {
+				InputText.text = "";
+		  }
 	 }
 }

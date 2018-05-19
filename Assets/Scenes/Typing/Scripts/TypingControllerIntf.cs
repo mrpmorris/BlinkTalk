@@ -11,5 +11,8 @@ namespace BlinkTalk.Typing
 		  RectTransform GetKeyHighlighter();
 		  Button GetIndicateButton();
 		  void AddLetter(char letter);
+		  void AddSpace();
+		  void BackSpace();
+		  void ClearText();
 	 }
 }
