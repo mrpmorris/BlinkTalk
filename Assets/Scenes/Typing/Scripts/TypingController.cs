@@ -8,7 +8,6 @@ namespace BlinkTalk.Typing
 {
     public class TypingController : MonoBehaviour, ITypingController
     {
-        public Image Highlighter;
         [Header("Sections")]
         public RectTransform InputSelectionPanel;
         public RectTransform WordSelectionPanel;
@@ -16,13 +15,15 @@ namespace BlinkTalk.Typing
         [Space]
         public ScrollRect KeyboardSelector;
         public Text InputText;
-        public RectTransform KeyHighlighter;
         [Space]
         public Button IndicateButton;
+        public Image Highlighter;
 
         private Stack<IInputStrategy> InputStrategies = new Stack<IInputStrategy>();
-        private RectTransform KeyboardSelectorClientArea;
-        private RectTransform[] KeyboardSelectionGroups;
+        private RectTransform TargetRectTransform;
+        RectTransform ITypingController.GetInputSelectionPanel() => InputSelectionPanel;
+        RectTransform ITypingController.GetWordSelectionPanel() => WordSelectionPanel;
+        RectTransform ITypingController.GetKeyboardSelectionPanel() => KeyboardSelectionPanel;
 
         private void Start()
         {
@@ -33,10 +34,7 @@ namespace BlinkTalk.Typing
             this.EnsureAssigned(x => x.KeyboardSelector);
             this.EnsureAssigned(x => x.InputText);
             this.EnsureAssigned(x => x.IndicateButton).onClick.AddListener(OnIndicateButtonClick);
-            this.EnsureAssigned(x => x.KeyHighlighter);
-
-            KeyboardSelectorClientArea = this.EnsureAssigned(x => x.KeyboardSelector.content);
-            KeyboardSelectionGroups = KeyboardSelectorClientArea.GetChildRectTransforms();
+            this.EnsureAssigned(x => x.Highlighter);
 
             StartInputStrategy<SectionSelectorInputStrategy>();
             StartCoroutine(PulseHighlighter());
@@ -47,6 +45,11 @@ namespace BlinkTalk.Typing
             InputStrategies.Peek().ReceiveIndication();
         }
 
+        public void SetIndicatorRect(RectTransform target)
+        {
+            TargetRectTransform = target;
+        }
+        
         public void StartInputStrategy<TStrategy>()
             where TStrategy : MonoBehaviour, IInputStrategy
         {
@@ -69,8 +72,8 @@ namespace BlinkTalk.Typing
                 Color startColor;
                 Color endColor;
                 float factor;
-                float doubleTime = Time.time * 2;
-                if (doubleTime % 2 < 1)
+                float doubleTime = Time.time % 1f * 2f;
+                if (doubleTime < 1)
                 {
                     startColor = Color.blue;
                     endColor = Color.white;
@@ -82,10 +85,23 @@ namespace BlinkTalk.Typing
                     endColor = Color.blue;
                     factor = doubleTime - 1;
                 }
+
                 Highlighter.color = Color.Lerp(startColor, endColor, factor);
                 yield return new WaitForEndOfFrame();
             }
+        }
 
+        void Update()
+        {
+            if (TargetRectTransform != null)
+            {
+                float lerpAmount = Time.time < Consts.CycleDelay ? 1 : 0.5f;
+                RectTransform highlighterRect = Highlighter.rectTransform;
+                Vector2 position = Vector2.Lerp(highlighterRect.position, TargetRectTransform.position, lerpAmount);
+                Highlighter.rectTransform.position = position;
+                Vector2 size = Vector2.Lerp(highlighterRect.rect.size, TargetRectTransform.rect.size, lerpAmount);
+                highlighterRect.sizeDelta = size;
+            }
         }
 
     }
