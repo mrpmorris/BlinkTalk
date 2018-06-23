@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -97,9 +96,9 @@ namespace BlinkTalk.Typing
             {
                 float lerpAmount = Time.time < Consts.CycleDelay ? 1 : 0.5f;
                 RectTransform highlighterRect = Highlighter.rectTransform;
-                Vector2 position = Vector2.Lerp(highlighterRect.position, TargetRectTransform.position, lerpAmount);
+                var position = Vector2.Lerp(highlighterRect.position, TargetRectTransform.position, lerpAmount);
                 Highlighter.rectTransform.position = position;
-                Vector2 size = Vector2.Lerp(highlighterRect.rect.size, TargetRectTransform.rect.size, lerpAmount);
+                var size = Vector2.Lerp(highlighterRect.rect.size, TargetRectTransform.rect.size, lerpAmount);
                 highlighterRect.sizeDelta = size;
             }
         }

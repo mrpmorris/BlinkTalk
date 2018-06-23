@@ -4,64 +4,48 @@ using UnityEngine;
 
 namespace BlinkTalk.Typing
 {
-    public class SectionSelectorInputStrategy: MonoBehaviour, IInputStrategy
+    public class SectionSelectorInputStrategy : MonoBehaviour, IInputStrategy
     {
         private ITypingController Controller;
         private Coroutine SwitchFocusCoRoutine;
-        private int FocusIndex;
+        private FocusCycler FocusCycler;
 
         void IInputStrategy.Initialize(ITypingController controller)
         {
             Controller = controller;
-            if (SwitchFocusCoRoutine == null)
-            {
-                FocusIndex = 0;
-                SwitchFocusCoRoutine = StartCoroutine(CycleFocus());
-            }
+            if (FocusCycler == null)
+                FocusCycler = new FocusCycler(this, 3, FocusIndexChanged);
+            FocusCycler.Start();
         }
 
         void IInputStrategy.ReceiveIndication()
         {
-            TerminateSwitchFocusCoRoutine();
+            FocusCycler.Stop();
         }
 
         void IInputStrategy.Terminate()
         {
-            TerminateSwitchFocusCoRoutine();
+            FocusCycler.Stop();
         }
 
-        void TerminateSwitchFocusCoRoutine()
+        private void FocusIndexChanged(int focusIndex)
         {
-            if (SwitchFocusCoRoutine != null)
+            RectTransform focusTarget = null;
+            switch (focusIndex)
             {
-                StopCoroutine(SwitchFocusCoRoutine);
-                SwitchFocusCoRoutine = null;
+                case 0:
+                    focusTarget = Controller.GetKeyboardSelectionPanel();
+                    break;
+                case 1:
+                    focusTarget = Controller.GetWordSelectionPanel();
+                    break;
+                case 2:
+                    focusTarget = Controller.GetInputSelectionPanel();
+                    break;
+                default:
+                    throw new NotImplementedException(focusIndex + "");
             }
-        }
-
-        IEnumerator CycleFocus()
-        {
-            while (true)
-            {
-                RectTransform focusTarget = null;
-                switch (FocusIndex)
-                {
-                    case 0:
-                        focusTarget = Controller.GetKeyboardSelectionPanel();
-                        break;
-                    case 1:
-                        focusTarget = Controller.GetWordSelectionPanel();
-                        break;
-                    case 2:
-                        focusTarget = Controller.GetInputSelectionPanel();
-                        break;
-                    default:
-                        throw new NotImplementedException(FocusIndex + "");
-                }
-                Controller.SetIndicatorRect(focusTarget);
-                yield return new WaitForSeconds(Consts.CycleDelay);
-                FocusIndex = (FocusIndex + 1) % 3;
-            }
+            Controller.SetIndicatorRect(focusTarget);
         }
     }
 }
