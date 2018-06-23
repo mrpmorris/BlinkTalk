@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 
 namespace BlinkTalk.Typing
 {
@@ -7,6 +8,7 @@ namespace BlinkTalk.Typing
         RectTransform GetInputSelectionPanel();
         RectTransform GetWordSelectionPanel();
         RectTransform GetKeyboardSelectionPanel();
+        ScrollRect GetKeyboardScrollRect();
 
         void StartInputStrategy<TStrategy>()
             where TStrategy : MonoBehaviour, IInputStrategy;

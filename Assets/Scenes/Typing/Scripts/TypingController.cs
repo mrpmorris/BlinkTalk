@@ -23,6 +23,7 @@ namespace BlinkTalk.Typing
         RectTransform ITypingController.GetInputSelectionPanel() => InputSelectionPanel;
         RectTransform ITypingController.GetWordSelectionPanel() => WordSelectionPanel;
         RectTransform ITypingController.GetKeyboardSelectionPanel() => KeyboardSelectionPanel;
+        ScrollRect ITypingController.GetKeyboardScrollRect() => KeyboardSelector;
 
         private void Start()
         {
@@ -52,6 +53,8 @@ namespace BlinkTalk.Typing
         public void StartInputStrategy<TStrategy>()
             where TStrategy : MonoBehaviour, IInputStrategy
         {
+            if (InputStrategies.Count > 0)
+                InputStrategies.Peek().ChildStrategyActivated();
             TStrategy inputStrategy = gameObject.AddComponent<TStrategy>();
             inputStrategy.Initialize(this);
             InputStrategies.Push(inputStrategy);
@@ -62,6 +65,8 @@ namespace BlinkTalk.Typing
             IInputStrategy inputStrategyToTerminate = InputStrategies.Pop();
             inputStrategyToTerminate.Terminate();
             Destroy((MonoBehaviour)inputStrategyToTerminate);
+            if (InputStrategies.Count > 0)
+                InputStrategies.Peek().Initialize(this);
         }
 
         private IEnumerator PulseHighlighter()
@@ -94,11 +99,10 @@ namespace BlinkTalk.Typing
         {
             if (TargetRectTransform != null)
             {
-                float lerpAmount = Time.time < Consts.CycleDelay ? 1 : 0.5f;
                 RectTransform highlighterRect = Highlighter.rectTransform;
-                var position = Vector2.Lerp(highlighterRect.position, TargetRectTransform.position, lerpAmount);
+                var position = Vector2.Lerp(highlighterRect.position, TargetRectTransform.position, Consts.FocusLerpFactor());
                 Highlighter.rectTransform.position = position;
-                var size = Vector2.Lerp(highlighterRect.rect.size, TargetRectTransform.rect.size, lerpAmount);
+                var size = Vector2.Lerp(highlighterRect.rect.size, TargetRectTransform.rect.size, Consts.FocusLerpFactor());
                 highlighterRect.sizeDelta = size;
             }
         }

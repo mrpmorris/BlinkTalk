@@ -6,8 +6,8 @@ namespace BlinkTalk.Typing
 {
     public class SectionSelectorInputStrategy : MonoBehaviour, IInputStrategy
     {
+        private int FocusIndex;
         private ITypingController Controller;
-        private Coroutine SwitchFocusCoRoutine;
         private FocusCycler FocusCycler;
 
         void IInputStrategy.Initialize(ITypingController controller)
@@ -21,6 +21,21 @@ namespace BlinkTalk.Typing
         void IInputStrategy.ReceiveIndication()
         {
             FocusCycler.Stop();
+            switch (FocusIndex)
+            {
+                case 0:
+                    Controller.StartInputStrategy<KeyboardRowSelectorInput>();
+                    break;
+                case 1:
+                case 2:
+                    break;
+                default: throw new NotImplementedException(FocusIndex + "");
+            }
+        }
+
+        void IInputStrategy.ChildStrategyActivated()
+        {
+            FocusCycler.Stop();
         }
 
         void IInputStrategy.Terminate()
@@ -30,8 +45,9 @@ namespace BlinkTalk.Typing
 
         private void FocusIndexChanged(int focusIndex)
         {
+            FocusIndex = focusIndex;
             RectTransform focusTarget = null;
-            switch (focusIndex)
+            switch (FocusIndex)
             {
                 case 0:
                     focusTarget = Controller.GetKeyboardSelectionPanel();
