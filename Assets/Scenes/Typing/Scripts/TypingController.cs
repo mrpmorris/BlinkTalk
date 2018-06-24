@@ -20,6 +20,7 @@ namespace BlinkTalk.Typing
 
         private Stack<IInputStrategy> InputStrategies = new Stack<IInputStrategy>();
         private RectTransform TargetRectTransform;
+        private Color[] IndicatorColors = new Color[] { Color.blue, Color.green, Color.magenta, Color.yellow };
         RectTransform ITypingController.GetInputSelectionPanel() => InputSelectionPanel;
         RectTransform ITypingController.GetWordSelectionPanel() => WordSelectionPanel;
         RectTransform ITypingController.GetKeyboardSelectionPanel() => KeyboardSelectionPanel;
@@ -53,6 +54,8 @@ namespace BlinkTalk.Typing
         public TStrategy StartInputStrategy<TStrategy>()
             where TStrategy : MonoBehaviour, IInputStrategy
         {
+            ResetHighlighterPosition();
+
             TStrategy inputStrategy = gameObject.AddComponent<TStrategy>();
             if (InputStrategies.Count > 0)
                 InputStrategies.Peek().ChildStrategyActivated(inputStrategy);
@@ -68,28 +71,34 @@ namespace BlinkTalk.Typing
             Destroy((MonoBehaviour)inputStrategyToTerminate);
             if (InputStrategies.Count > 0)
                 InputStrategies.Peek().Initialize(this);
-            Highlighter.rectTransform.position = new Vector2(-480, -240);
-            Highlighter.rectTransform.sizeDelta = new Vector2(960, 480);
+            ResetHighlighterPosition();
+        }
+
+        private void ResetHighlighterPosition()
+        {
+            Highlighter.rectTransform.localPosition = new Vector2(-480, -320);
+            Highlighter.rectTransform.sizeDelta = new Vector2(960, 640);
         }
 
         private IEnumerator PulseHighlighter()
         {
             while (true)
             {
+                Color colorFromInputDepth = IndicatorColors[InputStrategies.Count - 1];
                 Color startColor;
                 Color endColor;
                 float factor;
                 float doubleTime = Time.time % 1f * 2f;
                 if (doubleTime < 1)
                 {
-                    startColor = Color.blue;
+                    startColor = colorFromInputDepth;
                     endColor = Color.white;
                     factor = doubleTime;
                 }
                 else
                 {
                     startColor = Color.white;
-                    endColor = Color.blue;
+                    endColor = colorFromInputDepth;
                     factor = doubleTime - 1;
                 }
 
