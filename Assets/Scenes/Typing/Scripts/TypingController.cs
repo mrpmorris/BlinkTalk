@@ -12,7 +12,7 @@ namespace BlinkTalk.Typing
         public RectTransform WordSelectionPanel;
         public RectTransform KeyboardSelectionPanel;
         [Space]
-        public ScrollRect KeyboardSelector;
+        public RectTransform KeyboardSelectorClientArea;
         public Text InputText;
         [Space]
         public Button IndicateButton;
@@ -23,7 +23,7 @@ namespace BlinkTalk.Typing
         RectTransform ITypingController.GetInputSelectionPanel() => InputSelectionPanel;
         RectTransform ITypingController.GetWordSelectionPanel() => WordSelectionPanel;
         RectTransform ITypingController.GetKeyboardSelectionPanel() => KeyboardSelectionPanel;
-        ScrollRect ITypingController.GetKeyboardScrollRect() => KeyboardSelector;
+        RectTransform ITypingController.GetKeyboardSelectorClientArea() => KeyboardSelectorClientArea;
 
         private void Start()
         {
@@ -31,7 +31,7 @@ namespace BlinkTalk.Typing
             this.EnsureAssigned(x => x.InputSelectionPanel);
             this.EnsureAssigned(x => x.WordSelectionPanel);
             this.EnsureAssigned(x => x.KeyboardSelectionPanel);
-            this.EnsureAssigned(x => x.KeyboardSelector);
+            this.EnsureAssigned(x => x.KeyboardSelectorClientArea);
             this.EnsureAssigned(x => x.InputText);
             this.EnsureAssigned(x => x.IndicateButton).onClick.AddListener(OnIndicateButtonClick);
             this.EnsureAssigned(x => x.Highlighter);

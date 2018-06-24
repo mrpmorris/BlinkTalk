@@ -18,12 +18,12 @@ namespace BlinkTalk.Typing
         {
             Controller = controller;
             ClientArea = Controller
-                .GetKeyboardScrollRect()
+                .GetKeyboardSelectorClientArea()
                 .GetComponentInChildren<VerticalLayoutGroup>()
                 .GetComponent<RectTransform>();
             this.EnsureAssigned(x => x.ClientArea);
             Rows = Controller
-                .GetKeyboardScrollRect()
+                .GetKeyboardSelectorClientArea()
                 .GetComponentsInChildren<HorizontalLayoutGroup>()
                 .Select(x => x.GetComponent<RectTransform>())
                 .ToArray();
@@ -51,7 +51,7 @@ namespace BlinkTalk.Typing
         private void FocusIndexChanged(int focusIndex)
         {
             FocusedRow = Rows[focusIndex];
-            TargetScrollPosition = Controller.GetKeyboardScrollRect().GetSnapToPositionToBringChildIntoView(FocusedRow).y;
+            TargetScrollPosition = 0 - FocusedRow.localPosition.y + FocusedRow.sizeDelta.y / 2;
             FocusChangeCount++;
             if (FocusChangeCount > Rows.Length + 1)
                 Controller.InputStrategyFinished();
@@ -59,6 +59,7 @@ namespace BlinkTalk.Typing
 
         void Update()
         {
+            Debug.Log("y = " + TargetScrollPosition);
             float x = ClientArea.position.x;
             float y = Mathf.Lerp(ClientArea.position.y, TargetScrollPosition, Consts.FocusLerpFactor());
             ClientArea.position = new Vector2(x, y);
