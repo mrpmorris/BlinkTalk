@@ -14,5 +14,6 @@ namespace BlinkTalk.Typing
             where TStrategy : MonoBehaviour, IInputStrategy;
         void InputStrategyFinished();
         void SetIndicatorRect(RectTransform target);
+        void ReceiveKeyPress(KeyCode keyCode);
     }
 }

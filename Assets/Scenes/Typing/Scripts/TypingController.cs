@@ -119,5 +119,9 @@ namespace BlinkTalk.Typing
             }
         }
 
+        public void ReceiveKeyPress(KeyCode keyCode)
+        {
+            Debug.Log("KeyPress " + keyCode);
+        }
     }
 }

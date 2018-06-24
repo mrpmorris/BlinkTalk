@@ -6,6 +6,7 @@ namespace BlinkTalk.Typing
     public class KeyboardColumnSelectorInputStrategy : MonoBehaviour, IKeyboardColumnSelectorInputStrategy
     {
         private ITypingController Controller;
+        private KeyboardKey FocusedKeyboardKey;
         private RectTransform[] KeyRectTransforms;
         private FocusCycler FocusCycler;
         private int FocusChangeCount;
@@ -27,6 +28,8 @@ namespace BlinkTalk.Typing
         void IInputStrategy.ReceiveIndication()
         {
             FocusCycler.Stop();
+            Controller.ReceiveKeyPress(FocusedKeyboardKey.KeyCode);
+            Controller.InputStrategyFinished();
         }
 
         void IInputStrategy.ChildStrategyActivated(IInputStrategy childStrategy)
@@ -40,6 +43,7 @@ namespace BlinkTalk.Typing
 
         void FocusIndexChanged(int focusIndex)
         {
+            FocusedKeyboardKey = KeyRectTransforms[focusIndex].GetComponent<KeyboardKey>();
             Controller.SetIndicatorRect(KeyRectTransforms[focusIndex]);
             FocusChangeCount++;
             if (FocusChangeCount > KeyRectTransforms.Length + 2)

@@ -63,7 +63,6 @@ namespace BlinkTalk.Typing
 
         void Update()
         {
-            Debug.Log("y = " + TargetScrollPosition);
             float x = ClientArea.position.x;
             float y = Mathf.Lerp(ClientArea.position.y, TargetScrollPosition, Consts.FocusLerpFactor());
             ClientArea.position = new Vector2(x, y);
