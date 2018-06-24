@@ -33,7 +33,7 @@ namespace BlinkTalk.Typing
             }
         }
 
-        void IInputStrategy.ChildStrategyActivated()
+        void IInputStrategy.ChildStrategyActivated(IInputStrategy inputStrategy)
         {
             FocusCycler.Stop();
         }

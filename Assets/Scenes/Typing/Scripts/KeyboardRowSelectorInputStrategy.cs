@@ -31,14 +31,18 @@ namespace BlinkTalk.Typing
                 FocusCycler = new FocusCycler(this, Rows.Length, FocusIndexChanged);
             FocusChangeCount = 0;
             FocusCycler.Start();
+            Controller.SetIndicatorRect(Controller.GetKeyboardSelectionPanel());
         }
 
         void IInputStrategy.ReceiveIndication()
         {
             FocusCycler.Stop();
+            IKeyboardColumnSelectorInputStrategy columnSelectorInputStrategy =
+                Controller.StartInputStrategy<KeyboardColumnSelectorInputStrategy>();
+            columnSelectorInputStrategy.SetActiveRow(FocusedRow);
         }
 
-        void IInputStrategy.ChildStrategyActivated()
+        void IInputStrategy.ChildStrategyActivated(IInputStrategy inputStrategy)
         {
             FocusCycler.Stop();
         }

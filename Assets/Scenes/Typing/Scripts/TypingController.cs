@@ -50,14 +50,15 @@ namespace BlinkTalk.Typing
             TargetRectTransform = target;
         }
         
-        public void StartInputStrategy<TStrategy>()
+        public TStrategy StartInputStrategy<TStrategy>()
             where TStrategy : MonoBehaviour, IInputStrategy
         {
-            if (InputStrategies.Count > 0)
-                InputStrategies.Peek().ChildStrategyActivated();
             TStrategy inputStrategy = gameObject.AddComponent<TStrategy>();
+            if (InputStrategies.Count > 0)
+                InputStrategies.Peek().ChildStrategyActivated(inputStrategy);
             inputStrategy.Initialize(this);
             InputStrategies.Push(inputStrategy);
+            return inputStrategy;
         }
 
         public void InputStrategyFinished()
@@ -67,6 +68,8 @@ namespace BlinkTalk.Typing
             Destroy((MonoBehaviour)inputStrategyToTerminate);
             if (InputStrategies.Count > 0)
                 InputStrategies.Peek().Initialize(this);
+            Highlighter.rectTransform.position = new Vector2(-480, -240);
+            Highlighter.rectTransform.sizeDelta = new Vector2(960, 480);
         }
 
         private IEnumerator PulseHighlighter()

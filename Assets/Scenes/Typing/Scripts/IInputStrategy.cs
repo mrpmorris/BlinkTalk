@@ -5,7 +5,7 @@ namespace BlinkTalk.Typing
     public interface IInputStrategy
     {
         void Initialize(ITypingController controller);
-        void ChildStrategyActivated();
+        void ChildStrategyActivated(IInputStrategy inputStrategy);
         void ReceiveIndication();
         void Terminate();
     }
