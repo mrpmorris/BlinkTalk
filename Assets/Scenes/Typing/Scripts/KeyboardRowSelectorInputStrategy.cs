@@ -55,7 +55,7 @@ namespace BlinkTalk.Typing
         private void FocusIndexChanged(int focusIndex)
         {
             FocusedRow = Rows[focusIndex];
-            TargetScrollPosition = 0 - FocusedRow.localPosition.y + FocusedRow.sizeDelta.y / 2;
+            TargetScrollPosition = (focusIndex + 1) * 115 - 7;
             FocusChangeCount++;
             if (FocusChangeCount > Rows.Length + 1)
                 Controller.InputStrategyFinished();

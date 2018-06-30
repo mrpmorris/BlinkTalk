@@ -18,6 +18,7 @@ namespace BlinkTalk.Typing
         public Button IndicateButton;
         public Image Highlighter;
 
+        private SentenceBuilder SentenceBuilder = new SentenceBuilder();
         private Stack<IInputStrategy> InputStrategies = new Stack<IInputStrategy>();
         private RectTransform TargetRectTransform;
         private Color[] IndicatorColors = new Color[] { Color.blue, Color.green, Color.magenta, Color.yellow };
@@ -121,7 +122,8 @@ namespace BlinkTalk.Typing
 
         public void ReceiveKeyPress(KeyCode keyCode)
         {
-            Debug.Log("KeyPress " + keyCode);
+            SentenceBuilder.Input(keyCode);
+            InputText.text = SentenceBuilder.ToString();
         }
     }
 }
