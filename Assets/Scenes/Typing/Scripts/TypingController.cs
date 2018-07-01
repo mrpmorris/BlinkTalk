@@ -11,12 +11,13 @@ namespace BlinkTalk.Typing
         public RectTransform InputSelectionPanel;
         public RectTransform WordSelectionPanel;
         public RectTransform KeyboardSelectionPanel;
-        [Space]
+        [Header("Keyboard")]
+        public ScrollRect KeyboardSelector;
         public RectTransform KeyboardSelectorClientArea;
-        public Text InputText;
         [Space]
         public Button IndicateButton;
         public Image Highlighter;
+        public Text InputText;
 
         private SentenceBuilder SentenceBuilder = new SentenceBuilder();
         private Stack<IInputStrategy> InputStrategies = new Stack<IInputStrategy>();
@@ -25,7 +26,9 @@ namespace BlinkTalk.Typing
         RectTransform ITypingController.GetInputSelectionPanel() => InputSelectionPanel;
         RectTransform ITypingController.GetWordSelectionPanel() => WordSelectionPanel;
         RectTransform ITypingController.GetKeyboardSelectionPanel() => KeyboardSelectionPanel;
+        ScrollRect ITypingController.GetKeyboardSelector() => KeyboardSelector;
         RectTransform ITypingController.GetKeyboardSelectorClientArea() => KeyboardSelectorClientArea;
+        public string GetSpokenText() => SentenceBuilder.ToString();
 
         private void Start()
         {
@@ -33,6 +36,7 @@ namespace BlinkTalk.Typing
             this.EnsureAssigned(x => x.InputSelectionPanel);
             this.EnsureAssigned(x => x.WordSelectionPanel);
             this.EnsureAssigned(x => x.KeyboardSelectionPanel);
+            this.EnsureAssigned(x => x.KeyboardSelector);
             this.EnsureAssigned(x => x.KeyboardSelectorClientArea);
             this.EnsureAssigned(x => x.InputText);
             this.EnsureAssigned(x => x.IndicateButton).onClick.AddListener(OnIndicateButtonClick);
@@ -40,6 +44,8 @@ namespace BlinkTalk.Typing
 
             StartInputStrategy<SectionSelectorInputStrategy>();
             StartCoroutine(PulseHighlighter());
+            UpdateDisplayText();
+            TextToSpeech.Speak("Blink talk");
         }
 
         private void OnIndicateButtonClick()
@@ -68,7 +74,7 @@ namespace BlinkTalk.Typing
         public void InputStrategyFinished()
         {
             IInputStrategy inputStrategyToTerminate = InputStrategies.Pop();
-            inputStrategyToTerminate.Terminate();
+            inputStrategyToTerminate.Terminated();
             Destroy((MonoBehaviour)inputStrategyToTerminate);
             if (InputStrategies.Count > 0)
                 InputStrategies.Peek().Initialize(this);
@@ -123,7 +129,12 @@ namespace BlinkTalk.Typing
         public void ReceiveKeyPress(KeyCode keyCode)
         {
             SentenceBuilder.Input(keyCode);
-            InputText.text = SentenceBuilder.ToString();
+            UpdateDisplayText();
+        }
+
+        private void UpdateDisplayText()
+        {
+            InputText.text = GetSpokenText();
         }
     }
 }

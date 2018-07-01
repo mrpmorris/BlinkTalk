@@ -36,7 +36,7 @@ namespace BlinkTalk.Typing
         {
         }
 
-        void IInputStrategy.Terminate()
+        void IInputStrategy.Terminated()
         {
             FocusCycler.Stop();
         }

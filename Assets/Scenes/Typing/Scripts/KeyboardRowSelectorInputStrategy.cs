@@ -9,7 +9,9 @@ namespace BlinkTalk.Typing
         private ITypingController Controller;
         private RectTransform FocusedRow;
         private RectTransform[] Rows;
+        private float[] RowPositions;
         private FocusCycler FocusCycler;
+        private ScrollRect KeyboardSelector;
         private RectTransform ClientArea;
         private float TargetScrollPosition;
         private int FocusChangeCount;
@@ -17,9 +19,9 @@ namespace BlinkTalk.Typing
         void IInputStrategy.Initialize(ITypingController controller)
         {
             Controller = controller;
+            KeyboardSelector = controller.GetKeyboardSelector();
             ClientArea = Controller
                 .GetKeyboardSelectorClientArea()
-                .GetComponentInChildren<VerticalLayoutGroup>()
                 .GetComponent<RectTransform>();
             this.EnsureAssigned(x => x.ClientArea);
             Rows = Controller
@@ -27,6 +29,7 @@ namespace BlinkTalk.Typing
                 .GetComponentsInChildren<HorizontalLayoutGroup>()
                 .Select(x => x.GetComponent<RectTransform>())
                 .ToArray();
+            RowPositions = RowPositions ?? Rows.Select(x => x.localPosition.y).ToArray();
             if (FocusCycler == null)
                 FocusCycler = new FocusCycler(this, Rows.Length, FocusIndexChanged);
             FocusChangeCount = 0;
@@ -47,7 +50,7 @@ namespace BlinkTalk.Typing
             FocusCycler.Stop();
         }
 
-        void IInputStrategy.Terminate()
+        void IInputStrategy.Terminated()
         {
             FocusCycler.Stop();
         }
@@ -55,7 +58,11 @@ namespace BlinkTalk.Typing
         private void FocusIndexChanged(int focusIndex)
         {
             FocusedRow = Rows[focusIndex];
-            TargetScrollPosition = (focusIndex + 1) * 115 - 7;
+            Canvas.ForceUpdateCanvases();
+            Vector2 targetVector = 
+                (Vector2)KeyboardSelector.transform.InverseTransformPoint(ClientArea.position)
+                - (Vector2)KeyboardSelector.transform.InverseTransformPoint(FocusedRow.position);
+            TargetScrollPosition = targetVector.y - FocusedRow.sizeDelta.y / 2;
             FocusChangeCount++;
             if (FocusChangeCount > Rows.Length + 1)
                 Controller.InputStrategyFinished();
@@ -63,9 +70,9 @@ namespace BlinkTalk.Typing
 
         void Update()
         {
-            float x = ClientArea.position.x;
-            float y = Mathf.Lerp(ClientArea.position.y, TargetScrollPosition, Consts.FocusLerpFactor());
-            ClientArea.position = new Vector2(x, y);
+            float x = ClientArea.anchoredPosition.x;
+            float y = Mathf.Lerp(ClientArea.anchoredPosition.y, TargetScrollPosition, Consts.FocusLerpFactor());
+            ClientArea.anchoredPosition = new Vector2(x, y);
         }
     }
 }

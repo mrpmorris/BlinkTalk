@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using UnityEngine;
 
 namespace BlinkTalk.Typing
@@ -20,14 +19,16 @@ namespace BlinkTalk.Typing
 
         void IInputStrategy.ReceiveIndication()
         {
-            FocusCycler.Stop();
             switch (FocusIndex)
             {
                 case 0:
+                    FocusCycler.Stop();
                     Controller.StartInputStrategy<KeyboardRowSelectorInput>();
                     break;
                 case 1:
+                    break;
                 case 2:
+                    TextToSpeech.Speak(Controller.GetSpokenText());
                     break;
                 default: throw new NotImplementedException(FocusIndex + "");
             }
@@ -38,7 +39,7 @@ namespace BlinkTalk.Typing
             FocusCycler.Stop();
         }
 
-        void IInputStrategy.Terminate()
+        void IInputStrategy.Terminated()
         {
             FocusCycler.Stop();
         }

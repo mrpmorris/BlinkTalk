@@ -54,6 +54,14 @@ namespace BlinkTalk.Typing
                 { KeyCode.Exclaim, '!' },
                 { KeyCode.Question, '?' }
             };
+            //TODO: PeteM - DB
+            {
+                Words = new List<string>
+                {
+                    "THIS", "IS", "A"
+                };
+                CurrentWord = "TEST";
+            }
         }
 
         public void Clear()
