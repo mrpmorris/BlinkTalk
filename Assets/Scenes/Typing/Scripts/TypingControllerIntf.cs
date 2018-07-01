@@ -10,12 +10,11 @@ namespace BlinkTalk.Typing
         RectTransform GetKeyboardSelectionPanel();
         ScrollRect GetKeyboardSelector();
         RectTransform GetKeyboardSelectorClientArea();
-        string GetSpokenText();
+        SentenceBuilder GetSentenceBuilder();
 
         TStrategy StartInputStrategy<TStrategy>()
             where TStrategy : MonoBehaviour, IInputStrategy;
         void InputStrategyFinished();
         void SetIndicatorRect(RectTransform target);
-        void ReceiveKeyPress(KeyCode keyCode);
     }
 }

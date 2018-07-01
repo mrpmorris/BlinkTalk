@@ -28,7 +28,12 @@ namespace BlinkTalk.Typing
         RectTransform ITypingController.GetKeyboardSelectionPanel() => KeyboardSelectionPanel;
         ScrollRect ITypingController.GetKeyboardSelector() => KeyboardSelector;
         RectTransform ITypingController.GetKeyboardSelectorClientArea() => KeyboardSelectorClientArea;
-        public string GetSpokenText() => SentenceBuilder.ToString();
+        public SentenceBuilder GetSentenceBuilder() => SentenceBuilder;
+
+        public TypingController()
+        {
+            SentenceBuilder.ViewModelChanged += (s, e) => UpdateDisplayText();
+        }
 
         private void Start()
         {
@@ -134,7 +139,8 @@ namespace BlinkTalk.Typing
 
         private void UpdateDisplayText()
         {
-            InputText.text = GetSpokenText();
+            InputText.text = SentenceBuilder.ToString();
+            InputText.color = SentenceBuilder.ShouldClearOnNextInput ? Color.gray : Color.white;
         }
     }
 }

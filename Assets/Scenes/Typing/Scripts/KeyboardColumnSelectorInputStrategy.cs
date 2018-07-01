@@ -10,10 +10,12 @@ namespace BlinkTalk.Typing
         private RectTransform[] KeyRectTransforms;
         private FocusCycler FocusCycler;
         private int FocusChangeCount;
+        private SentenceBuilder SentenceBuilder;
 
         void IInputStrategy.Initialize(ITypingController controller)
         {
             Controller = controller;
+            SentenceBuilder = Controller.GetSentenceBuilder();
             FocusChangeCount = 0;
         }
 
@@ -28,7 +30,7 @@ namespace BlinkTalk.Typing
         void IInputStrategy.ReceiveIndication()
         {
             FocusCycler.Stop();
-            Controller.ReceiveKeyPress(FocusedKeyboardKey.KeyCode);
+            SentenceBuilder.Input(FocusedKeyboardKey.KeyCode);
             Controller.InputStrategyFinished();
         }
 

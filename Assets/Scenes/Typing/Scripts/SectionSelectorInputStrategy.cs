@@ -8,10 +8,12 @@ namespace BlinkTalk.Typing
         private int FocusIndex;
         private ITypingController Controller;
         private FocusCycler FocusCycler;
+        private SentenceBuilder SentenceBuilder;
 
         void IInputStrategy.Initialize(ITypingController controller)
         {
             Controller = controller;
+            SentenceBuilder = controller.GetSentenceBuilder();
             if (FocusCycler == null)
                 FocusCycler = new FocusCycler(this, 3, FocusIndexChanged);
             FocusCycler.Start();
@@ -28,7 +30,8 @@ namespace BlinkTalk.Typing
                 case 1:
                     break;
                 case 2:
-                    TextToSpeech.Speak(Controller.GetSpokenText());
+                    TextToSpeech.Speak(SentenceBuilder.ToString());
+                    SentenceBuilder.ClearOnNextInput();
                     break;
                 default: throw new NotImplementedException(FocusIndex + "");
             }

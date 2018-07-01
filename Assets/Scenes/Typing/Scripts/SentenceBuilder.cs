@@ -1,12 +1,16 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace BlinkTalk.Typing
 {
     public class SentenceBuilder
     {
-        private List<string> Words = new List<string>();
+        public event EventHandler<EventArgs> ViewModelChanged;
+        public bool ShouldClearOnNextInput { get; private set; }
+
         private string CurrentWord = "";
+        private List<string> Words = new List<string>();
         private Dictionary<KeyCode, char> CharsByKeyCode;
 
         public SentenceBuilder()
@@ -64,14 +68,22 @@ namespace BlinkTalk.Typing
             }
         }
 
+        public void ClearOnNextInput()
+        {
+            ShouldClearOnNextInput = true;
+            DoViewModelChanged();
+        }
+
         public void Clear()
         {
             Words.Clear();
             CurrentWord = "";
+            DoViewModelChanged();
         }
 
         public void Input(KeyCode keyCode)
         {
+            CheckForClearOnInput();
             switch (keyCode)
             {
                 case KeyCode.Space:
@@ -84,12 +96,15 @@ namespace BlinkTalk.Typing
                     CurrentWord += CharsByKeyCode[keyCode];
                     break;
             }
+            DoViewModelChanged();
         }
 
         public void PushWord(string word)
         {
+            CheckForClearOnInput();
             CurrentWord = word;
             PushCurrentWord();
+            DoViewModelChanged();
         }
 
         public override string ToString()
@@ -98,6 +113,13 @@ namespace BlinkTalk.Typing
             if (!string.IsNullOrEmpty(CurrentWord))
                 result += " " + CurrentWord;
             return result;
+        }
+
+        private void CheckForClearOnInput()
+        {
+            if (ShouldClearOnNextInput)
+                Clear();
+            ShouldClearOnNextInput = false;
         }
 
         private void PushCurrentWord()
@@ -115,6 +137,7 @@ namespace BlinkTalk.Typing
                 CurrentWord = CurrentWord.Substring(0, CurrentWord.Length - 1);
             else
                 PopWord();
+            DoViewModelChanged();
         }
 
         private void PopWord()
@@ -122,6 +145,11 @@ namespace BlinkTalk.Typing
             if (Words.Count == 0)
                 return;
             Words.RemoveAt(Words.Count - 1);
+        }
+
+        private void DoViewModelChanged()
+        {
+            ViewModelChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 }
