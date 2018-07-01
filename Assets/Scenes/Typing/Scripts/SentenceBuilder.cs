@@ -10,12 +10,16 @@ namespace BlinkTalk.Typing
         public bool ShouldClearOnNextInput { get; private set; }
 
         private string CurrentWord = "";
+        private AutoMigratingDatabase Database;
         private List<string> Words = new List<string>();
         private Dictionary<KeyCode, char> CharsByKeyCode;
 
-        public SentenceBuilder()
+        public void Initialize()
         {
-            CharsByKeyCode = new Dictionary<KeyCode, char>
+            if (Database == null)
+            {
+                Database = new AutoMigratingDatabase("English.db");
+                CharsByKeyCode = new Dictionary<KeyCode, char>
             {
                 { KeyCode.A, 'A' },
                 { KeyCode.B, 'B' },
@@ -58,13 +62,6 @@ namespace BlinkTalk.Typing
                 { KeyCode.Exclaim, '!' },
                 { KeyCode.Question, '?' }
             };
-            //TODO: PeteM - DB
-            {
-                Words = new List<string>
-                {
-                    "THIS", "IS", "A"
-                };
-                CurrentWord = "TEST";
             }
         }
 
