@@ -47,13 +47,12 @@ namespace BlinkTalk.Typing
             this.EnsureAssigned(x => x.IndicateButton).onClick.AddListener(OnIndicateButtonClick);
             this.EnsureAssigned(x => x.Highlighter);
 
+            Persistence.PersistenceService.Initialize("English");
             SentenceBuilder.Initialize();
             StartInputStrategy<SectionSelectorInputStrategy>();
             StartCoroutine(PulseHighlighter());
             UpdateDisplayText();
             TextToSpeech.Speak("Blink talk");
-
-            Persistence.PersistenceService.Initialize("English");
         }
 
         private void OnIndicateButtonClick()

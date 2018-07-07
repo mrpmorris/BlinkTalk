@@ -10,7 +10,9 @@ namespace BlinkTalk.Typing
     {
         public event EventHandler<EventArgs> ViewModelChanged;
         public bool ShouldClearOnNextInput { get; private set; }
+        public IEnumerable<string> SuggestedWords { get; private set; }
 
+        private const int NumberOfSuggestedWords = 8;
         private string CurrentWord = "";
         private List<KeyValuePair<int, string>> Words = new List<KeyValuePair<int, string>>();
         private Dictionary<KeyCode, char> CharsByKeyCode;
@@ -60,6 +62,7 @@ namespace BlinkTalk.Typing
                 { KeyCode.Exclaim, '!' },
                 { KeyCode.Question, '?' }
             };
+            GetWordSuggestions();
         }
 
         public void ClearOnNextInput()
@@ -139,7 +142,19 @@ namespace BlinkTalk.Typing
 
         private void DoViewModelChanged()
         {
+            GetWordSuggestions();
             ViewModelChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void GetWordSuggestions()
+        {
+            List<string> result = PhraseService.GetWordSuggestions(Words.Select(x => x.Key), CurrentWord, NumberOfSuggestedWords);
+            if (result.Count < NumberOfSuggestedWords)
+            {
+                List<string> suggestionsFromDictionary = WordService.GetWordSuggestions(CurrentWord, NumberOfSuggestedWords);
+                result.AddRange(suggestionsFromDictionary);
+            }
+            SuggestedWords = result.Distinct().Take(NumberOfSuggestedWords);
         }
     }
 }

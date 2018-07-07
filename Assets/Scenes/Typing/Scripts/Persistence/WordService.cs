@@ -1,4 +1,7 @@
-﻿namespace BlinkTalk.Typing.Persistence
+﻿using System.Collections.Generic;
+using System.Linq;
+
+namespace BlinkTalk.Typing.Persistence
 {
     public static class WordService
     {
@@ -18,6 +21,15 @@
         {
             string sql = $"Update Words set UserSelectionCount = UserSelectionCount - 1 where ID = '{wordId}'";
             PersistenceService.DB.ExecuteNonQuery(sql);
+        }
+
+        public static List<string> GetWordSuggestions(string currentWord, int numberOfWords)
+        {
+            currentWord = (currentWord ?? "").ToLowerInvariant();
+            string conditions = string.IsNullOrEmpty(currentWord) ? "" : $"where Word like '{currentWord}%'";
+            string sql = $"Select Word from Words {conditions} order by UserSelectionCount desc, LanguageUsageCount desc limit {numberOfWords}";
+            DataTable data = PersistenceService.DB.ExecuteQuery(sql);
+            return data.Rows.Select(x => (string)x["Word"]).ToList();
         }
 
         private static int GetWordId(string word)
