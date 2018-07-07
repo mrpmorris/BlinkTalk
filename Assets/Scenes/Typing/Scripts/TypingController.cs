@@ -14,6 +14,8 @@ namespace BlinkTalk.Typing
         [Header("Keyboard")]
         public ScrollRect KeyboardSelector;
         public RectTransform KeyboardSelectorClientArea;
+        [Header("Prefabs")]
+        public GameObject WordSuggestionPrefab;
         [Space]
         public Button IndicateButton;
         public Image Highlighter;
@@ -143,6 +145,15 @@ namespace BlinkTalk.Typing
         {
             InputText.text = SentenceBuilder.ToString();
             InputText.color = SentenceBuilder.ShouldClearOnNextInput ? Color.gray : Color.white;
+            foreach (GameObject gameObject in WordSelectionPanel.GetChildGameObjects())
+                Object.Destroy(gameObject);
+            foreach(string suggestedWord in SentenceBuilder.SuggestedWords)
+            {
+                GameObject presenterGameObject = Instantiate(WordSuggestionPrefab);
+                WordSuggestionPresenter presenter = presenterGameObject.GetComponent<WordSuggestionPresenter>();
+                presenter.Word = suggestedWord;
+                presenter.transform.parent = WordSelectionPanel.transform;
+            }
         }
     }
 }

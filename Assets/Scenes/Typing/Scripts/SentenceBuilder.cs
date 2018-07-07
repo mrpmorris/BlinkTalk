@@ -12,7 +12,7 @@ namespace BlinkTalk.Typing
         public bool ShouldClearOnNextInput { get; private set; }
         public IEnumerable<string> SuggestedWords { get; private set; }
 
-        private const int NumberOfSuggestedWords = 8;
+        private const int NumberOfSuggestedWords = 6;
         private string CurrentWord = "";
         private List<KeyValuePair<int, string>> Words = new List<KeyValuePair<int, string>>();
         private Dictionary<KeyCode, char> CharsByKeyCode;
