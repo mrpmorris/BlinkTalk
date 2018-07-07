@@ -52,6 +52,8 @@ namespace BlinkTalk.Typing
             StartCoroutine(PulseHighlighter());
             UpdateDisplayText();
             TextToSpeech.Speak("Blink talk");
+
+            Persistence.PersistenceService.Initialize("English");
         }
 
         private void OnIndicateButtonClick()

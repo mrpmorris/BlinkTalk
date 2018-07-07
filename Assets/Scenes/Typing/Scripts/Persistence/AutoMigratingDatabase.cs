@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BlinkTalk.Typing
+namespace BlinkTalk.Typing.Persistence
 {
     public class AutoMigratingDatabase : SqliteDatabase
     {

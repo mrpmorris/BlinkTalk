@@ -1,5 +1,7 @@
-﻿using System;
+﻿using BlinkTalk.Typing.Persistence;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace BlinkTalk.Typing
@@ -10,16 +12,12 @@ namespace BlinkTalk.Typing
         public bool ShouldClearOnNextInput { get; private set; }
 
         private string CurrentWord = "";
-        private AutoMigratingDatabase Database;
-        private List<string> Words = new List<string>();
+        private List<KeyValuePair<int, string>> Words = new List<KeyValuePair<int, string>>();
         private Dictionary<KeyCode, char> CharsByKeyCode;
 
         public void Initialize()
         {
-            if (Database == null)
-            {
-                Database = new AutoMigratingDatabase("English.db");
-                CharsByKeyCode = new Dictionary<KeyCode, char>
+            CharsByKeyCode = new Dictionary<KeyCode, char>
             {
                 { KeyCode.A, 'A' },
                 { KeyCode.B, 'B' },
@@ -62,7 +60,6 @@ namespace BlinkTalk.Typing
                 { KeyCode.Exclaim, '!' },
                 { KeyCode.Question, '?' }
             };
-            }
         }
 
         public void ClearOnNextInput()
@@ -96,17 +93,9 @@ namespace BlinkTalk.Typing
             DoViewModelChanged();
         }
 
-        public void PushWord(string word)
-        {
-            CheckForClearOnInput();
-            CurrentWord = word;
-            PushCurrentWord();
-            DoViewModelChanged();
-        }
-
         public override string ToString()
         {
-            string result = string.Join(" ", Words);
+            string result = string.Join(" ", Words.Select(x => x.Value));
             if (!string.IsNullOrEmpty(CurrentWord))
                 result += " " + CurrentWord;
             return result;
@@ -123,7 +112,9 @@ namespace BlinkTalk.Typing
         {
             if (!string.IsNullOrEmpty(CurrentWord))
             {
-                Words.Add(CurrentWord);
+                int wordId;
+                WordService.IncreaseWordUsage(CurrentWord, out wordId);
+                Words.Add(new KeyValuePair<int, string>(wordId, CurrentWord));
                 CurrentWord = "";
             }
         }
@@ -141,7 +132,9 @@ namespace BlinkTalk.Typing
         {
             if (Words.Count == 0)
                 return;
+            KeyValuePair<int, string> wordInfo = Words[Words.Count - 1];
             Words.RemoveAt(Words.Count - 1);
+            WordService.DecreaseWordUsage(wordInfo.Key);
         }
 
         private void DoViewModelChanged()
