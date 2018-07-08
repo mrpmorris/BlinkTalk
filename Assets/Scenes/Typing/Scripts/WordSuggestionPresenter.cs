@@ -10,7 +10,7 @@ namespace BlinkTalk.Typing
         public string Word
         {
             get { return TextUI.text; }
-            set { TextUI.text = value; }
+            set { TextUI.text = value.ToUpperInvariant(); }
         }
 
         private void OnEnable()

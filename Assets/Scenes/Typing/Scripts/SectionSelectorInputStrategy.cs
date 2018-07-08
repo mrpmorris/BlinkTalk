@@ -30,8 +30,8 @@ namespace BlinkTalk.Typing
                 case 1:
                     break;
                 case 2:
-                    TextToSpeech.Speak(SentenceBuilder.ToString());
-                    SentenceBuilder.ClearOnNextInput();
+                    string sentence = SentenceBuilder.Commit();
+                    TextToSpeech.Speak(sentence);
                     break;
                 default: throw new NotImplementedException(FocusIndex + "");
             }

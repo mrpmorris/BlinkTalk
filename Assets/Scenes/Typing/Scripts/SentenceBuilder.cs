@@ -65,19 +65,6 @@ namespace BlinkTalk.Typing
             GetWordSuggestions();
         }
 
-        public void ClearOnNextInput()
-        {
-            ShouldClearOnNextInput = true;
-            DoViewModelChanged();
-        }
-
-        public void Clear()
-        {
-            Words.Clear();
-            CurrentWord = "";
-            DoViewModelChanged();
-        }
-
         public void Input(KeyCode keyCode)
         {
             CheckForClearOnInput();
@@ -96,12 +83,28 @@ namespace BlinkTalk.Typing
             DoViewModelChanged();
         }
 
+        public string Commit()
+        {
+            if (!string.IsNullOrEmpty(CurrentWord))
+                PushCurrentWord();
+            PhraseService.IncrementPhraseUsage(Words.Select(x => x.Key));
+            ShouldClearOnNextInput = true;
+            return ToString();
+        }
+
         public override string ToString()
         {
             string result = string.Join(" ", Words.Select(x => x.Value));
             if (!string.IsNullOrEmpty(CurrentWord))
                 result += " " + CurrentWord;
             return result;
+        }
+
+        private void Clear()
+        {
+            Words.Clear();
+            CurrentWord = "";
+            DoViewModelChanged();
         }
 
         private void CheckForClearOnInput()

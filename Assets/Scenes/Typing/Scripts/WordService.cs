@@ -1,7 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using BlinkTalk.Typing.Persistence;
+using System.Collections.Generic;
 using System.Linq;
 
-namespace BlinkTalk.Typing.Persistence
+namespace BlinkTalk.Typing
 {
     public static class WordService
     {
