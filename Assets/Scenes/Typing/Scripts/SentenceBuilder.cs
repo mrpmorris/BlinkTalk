@@ -93,6 +93,13 @@ namespace BlinkTalk.Typing
             return ToString();
         }
 
+        public void PushWord(string word)
+        {
+            CheckForClearOnInput();
+            CurrentWord = word;
+            PushCurrentWord();
+        }
+
         public override string ToString()
         {
             string result = string.Join(" ", Words.Select(x => x.Value));
@@ -124,6 +131,7 @@ namespace BlinkTalk.Typing
                 Words.Add(new KeyValuePair<int, string>(wordId, CurrentWord));
                 CurrentWord = "";
             }
+            DoViewModelChanged();
         }
 
         private void Backspace()

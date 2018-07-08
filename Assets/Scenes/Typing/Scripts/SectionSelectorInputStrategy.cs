@@ -25,9 +25,11 @@ namespace BlinkTalk.Typing
             {
                 case 0:
                     FocusCycler.Stop();
-                    Controller.StartInputStrategy<KeyboardRowSelectorInput>();
+                    Controller.StartInputStrategy<SuggestedWordSelectorInput>();
                     break;
                 case 1:
+                    FocusCycler.Stop();
+                    Controller.StartInputStrategy<KeyboardRowSelectorInput>();
                     break;
                 case 2:
                     string sentence = SentenceBuilder.Commit();
@@ -54,10 +56,10 @@ namespace BlinkTalk.Typing
             switch (FocusIndex)
             {
                 case 0:
-                    focusTarget = Controller.GetKeyboardSelectionPanel();
+                    focusTarget = Controller.GetWordSelectionPanel();
                     break;
                 case 1:
-                    focusTarget = Controller.GetWordSelectionPanel();
+                    focusTarget = Controller.GetKeyboardSelectionPanel();
                     break;
                 case 2:
                     focusTarget = Controller.GetInputSelectionPanel();
