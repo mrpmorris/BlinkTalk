@@ -39,10 +39,12 @@ namespace BlinkTalk.Typing
 
         private IEnumerator CycleFocus()
         {
+            float speedFactor = 1.5f;
             while (true)
             {
                 FocusChanged(FocusIndex);
-                yield return new WaitForSeconds(Consts.CycleDelay);
+                yield return new WaitForSeconds(Consts.CycleDelay * speedFactor);
+                speedFactor = 1;
                 FocusIndex = (FocusIndex + 1) % NumberOfItems;
             }
         }
