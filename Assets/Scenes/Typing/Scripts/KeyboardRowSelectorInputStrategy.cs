@@ -32,6 +32,10 @@ namespace BlinkTalk.Typing
             RowPositions = RowPositions ?? Rows.Select(x => x.localPosition.y).ToArray();
             if (FocusCycler == null)
                 FocusCycler = new FocusCycler(this, Rows.Length, FocusIndexChanged);
+
+            FocusIndexChanged(1);
+            LerpClientAreaPosition(1);
+
             FocusChangeCount = 0;
             FocusCycler.Start();
             Controller.SetIndicatorRect(Controller.GetKeyboardSelectionPanel());
@@ -70,8 +74,13 @@ namespace BlinkTalk.Typing
 
         void Update()
         {
+            LerpClientAreaPosition(Consts.FocusLerpFactor());
+        }
+
+        void LerpClientAreaPosition(float factor)
+        {
             float x = ClientArea.anchoredPosition.x;
-            float y = Mathf.Lerp(ClientArea.anchoredPosition.y, TargetScrollPosition, Consts.FocusLerpFactor());
+            float y = Mathf.Lerp(ClientArea.anchoredPosition.y, TargetScrollPosition, factor);
             ClientArea.anchoredPosition = new Vector2(x, y);
         }
     }
