@@ -89,6 +89,7 @@ namespace BlinkTalk.Typing
                 PushCurrentWord();
             PhraseService.IncrementPhraseUsage(Words.Select(x => x.Key));
             ShouldClearOnNextInput = true;
+            DoViewModelChanged();
             return ToString();
         }
 
@@ -154,7 +155,9 @@ namespace BlinkTalk.Typing
             List<string> result = PhraseService.GetWordSuggestions(Words.Select(x => x.Key), CurrentWord, NumberOfSuggestedWords);
             if (result.Count < NumberOfSuggestedWords)
             {
-                List<string> suggestionsFromDictionary = WordService.GetWordSuggestions(CurrentWord, NumberOfSuggestedWords);
+                // Request twice as many words than we need. That way when we add to phrase words and call Distinct we won't
+                // end up with fewer than the total number of words required
+                List<string> suggestionsFromDictionary = WordService.GetWordSuggestions(CurrentWord, NumberOfSuggestedWords * 2);
                 result.AddRange(suggestionsFromDictionary);
             }
             SuggestedWords = result.Distinct().Take(NumberOfSuggestedWords);

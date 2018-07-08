@@ -25,7 +25,7 @@ namespace BlinkTalk.Typing
                 sqlConditions = "where " + sqlConditions;
 
             string sql = $"" +
-                $"Select Words.Word from WordSequences join Words on Words.Id = WordSequences.Word{wordNumber}Id" +
+                $"Select distinct Words.Word from WordSequences join Words on Words.Id = WordSequences.Word{wordNumber}Id" +
                 $" {sqlConditions}" +
                 $" order by WordSequences.UsageCount desc, LastUsedDate desc, Words.UserSelectionCount desc" +
                 $" limit {numberOfWords}";
