@@ -8,22 +8,23 @@ namespace BlinkTalk.Typing
         private ITypingController Controller;
         private KeyboardKey FocusedKeyboardKey;
         private RectTransform[] KeyRectTransforms;
-        private FocusCycler FocusCycler;
-        private int FocusChangeCount;
+        private readonly FocusCycler FocusCycler;
         private SentenceBuilder SentenceBuilder;
+
+        public KeyboardColumnSelectorInputStrategy()
+        {
+            FocusCycler = new FocusCycler(this, FocusIndexChanged);
+        }
 
         void IInputStrategy.Initialize(ITypingController controller)
         {
             Controller = controller;
             SentenceBuilder = Controller.GetSentenceBuilder();
-            FocusChangeCount = 0;
         }
 
         void IKeyboardColumnSelectorInputStrategy.SetActiveRow(RectTransform keyboardRow)
         {
             KeyRectTransforms = keyboardRow.GetChildRectTransforms();
-            if (FocusCycler == null)
-                FocusCycler = new FocusCycler(this, FocusIndexChanged);
             FocusCycler.Start(KeyRectTransforms.Length);
         }
 
@@ -47,8 +48,7 @@ namespace BlinkTalk.Typing
         {
             FocusedKeyboardKey = KeyRectTransforms[focusIndex].GetComponent<KeyboardKey>();
             Controller.SetIndicatorRect(KeyRectTransforms[focusIndex]);
-            FocusChangeCount++;
-            if (FocusChangeCount > KeyRectTransforms.Length + 2)
+            if (FocusCycler.FocusChangeCount > KeyRectTransforms.Length + 2)
                 Controller.InputStrategyFinished();
         }
     }

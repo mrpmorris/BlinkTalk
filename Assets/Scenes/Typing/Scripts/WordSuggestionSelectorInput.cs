@@ -8,8 +8,13 @@ namespace BlinkTalk.Typing
     {
         private WordSuggestionPresenter SelectedWord;
         private ITypingController Controller;
-        private FocusCycler FocusCycler;
+        private readonly FocusCycler FocusCycler;
         private WordSuggestionPresenter[] WordSuggestions;
+
+        public WordSuggestionSelectorInput()
+        {
+            FocusCycler = new FocusCycler(this, FocusIndexChanged);
+        }
 
         void IInputStrategy.ChildStrategyActivated(IInputStrategy inputStrategy) { }
         void IInputStrategy.Terminated() { }
@@ -43,13 +48,9 @@ namespace BlinkTalk.Typing
                 .Where(x => x)
                 .ToArray();
             if (WordSuggestions.Length == 0)
-            {
                 Controller.InputStrategyFinished();
-            } else
-            {
-                FocusCycler = new FocusCycler(this, FocusIndexChanged);
+            else
                 FocusCycler.Start(WordSuggestions.Length);
-            }
         }
     }
 }

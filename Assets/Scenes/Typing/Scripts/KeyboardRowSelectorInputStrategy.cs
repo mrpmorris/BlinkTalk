@@ -10,10 +10,15 @@ namespace BlinkTalk.Typing
         private RectTransform FocusedRow;
         private RectTransform[] Rows;
         private float[] RowPositions;
-        private FocusCycler FocusCycler;
+        private readonly FocusCycler FocusCycler;
         private ScrollRect KeyboardSelector;
         private RectTransform ClientArea;
         private float TargetScrollPosition;
+
+        public KeyboardRowSelectorInput()
+        {
+            FocusCycler = new FocusCycler(this, FocusIndexChanged, firstCycleDelayMultiplier: 1.5f);
+        }
 
         void IInputStrategy.Initialize(ITypingController controller)
         {
@@ -29,10 +34,8 @@ namespace BlinkTalk.Typing
                 .Select(x => x.GetComponent<RectTransform>())
                 .ToArray();
             RowPositions = RowPositions ?? Rows.Select(x => x.localPosition.y).ToArray();
-            if (FocusCycler == null)
-                FocusCycler = new FocusCycler(this, FocusIndexChanged, firstCycleDelayMultiplier: 1.5f);
 
-            FocusIndexChanged(1);
+            FocusIndexChanged(1); // TODO: PeteM - Why?
             LerpClientAreaPosition(1);
 
             FocusCycler.Start(Rows.Length);

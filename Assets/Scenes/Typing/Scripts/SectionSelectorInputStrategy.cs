@@ -8,15 +8,18 @@ namespace BlinkTalk.Typing
     {
         private Section FocusedSection;
         private ITypingController Controller;
-        private FocusCycler FocusCycler;
+        private readonly FocusCycler FocusCycler;
         private SentenceBuilder SentenceBuilder;
+
+        public SectionSelectorInputStrategy()
+        {
+            FocusCycler = new FocusCycler(this, FocusIndexChanged, mayFocus: MayFocusOnSection);
+        }
 
         void IInputStrategy.Initialize(ITypingController controller)
         {
             Controller = controller;
             SentenceBuilder = controller.GetSentenceBuilder();
-            if (FocusCycler == null)
-                FocusCycler = new FocusCycler(this, FocusIndexChanged, mayFocus: MayFocusOnSection);
             FocusCycler.Start(3);
         }
 
