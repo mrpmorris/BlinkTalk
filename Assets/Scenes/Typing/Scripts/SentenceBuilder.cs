@@ -65,6 +65,11 @@ namespace BlinkTalk.Typing
             GetWordSuggestions();
         }
 
+        public bool IsEmpty
+        {
+            get { return string.IsNullOrEmpty(ToString()); }
+        }
+
         public void Input(KeyCode keyCode)
         {
             CheckForClearOnInput();

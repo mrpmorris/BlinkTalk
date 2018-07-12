@@ -31,7 +31,7 @@ namespace BlinkTalk.Typing
                 .ToArray();
             RowPositions = RowPositions ?? Rows.Select(x => x.localPosition.y).ToArray();
             if (FocusCycler == null)
-                FocusCycler = new FocusCycler(this, Rows.Length, FocusIndexChanged);
+                FocusCycler = new FocusCycler(this, Rows.Length, FocusIndexChanged, firstCycleDelayMultiplier: 1.5f);
 
             FocusIndexChanged(1);
             LerpClientAreaPosition(1);

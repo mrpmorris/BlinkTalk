@@ -5,7 +5,7 @@ namespace BlinkTalk.Typing
 {
     public class SectionSelectorInputStrategy : MonoBehaviour, IInputStrategy
     {
-        private int FocusIndex;
+        private Section FocusedSection;
         private ITypingController Controller;
         private FocusCycler FocusCycler;
         private SentenceBuilder SentenceBuilder;
@@ -15,27 +15,27 @@ namespace BlinkTalk.Typing
             Controller = controller;
             SentenceBuilder = controller.GetSentenceBuilder();
             if (FocusCycler == null)
-                FocusCycler = new FocusCycler(this, 3, FocusIndexChanged);
+                FocusCycler = new FocusCycler(this, 3, FocusIndexChanged, mayFocus: MayFocusOnSection);
             FocusCycler.Start();
         }
 
         void IInputStrategy.ReceiveIndication()
         {
-            switch (FocusIndex)
+            switch (FocusedSection)
             {
-                case 0:
+                case Section.WordSelector:
                     FocusCycler.Stop();
                     Controller.StartInputStrategy<SuggestedWordSelectorInput>();
                     break;
-                case 1:
+                case Section.Keyboard:
                     FocusCycler.Stop();
                     Controller.StartInputStrategy<KeyboardRowSelectorInput>();
                     break;
-                case 2:
+                case Section.Speak:
                     string sentence = SentenceBuilder.Commit();
                     TextToSpeech.Speak(sentence);
                     break;
-                default: throw new NotImplementedException(FocusIndex + "");
+                default: throw new NotImplementedException(FocusedSection + "");
             }
         }
 
@@ -51,23 +51,34 @@ namespace BlinkTalk.Typing
 
         private void FocusIndexChanged(int focusIndex)
         {
-            FocusIndex = focusIndex;
+            FocusedSection = (Section)focusIndex;
             RectTransform focusTarget = null;
-            switch (FocusIndex)
+            switch (FocusedSection)
             {
-                case 0:
+                case Section.WordSelector:
                     focusTarget = Controller.GetWordSelectionPanel();
                     break;
-                case 1:
+                case Section.Keyboard:
                     focusTarget = Controller.GetKeyboardSelectionPanel();
                     break;
-                case 2:
+                case Section.Speak:
                     focusTarget = Controller.GetInputSelectionPanel();
                     break;
                 default:
                     throw new NotImplementedException(focusIndex + "");
             }
             Controller.SetIndicatorRect(focusTarget);
+        }
+
+        private bool MayFocusOnSection(int focusIndex)
+        {
+            switch ((Section)focusIndex)
+            {
+                case Section.Keyboard: return true;
+                case Section.Speak: return !SentenceBuilder.IsEmpty;
+                case Section.WordSelector: return Controller.GetWordSelectionPanel().childCount > 0;
+                default: throw new NotImplementedException(FocusedSection + "");
+            }
         }
     }
 }
