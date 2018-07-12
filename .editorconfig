@@ -1,0 +1,4 @@
+root = true
+[*.cs]
+ident_size = 2
+ident_style = tab

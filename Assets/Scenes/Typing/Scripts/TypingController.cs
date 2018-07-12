@@ -1,75 +1,159 @@
-﻿using BlinkTalk.Typing.InputStrategies.KeyboardInputStrategies;
-using System;
-using System.Collections;
-using System.Linq;
+﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace BlinkTalk.Typing
 {
-	public class TypingController : MonoBehaviour, ITypingController
-	{
-		public bool HasIndicated { get; private set; }
-		public ScrollRect KeyboardSelector;
-		public Text InputText;
-		public RectTransform KeyHighlighter;
-		[Space]
-		public Button IndicateButton;
+    public class TypingController : MonoBehaviour, ITypingController
+    {
+        [Header("Sections")]
+        public RectTransform InputSelectionPanel;
+        public RectTransform WordSelectionPanel;
+        public RectTransform KeyboardSelectionPanel;
+        [Header("Keyboard")]
+        public ScrollRect KeyboardSelector;
+        public RectTransform KeyboardSelectorClientArea;
+        [Header("Prefabs")]
+        public GameObject WordSuggestionPrefab;
+        [Space]
+        public Button IndicateButton;
+        public Image Highlighter;
+        public Text InputText;
 
-		private RectTransform KeyboardSelectorClientArea;
-		private RectTransform[] KeyboardSelectionGroups;
-		private IKeyboardInputStrategy KeyboardInputStrategy;
-		private TypingControllerInputState State { get { return _state; } set { SetState(value); } }
-		private TypingControllerInputState _state;
+        private SentenceBuilder SentenceBuilder = new SentenceBuilder();
+        private Stack<IInputStrategy> InputStrategies = new Stack<IInputStrategy>();
+        private RectTransform TargetRectTransform;
+        private Color[] IndicatorColors = new Color[] { Color.blue, Color.green, Color.magenta, Color.yellow };
+        RectTransform ITypingController.GetInputSelectionPanel() => InputSelectionPanel;
+        RectTransform ITypingController.GetWordSelectionPanel() => WordSelectionPanel;
+        RectTransform ITypingController.GetKeyboardSelectionPanel() => KeyboardSelectionPanel;
+        ScrollRect ITypingController.GetKeyboardSelector() => KeyboardSelector;
+        RectTransform ITypingController.GetKeyboardSelectorClientArea() => KeyboardSelectorClientArea;
+        public SentenceBuilder GetSentenceBuilder() => SentenceBuilder;
 
-		#region ITypingController
-		ScrollRect ITypingController.GetKeyboardSelector() => KeyboardSelector;
-		Text ITypingController.GetInputText() => InputText;
-		RectTransform ITypingController.GetKeyHighlighter() => KeyHighlighter;
-		Button ITypingController.GetIndicateButton() => IndicateButton;
-		#endregion
+        public TypingController()
+        {
+            SentenceBuilder.ViewModelChanged += (s, e) => UpdateDisplayText();
+        }
 
-		private void Start()
-		{
-			this.EnsureAssigned(x => x.KeyboardSelector);
-			this.EnsureAssigned(x => x.InputText);
-			this.EnsureAssigned(x => x.IndicateButton).onClick.AddListener(OnIndicateButtonClick);
-			this.EnsureAssigned(x => x.KeyHighlighter);
+        private void Start()
+        {
+            this.EnsureAssigned(x => x.Highlighter);
+            this.EnsureAssigned(x => x.InputSelectionPanel);
+            this.EnsureAssigned(x => x.WordSelectionPanel);
+            this.EnsureAssigned(x => x.KeyboardSelectionPanel);
+            this.EnsureAssigned(x => x.KeyboardSelector);
+            this.EnsureAssigned(x => x.KeyboardSelectorClientArea);
+            this.EnsureAssigned(x => x.InputText);
+            this.EnsureAssigned(x => x.IndicateButton).onClick.AddListener(OnIndicateButtonClick);
+            this.EnsureAssigned(x => x.Highlighter);
 
-			KeyboardSelectorClientArea = this.EnsureAssigned(x => x.KeyboardSelector.content);
-			KeyboardSelectionGroups = KeyboardSelectorClientArea.GetChildRectTransforms();
+            Persistence.PersistenceService.Initialize("English");
+            SentenceBuilder.Initialize();
+            StartInputStrategy<SectionSelectorInputStrategy>();
+            StartCoroutine(PulseHighlighter());
+            UpdateDisplayText();
+            TextToSpeech.Speak("Blink talk");
+        }
 
-			KeyboardInputStrategy = (IKeyboardInputStrategy)gameObject.AddComponent<KeyboardInputStrategy>();
-			KeyboardInputStrategy.Initialize(this);
-			State = TypingControllerInputState.Keyboard;
-		}
+        private void OnIndicateButtonClick()
+        {
+            InputStrategies.Peek().ReceiveIndication();
+        }
 
-		private void SetState(TypingControllerInputState value)
-		{
-			_state = value;
-			switch(State)
-			{
-				case TypingControllerInputState.Keyboard:
-					KeyboardInputStrategy.Activate();
-					break;
+        public void SetIndicatorRect(RectTransform target)
+        {
+            TargetRectTransform = target;
+        }
+        
+        public TStrategy StartInputStrategy<TStrategy>()
+            where TStrategy : MonoBehaviour, IInputStrategy
+        {
+            ResetHighlighterPosition();
 
-				default:
-					throw new NotImplementedException(State + "");
-			}
-		}
+            TStrategy inputStrategy = gameObject.AddComponent<TStrategy>();
+            if (InputStrategies.Count > 0)
+                InputStrategies.Peek().ChildStrategyActivated(inputStrategy);
+            inputStrategy.Initialize(this);
+            InputStrategies.Push(inputStrategy);
+            return inputStrategy;
+        }
 
-		private void OnIndicateButtonClick()
-		{
-			HasIndicated = true;
-			StartCoroutine(SetHasIndicatedToFalse());
-		}
+        public void InputStrategyFinished()
+        {
+            IInputStrategy inputStrategyToTerminate = InputStrategies.Pop();
+            inputStrategyToTerminate.Terminated();
+            Destroy((MonoBehaviour)inputStrategyToTerminate);
+            if (InputStrategies.Count > 0)
+                InputStrategies.Peek().Initialize(this);
+            ResetHighlighterPosition();
+        }
 
-		private IEnumerator SetHasIndicatedToFalse()
-		{
-			yield return new WaitForEndOfFrame();
-			HasIndicated = false;
-		}
+        private void ResetHighlighterPosition()
+        {
+            Highlighter.rectTransform.localPosition = new Vector2(-480, -320);
+            Highlighter.rectTransform.sizeDelta = new Vector2(960, 640);
+        }
 
-	}
+        private IEnumerator PulseHighlighter()
+        {
+            while (true)
+            {
+                Color colorFromInputDepth = IndicatorColors[InputStrategies.Count - 1];
+                Color startColor;
+                Color endColor;
+                float factor;
+                float doubleTime = Time.time % 1f * 2f;
+                if (doubleTime < 1)
+                {
+                    startColor = colorFromInputDepth;
+                    endColor = Color.white;
+                    factor = doubleTime;
+                }
+                else
+                {
+                    startColor = Color.white;
+                    endColor = colorFromInputDepth;
+                    factor = doubleTime - 1;
+                }
+
+                Highlighter.color = Color.Lerp(startColor, endColor, factor);
+                yield return new WaitForEndOfFrame();
+            }
+        }
+
+        void Update()
+        {
+            if (TargetRectTransform != null)
+            {
+                RectTransform highlighterRect = Highlighter.rectTransform;
+                var position = Vector2.Lerp(highlighterRect.position, TargetRectTransform.position, Consts.FocusLerpFactor());
+                Highlighter.rectTransform.position = position;
+                var size = Vector2.Lerp(highlighterRect.rect.size, TargetRectTransform.rect.size, Consts.FocusLerpFactor());
+                highlighterRect.sizeDelta = size;
+            }
+        }
+
+        public void ReceiveKeyPress(KeyCode keyCode)
+        {
+            SentenceBuilder.Input(keyCode);
+            UpdateDisplayText();
+        }
+
+        private void UpdateDisplayText()
+        {
+            InputText.text = SentenceBuilder.ToString();
+            InputText.color = SentenceBuilder.ShouldClearOnNextInput ? Color.gray : Color.white;
+            foreach (GameObject gameObject in WordSelectionPanel.GetChildGameObjects())
+                Object.Destroy(gameObject);
+            foreach(string suggestedWord in SentenceBuilder.SuggestedWords)
+            {
+                GameObject presenterGameObject = Instantiate(WordSuggestionPrefab);
+                WordSuggestionPresenter presenter = presenterGameObject.GetComponent<WordSuggestionPresenter>();
+                presenter.Word = suggestedWord;
+                presenter.transform.SetParent(WordSelectionPanel.transform);
+            }
+        }
+    }
 }
