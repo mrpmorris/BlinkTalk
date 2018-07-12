@@ -47,9 +47,8 @@ namespace BlinkTalk.Typing
                 Controller.InputStrategyFinished();
             } else
             {
-                if (FocusCycler == null)
-                    FocusCycler = new FocusCycler(this, WordSuggestions.Length, FocusIndexChanged);
-                FocusCycler.Start();
+                FocusCycler = new FocusCycler(this, FocusIndexChanged);
+                FocusCycler.Start(WordSuggestions.Length);
             }
         }
     }

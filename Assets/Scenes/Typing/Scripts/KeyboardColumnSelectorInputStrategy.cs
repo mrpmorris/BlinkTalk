@@ -23,8 +23,8 @@ namespace BlinkTalk.Typing
         {
             KeyRectTransforms = keyboardRow.GetChildRectTransforms();
             if (FocusCycler == null)
-                FocusCycler = new FocusCycler(this, KeyRectTransforms.Length, FocusIndexChanged);
-            FocusCycler.Start();
+                FocusCycler = new FocusCycler(this, FocusIndexChanged);
+            FocusCycler.Start(KeyRectTransforms.Length);
         }
 
         void IInputStrategy.ReceiveIndication()

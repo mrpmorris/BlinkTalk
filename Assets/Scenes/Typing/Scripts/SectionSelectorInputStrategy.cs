@@ -16,8 +16,8 @@ namespace BlinkTalk.Typing
             Controller = controller;
             SentenceBuilder = controller.GetSentenceBuilder();
             if (FocusCycler == null)
-                FocusCycler = new FocusCycler(this, 3, FocusIndexChanged, mayFocus: MayFocusOnSection);
-            FocusCycler.Start();
+                FocusCycler = new FocusCycler(this, FocusIndexChanged, mayFocus: MayFocusOnSection);
+            FocusCycler.Start(3);
         }
 
         void IInputStrategy.ReceiveIndication()

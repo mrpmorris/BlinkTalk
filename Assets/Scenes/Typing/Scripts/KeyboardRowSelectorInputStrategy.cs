@@ -30,12 +30,12 @@ namespace BlinkTalk.Typing
                 .ToArray();
             RowPositions = RowPositions ?? Rows.Select(x => x.localPosition.y).ToArray();
             if (FocusCycler == null)
-                FocusCycler = new FocusCycler(this, Rows.Length, FocusIndexChanged, firstCycleDelayMultiplier: 1.5f);
+                FocusCycler = new FocusCycler(this, FocusIndexChanged, firstCycleDelayMultiplier: 1.5f);
 
             FocusIndexChanged(1);
             LerpClientAreaPosition(1);
 
-            FocusCycler.Start();
+            FocusCycler.Start(Rows.Length);
             Controller.SetIndicatorRect(Controller.GetKeyboardSelectionPanel());
         }
 
