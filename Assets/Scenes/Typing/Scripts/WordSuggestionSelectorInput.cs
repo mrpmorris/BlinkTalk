@@ -17,7 +17,6 @@ namespace BlinkTalk.Typing
         }
 
         void IInputStrategy.ChildStrategyActivated(IInputStrategy inputStrategy) { }
-        void IInputStrategy.Terminated() { }
 
         void IInputStrategy.Initialize(ITypingController controller)
         {
@@ -30,6 +29,11 @@ namespace BlinkTalk.Typing
             Controller.GetSentenceBuilder().PushWord(SelectedWord.Word);
             FocusCycler.Stop();
             StartCoroutine(RestartFocusCycler());
+        }
+
+        void IInputStrategy.Terminated()
+        {
+            FocusCycler.Stop();
         }
 
         private void FocusIndexChanged(int focusIndex)
