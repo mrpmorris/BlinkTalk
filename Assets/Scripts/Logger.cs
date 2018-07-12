@@ -31,10 +31,11 @@ namespace BlinkTalk
 			if (type != LogType.Assert && type != LogType.Error && type != LogType.Exception)
 				return;
 
-			Debug.LogError(condition);
-			Debug.LogError(stackTrace);
-			HasUnhandledException = true;
-			Application.logMessageReceived -= Application_logMessageReceived;
+            HasUnhandledException = true;
+            Application.logMessageReceived -= Application_logMessageReceived;
+
+            Debug.LogError(condition ?? "");
+			Debug.LogError(stackTrace ?? "");
 			SceneManager.LoadScene("ErrorScene");
 		}
 	}

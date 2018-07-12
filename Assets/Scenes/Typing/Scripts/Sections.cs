@@ -3,7 +3,7 @@
     public enum Section
     {
         WordSelector,
-        Keyboard,
-        Speak
+        Speak,
+        Keyboard
     }
 }

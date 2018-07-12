@@ -14,6 +14,8 @@ namespace BlinkTalk.Typing
         private readonly Func<int, bool> MayFocus;
         private Coroutine CycleFocusCoRoutine;
 
+        public int FocusChangeCount { get; private set; }
+
         public FocusCycler(MonoBehaviour owner, int numberOfItems, Action<int> focusChanged, float firstCycleDelayMultiplier = 1, Func<int, bool> mayFocus = null)
         {
             if (firstCycleDelayMultiplier <= 0)
@@ -31,6 +33,7 @@ namespace BlinkTalk.Typing
                 throw new InvalidOperationException("FocusCycler already started");
 
             FocusIndex = 0;
+            FocusChangeCount = 0;
             CycleFocusCoRoutine = Owner.StartCoroutine(CycleFocus());
         }
 
@@ -50,6 +53,7 @@ namespace BlinkTalk.Typing
             {
                 if (MayFocus(FocusIndex))
                 {
+                    FocusChangeCount++;
                     FocusChanged(FocusIndex);
                     yield return new WaitForSeconds(Consts.CycleDelay * delayMultiplier);
                     delayMultiplier = 1;

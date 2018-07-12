@@ -14,7 +14,6 @@ namespace BlinkTalk.Typing
         private ScrollRect KeyboardSelector;
         private RectTransform ClientArea;
         private float TargetScrollPosition;
-        private int FocusChangeCount;
 
         void IInputStrategy.Initialize(ITypingController controller)
         {
@@ -36,7 +35,6 @@ namespace BlinkTalk.Typing
             FocusIndexChanged(1);
             LerpClientAreaPosition(1);
 
-            FocusChangeCount = 0;
             FocusCycler.Start();
             Controller.SetIndicatorRect(Controller.GetKeyboardSelectionPanel());
         }
@@ -67,8 +65,7 @@ namespace BlinkTalk.Typing
                 (Vector2)KeyboardSelector.transform.InverseTransformPoint(ClientArea.position)
                 - (Vector2)KeyboardSelector.transform.InverseTransformPoint(FocusedRow.position);
             TargetScrollPosition = targetVector.y - FocusedRow.sizeDelta.y / 2;
-            FocusChangeCount++;
-            if (FocusChangeCount > Rows.Length + 1)
+            if (FocusCycler.FocusChangeCount > Rows.Length + 1)
                 Controller.InputStrategyFinished();
         }
 

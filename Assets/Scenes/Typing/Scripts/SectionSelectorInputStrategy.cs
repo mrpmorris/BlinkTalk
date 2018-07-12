@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using UnityEngine;
 
 namespace BlinkTalk.Typing
@@ -25,7 +26,7 @@ namespace BlinkTalk.Typing
             {
                 case Section.WordSelector:
                     FocusCycler.Stop();
-                    Controller.StartInputStrategy<SuggestedWordSelectorInput>();
+                    Controller.StartInputStrategy<WordSuggestionSelectorInput>();
                     break;
                 case Section.Keyboard:
                     FocusCycler.Stop();
@@ -76,7 +77,7 @@ namespace BlinkTalk.Typing
             {
                 case Section.Keyboard: return true;
                 case Section.Speak: return !SentenceBuilder.IsEmpty;
-                case Section.WordSelector: return Controller.GetWordSelectionPanel().childCount > 0;
+                case Section.WordSelector: return SentenceBuilder.SuggestedWords.Any();
                 default: throw new NotImplementedException(FocusedSection + "");
             }
         }

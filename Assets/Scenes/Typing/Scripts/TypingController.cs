@@ -152,7 +152,7 @@ namespace BlinkTalk.Typing
                 GameObject presenterGameObject = Instantiate(WordSuggestionPrefab);
                 WordSuggestionPresenter presenter = presenterGameObject.GetComponent<WordSuggestionPresenter>();
                 presenter.Word = suggestedWord;
-                presenter.transform.parent = WordSelectionPanel.transform;
+                presenter.transform.SetParent(WordSelectionPanel.transform);
             }
         }
     }
