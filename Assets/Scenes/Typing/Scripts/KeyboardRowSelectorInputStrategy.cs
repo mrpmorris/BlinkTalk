@@ -35,7 +35,7 @@ namespace BlinkTalk.Typing
                 .ToArray();
             RowPositions = RowPositions ?? Rows.Select(x => x.localPosition.y).ToArray();
 
-            FocusIndexChanged(1); // TODO: PeteM - Why?
+            FocusIndexChanged(Rows.Length / 2); // Start at index 1, so we can see index 0 scroll into view
             LerpClientAreaPosition(1);
 
             FocusCycler.Start(Rows.Length);

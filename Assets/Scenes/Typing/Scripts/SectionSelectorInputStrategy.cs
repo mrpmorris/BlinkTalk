@@ -6,6 +6,7 @@ namespace BlinkTalk.Typing
 {
     public class SectionSelectorInputStrategy : MonoBehaviour, IInputStrategy
     {
+        private bool SkipWordSelection;
         private Section FocusedSection;
         private ITypingController Controller;
         private readonly FocusCycler FocusCycler;
@@ -45,6 +46,8 @@ namespace BlinkTalk.Typing
 
         void IInputStrategy.ChildStrategyActivated(IInputStrategy inputStrategy)
         {
+            if (inputStrategy is WordSuggestionSelectorInput)
+                SkipWordSelection = true;
             FocusCycler.Stop();
         }
 
@@ -55,6 +58,7 @@ namespace BlinkTalk.Typing
 
         private void FocusIndexChanged(int focusIndex)
         {
+            SkipWordSelection = false;
             FocusedSection = (Section)focusIndex;
             RectTransform focusTarget = null;
             switch (FocusedSection)
@@ -80,7 +84,7 @@ namespace BlinkTalk.Typing
             {
                 case Section.Keyboard: return true;
                 case Section.Speak: return !SentenceBuilder.IsEmpty;
-                case Section.WordSelector: return SentenceBuilder.SuggestedWords.Any();
+                case Section.WordSelector: return !SkipWordSelection && SentenceBuilder.SuggestedWords.Any();
                 default: throw new NotImplementedException(FocusedSection + "");
             }
         }
