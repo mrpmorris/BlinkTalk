@@ -1,0 +1,254 @@
+@page "/camera"
+@using BlinkTalk.Services
+@using BlinkTalk.Application.Abstractions
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject CameraIndicatorConfig Config
+@inject ITextToSpeechService Speech
+@inject NavigationManager Navigation
+
+<div class="bt-settings @(_flash ? "bt-cam-flash" : "")">
+    <h1>Camera indicator</h1>
+
+    @if (_error is not null)
+    {
+        <p class="bt-cam-error">@_error</p>
+    }
+
+    <div class="bt-cam-feed">
+        <video @ref="_video" autoplay playsinline muted></video>
+    </div>
+
+    <p class="bt-cam-status">@_status</p>
+
+    @if (_signalDescription is not null)
+    {
+        <div class="bt-setting-row">
+            <label>Learned gesture: <strong>@_signalDescription</strong></label>
+            <div class="bt-meter"><div class="bt-meter-fill" style="width:@($"{(int)(_liveScore * 100)}%")"></div></div>
+            <span>Try your gesture — the bar fills as the camera detects it.</span>
+        </div>
+    }
+
+    <button class="bt-settings-back" @onclick="TrainAsync" disabled="@_busy">@(_busy ? "Training…" : "Train")</button>
+
+    <label class="bt-cam-check">
+        <input type="checkbox"
+               checked="@Config.IsEnabled"
+               disabled="@(!Config.IsTrained || _busy)"
+               @onchange="OnUseCameraChanged" />
+        Use camera @(Config.IsTrained ? "" : "(train first)")
+    </label>
+
+    <button class="bt-settings-back" @onclick="GoBack">Done</button>
+</div>
+
+@code {
+    private ElementReference _video;
+    private IJSObjectReference? _module;
+    private DotNetObjectReference<Camera>? _selfRef;
+
+    private string _status = "Starting camera…";
+    private string? _error;
+    private string? _signalDescription;
+    private double _liveScore;
+    private bool _busy;
+    private bool _flash;
+    private bool _started;
+    private CancellationTokenSource? _meterCts;
+
+    private record BlendStat(string Name, double Mean, double Max);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            if (!await EnsureCameraPermissionAsync())
+            {
+                _error = "Camera permission was denied. Enable the camera for BlinkTalk in your device settings, then reopen this page.";
+                _status = "";
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/blinktalk-camera.js");
+            _selfRef = DotNetObjectReference.Create(this);
+            await _module.InvokeAsync<bool>("start", _video, _selfRef);
+            _started = true;
+
+            if (Config.IsTrained)
+            {
+                _signalDescription = Describe(Config.Signal);
+                StartMeterLoop(); // visual-only live feedback (no beep on this page)
+            }
+            _status = "Camera ready. Press Train and follow the prompts.";
+        }
+        catch (Exception ex)
+        {
+            _error = "Could not start the camera: " + ex.Message;
+            _status = "";
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task TrainAsync()
+    {
+        if (_module is null || !_started || _busy) return;
+        _busy = true;
+        _signalDescription = null;
+        _meterCts?.Cancel();
+        await _module.InvokeVoidAsync("setPreview");
+
+        try
+        {
+            // Spoken instructions only (no tones/beeps): the indicating gesture (e.g. looking up)
+            // can take the user's eyes off the screen, so each step is announced. The speech itself
+            // brackets each capture window — capturing happens during the pause after each prompt.
+            while (true)
+            {
+                await SayAsync("Look at the screen and relax your face. Do not look at the camera.");
+                var neutral = await _module.InvokeAsync<BlendStat[]>("captureWindow", 3000);
+
+                await SayAsync("Now make your indicating gesture and hold it until I tell you to relax.");
+                var active = await _module.InvokeAsync<BlendStat[]>("captureWindow", 3000);
+
+                await SayAsync("Now relax.");
+
+                var (signal, threshold, separation) = ChooseSignal(neutral, active);
+                if (signal is null)
+                {
+                    _status = "I couldn't detect a clear, repeatable gesture — let's try again.";
+                    await SayAsync(_status);
+                    continue; // restart the training run
+                }
+
+                Config.SaveTraining(signal, threshold);
+                _signalDescription = Describe(signal);
+                _status = $"Training successful! I detected your “{_signalDescription}” gesture. Ensure ‘Use camera’ is ticked so you can use it.";
+                await SayAsync(_status);
+                StartMeterLoop(); // visual-only live feedback for the helper (no beep)
+                break; // done
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = "Training failed: " + ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    // Pick the blendshape whose score increases most from the relaxed window to the indicating
+    // window. The threshold sits midway between the two means; require a minimum separation so we
+    // don't lock onto noise.
+    private static (string? signal, double threshold, double separation) ChooseSignal(BlendStat[] neutral, BlendStat[] active)
+    {
+        const double MinSeparation = 0.15;
+        var neutralByName = neutral.ToDictionary(s => s.Name, s => s.Mean);
+
+        string? best = null;
+        double bestDiff = 0;
+        double bestNeutralMean = 0;
+        foreach (var a in active)
+        {
+            double neutralMean = neutralByName.TryGetValue(a.Name, out var n) ? n : 0;
+            double diff = a.Mean - neutralMean;
+            if (diff > bestDiff)
+            {
+                bestDiff = diff;
+                best = a.Name;
+                bestNeutralMean = neutralMean;
+            }
+        }
+
+        if (best is null || bestDiff < MinSeparation)
+            return (null, 0, bestDiff);
+
+        return (best, bestNeutralMean + bestDiff * 0.5, bestDiff);
+    }
+
+    // Show the prompt on screen (for the helper) and speak it aloud (for the user, who may be
+    // looking away). Awaits speech so the start tone doesn't talk over the instruction.
+    private async Task SayAsync(string text)
+    {
+        _status = text;
+        await InvokeAsync(StateHasChanged);
+        try { await Speech.SpeakAsync(text); } catch { /* TTS unavailable; on-screen text remains */ }
+    }
+
+    private void StartMeterLoop()
+    {
+        _meterCts?.Cancel();
+        var cts = new CancellationTokenSource();
+        _meterCts = cts;
+        _ = Task.Run(async () =>
+        {
+            while (!cts.IsCancellationRequested && _module is not null)
+            {
+                try
+                {
+                    _liveScore = await _module.InvokeAsync<double>("currentScore", Config.Signal);
+                    await InvokeAsync(StateHasChanged);
+                }
+                catch { /* page tearing down */ }
+                await Task.Delay(150);
+            }
+        });
+    }
+
+    // Called from JS when the trained gesture fires — used here only as visual confirmation.
+    [JSInvokable]
+    public async Task OnCameraIndicated()
+    {
+        _flash = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(180);
+        _flash = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnUseCameraChanged(ChangeEventArgs e)
+    {
+        Config.IsEnabled = e.Value is bool b && b;
+    }
+
+    private static string Describe(string signal) => signal switch
+    {
+        "eyeLookUpLeft" or "eyeLookUpRight" => "look up",
+        "eyeLookDownLeft" or "eyeLookDownRight" => "look down",
+        "eyeLookInLeft" or "eyeLookInRight" or "eyeLookOutLeft" or "eyeLookOutRight" => "look sideways",
+        "eyeBlinkLeft" or "eyeBlinkRight" => "blink",
+        "browInnerUp" or "browOuterUpLeft" or "browOuterUpRight" => "raise eyebrows",
+        "mouthSmileLeft" or "mouthSmileRight" => "smile",
+        "jawOpen" => "open mouth",
+        _ => signal
+    };
+
+    // Android requires the OS camera permission at runtime (in addition to the WebView grant).
+    // Other platforms either prompt automatically (iOS/Mac WKWebView, Windows WebView2) or don't gate it.
+    private static async Task<bool> EnsureCameraPermissionAsync()
+    {
+        if (Microsoft.Maui.Devices.DeviceInfo.Platform != Microsoft.Maui.Devices.DevicePlatform.Android)
+            return true;
+
+        var status = await Microsoft.Maui.ApplicationModel.Permissions.RequestAsync<Microsoft.Maui.ApplicationModel.Permissions.Camera>();
+        return status == Microsoft.Maui.ApplicationModel.PermissionStatus.Granted;
+    }
+
+    private void GoBack() => Navigation.NavigateTo("/settings");
+
+    public async ValueTask DisposeAsync()
+    {
+        _meterCts?.Cancel();
+        if (_module is not null)
+        {
+            try { await _module.InvokeVoidAsync("stop"); } catch { /* ignore */ }
+            try { await _module.DisposeAsync(); } catch { /* ignore */ }
+        }
+        _selfRef?.Dispose();
+    }
+}

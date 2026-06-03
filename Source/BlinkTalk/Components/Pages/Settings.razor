@@ -1,0 +1,52 @@
+@page "/"
+@page "/settings"
+@inject ScanController Controller
+@inject NavigationManager Navigation
+
+<div class="bt-settings">
+    <h1>Settings</h1>
+
+
+    <div class="bt-setting-row">
+        <h2>Scan speed</h2>
+        This how many seconds to wait before the selection moves on to the next item. Lower is faster.
+        <input id="scanSpeed"
+               type="range"
+               min="0.3"
+               max="4.0"
+               step="0.1"
+               value="@ScanSpeed"
+               @oninput="OnScanSpeedChanged" />
+        <label for="scanSpeed">Scan speed: @ScanSpeed.ToString("0.0") s per step</label>
+    </div>
+
+    <div class="bt-setting-row">
+        <h2>Indicator method</h2>
+        An assistant can tap the screen anywhere to indicate. Additionally, the user can indicate using their camera.
+        <button class="bt-settings-secondary" @onclick="GoToCamera">Set up camera…</button>
+    </div>
+
+    <button class="bt-settings-back" @onclick="GoBack">Done</button>
+</div>
+
+@code {
+    private double ScanSpeed { get; set; }
+
+    protected override void OnInitialized()
+    {
+        ScanSpeed = Controller.CycleDelaySeconds;
+    }
+
+    private void OnScanSpeedChanged(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), out double seconds))
+        {
+            ScanSpeed = seconds;
+            Controller.CycleDelaySeconds = seconds;
+        }
+    }
+
+    private void GoBack() => Navigation.NavigateTo("/type");
+
+    private void GoToCamera() => Navigation.NavigateTo("/camera");
+}

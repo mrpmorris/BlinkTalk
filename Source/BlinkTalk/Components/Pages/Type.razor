@@ -1,0 +1,139 @@
+@page "/type"
+@using BlinkTalk.Application.Input.Strategies
+@implements IDisposable
+@inject ScanController Controller
+@inject NavigationManager Navigation
+
+<div class="bt-root"
+     style="--bt-hl-color: @DepthColor"
+     tabindex="0"
+     @ref="_root"
+     @onpointerdown="OnIndicate"
+     @onkeydown="OnKeyDown"
+     @onkeydown:preventDefault="true">
+
+    <button class="bt-settings-button"
+            title="Settings"
+            @onpointerdown:stopPropagation="true"
+            @onpointerdown="GoToSettings">⚙</button>
+
+    <!-- Current sentence -->
+    <div class="bt-sentence @(Controller.Sentence.ShouldClearOnNextInput ? "bt-pending" : "")">
+        @if (string.IsNullOrEmpty(SentenceText))
+        {
+            <span class="bt-sentence-placeholder">…</span>
+        }
+        else
+        {
+            @SentenceText
+        }
+    </div>
+
+    <!-- Word suggestions -->
+    <div class="bt-section bt-words @SectionClass(Section.WordSelector) @WordsContextClass">
+        @if (Words.Count == 0)
+        {
+            <span class="bt-words-empty">no suggestions</span>
+        }
+        else
+        {
+            @for (int i = 0; i < Words.Count; i++)
+            {
+                <span class="bt-word @WordClass(i)">@Words[i]</span>
+            }
+        }
+    </div>
+
+    <!-- Keyboard -->
+    <div class="bt-section bt-keyboard @SectionClass(Section.Keyboard) @KeyboardContextClass">
+        @for (int r = 0; r < Rows.Count; r++)
+        {
+            int rowIndex = r;
+            <div class="bt-row @RowClass(rowIndex)">
+                @for (int c = 0; c < Rows[rowIndex].Count; c++)
+                {
+                    int colIndex = c;
+                    var key = Rows[rowIndex][colIndex];
+                    <span class="bt-key @(key == KeyCode.Space ? "bt-key-wide" : "") @KeyClass(rowIndex, colIndex)">
+                        @KeyDisplay.Label(key)
+                    </span>
+                }
+            </div>
+        }
+    </div>
+
+    <!-- Speak -->
+    <div class="bt-section bt-speak @SectionClass(Section.Speak)">
+        SPEAK
+    </div>
+
+    @* When the camera indicator is enabled+trained, this fires the same Indicate() the button does. *@
+    <CameraIndicator OnIndicated="OnIndicate" />
+</div>
+
+@code {
+    private ElementReference _root;
+
+    private IReadOnlyList<string> Words => Controller.Sentence.SuggestedWords;
+    private IReadOnlyList<IReadOnlyList<KeyCode>> Rows => Controller.Keyboard.Rows;
+    private string SentenceText => Controller.Sentence.ToString();
+
+    protected override void OnInitialized()
+    {
+        Controller.StateChanged += OnStateChanged;
+        Controller.Start();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Make the surface focusable so the keyboard switch (Space/Enter) is captured.
+            try { await _root.FocusAsync(); } catch { /* focus best-effort */ }
+        }
+    }
+
+    private void OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    private void OnIndicate() => Controller.Indicate();
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == " " || e.Key == "Spacebar" || e.Key == "Enter")
+            Controller.Indicate();
+    }
+
+    private void GoToSettings() => Navigation.NavigateTo("/settings");
+
+    // --- Highlight helpers (map the controller's HighlightTarget to CSS classes) ---
+
+    private string DepthColor => Controller.Depth switch
+    {
+        <= 1 => "#2f6bff", // blue
+        2 => "#2ec16b",    // green
+        3 => "#d44ce0",    // magenta
+        _ => "#e6c52f"     // yellow
+    };
+
+    private HighlightTarget H => Controller.Highlight;
+
+    private string SectionClass(Section s) =>
+        H.Kind == HighlightKind.Section && H.Section == s ? "bt-highlight" : "";
+
+    private string WordsContextClass =>
+        H.Kind == HighlightKind.WordSuggestion ? "bt-context" : "";
+
+    private string KeyboardContextClass =>
+        H.Kind == HighlightKind.KeyboardRow || H.Kind == HighlightKind.Key ? "bt-context" : "";
+
+    private string WordClass(int index) =>
+        H.Kind == HighlightKind.WordSuggestion && H.WordIndex == index ? "bt-highlight" : "";
+
+    private string RowClass(int rowIndex) =>
+        H.Kind == HighlightKind.KeyboardRow && H.RowIndex == rowIndex ? "bt-highlight" : "";
+
+    private string KeyClass(int rowIndex, int colIndex) =>
+        H.Kind == HighlightKind.Key && H.RowIndex == rowIndex && H.ColumnIndex == colIndex ? "bt-highlight" : "";
+
+    public void Dispose() => Controller.StateChanged -= OnStateChanged;
+}

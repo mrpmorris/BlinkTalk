@@ -1,0 +1,362 @@
+:root {
+    --bt-bg: #101216;
+    --bt-panel: #1b1f27;
+    --bt-panel-active: #232936;
+    --bt-text: #f2f4f8;
+    --bt-text-dim: #8b93a3;
+    /* Highlight colour, set per scan depth from code: blue/green/magenta/yellow. */
+    --bt-hl-color: #2f6bff;
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: var(--bt-bg);
+    color: var(--bt-text);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+}
+
+#app {
+    height: 100%;
+}
+
+/* Landscape-only: in portrait (viewport width < height) hide the app and show a rotate prompt. */
+#rotate-message {
+    display: none;
+}
+
+@media (max-aspect-ratio: 1/1) {
+    #app {
+        display: none;
+    }
+
+    #rotate-message {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        inset: 0;
+        text-align: center;
+        padding: 6vw;
+        gap: 2vh;
+    }
+
+    #rotate-message h1 {
+        margin: 0;
+        font-size: 8vw;
+    }
+
+    #rotate-message p {
+        margin: 0;
+        font-size: 5vw;
+        color: var(--bt-text-dim);
+    }
+}
+
+/* The entire screen is the "indicate" target: the helper taps anywhere on a blink. */
+.bt-root {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2vh;
+    padding: 2vh 2vw;
+    outline: none;
+    cursor: pointer;
+}
+
+.bt-sentence {
+    flex: 0 0 auto;
+    min-height: 12vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1.5vh 2vw;
+    font-size: 5vh;
+    font-weight: 600;
+    line-height: 1.15;
+    background: var(--bt-panel);
+    border-radius: 1.2vh;
+    word-break: break-word;
+}
+
+.bt-sentence.bt-pending {
+    color: var(--bt-text-dim);
+}
+
+.bt-sentence-placeholder {
+    color: var(--bt-text-dim);
+    font-weight: 400;
+    font-style: italic;
+}
+
+/* A scannable section (words / keyboard / speak). */
+.bt-section {
+    background: var(--bt-panel);
+    border-radius: 1.2vh;
+    border: 0.5vh solid transparent;
+    padding: 1.2vh;
+}
+
+/* The section is the active context (we've drilled into it). */
+.bt-section.bt-context {
+    background: var(--bt-panel-active);
+}
+
+.bt-words {
+    flex: 0 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1vw;
+    justify-content: center;
+    min-height: 10vh;
+    align-content: center;
+}
+
+.bt-word {
+    font-size: 3.4vh;
+    font-weight: 600;
+    text-transform: uppercase;
+    padding: 1vh 2vw;
+    border-radius: 1vh;
+    border: 0.5vh solid transparent;
+    background: #2a2f3a;
+}
+
+.bt-words-empty {
+    color: var(--bt-text-dim);
+    font-size: 2.6vh;
+    font-style: italic;
+}
+
+.bt-keyboard {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1vh;
+    justify-content: center;
+}
+
+.bt-row {
+    display: flex;
+    gap: 1vw;
+    justify-content: center;
+    border: 0.5vh solid transparent;
+    border-radius: 1vh;
+    padding: 0.4vh;
+}
+
+.bt-key {
+    flex: 1 1 0;
+    max-width: 12vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.6vh;
+    font-weight: 600;
+    text-transform: uppercase;
+    padding: 1.6vh 0;
+    border-radius: 1vh;
+    border: 0.5vh solid transparent;
+    background: #2a2f3a;
+}
+
+.bt-key-wide {
+    flex: 2 1 0;
+    max-width: 24vw;
+    text-transform: none;
+}
+
+.bt-speak {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4vh;
+    font-weight: 700;
+    letter-spacing: 0.3vw;
+    min-height: 10vh;
+}
+
+/* The pulsing highlight. Colour comes from --bt-hl-color (set by scan depth). */
+.bt-highlight {
+    border-color: var(--bt-hl-color);
+    animation: bt-pulse 1s ease-in-out infinite;
+}
+
+@keyframes bt-pulse {
+    0% {
+        border-color: var(--bt-hl-color);
+        box-shadow: 0 0 0.2vh 0.1vh var(--bt-hl-color);
+    }
+    50% {
+        border-color: #ffffff;
+        box-shadow: 0 0 2vh 0.4vh var(--bt-hl-color);
+    }
+    100% {
+        border-color: var(--bt-hl-color);
+        box-shadow: 0 0 0.2vh 0.1vh var(--bt-hl-color);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bt-highlight {
+        animation: none;
+        box-shadow: 0 0 1.5vh 0.3vh var(--bt-hl-color);
+    }
+}
+
+/* Small helper-facing settings affordance; does not trigger an indication. */
+.bt-settings-button {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--bt-text-dim);
+    border: none;
+    border-radius: 50%;
+    width: 10vh;
+    height: 10vh;
+    font-size: 5.2vh;
+    cursor: pointer;
+}
+
+/* Settings page */
+.bt-settings {
+    position: fixed;
+    inset: 0;
+    padding: 4vh 6vw;
+    display: flex;
+    flex-direction: column;
+    gap: 3vh;
+    overflow: auto;
+}
+
+.bt-settings h1 {
+    margin: 0;
+    font-size: 5vh;
+}
+
+.bt-setting-row {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid white;
+    padding: 0.5em 1em 1em 1em;
+    border-radius: 1em;
+    gap: 1vh;
+    font-size: 2.6vh;
+}
+
+.bt-setting-row h2 {
+    margin: 0;
+}
+
+.bt-setting-row input[type="range"] {
+    width: 100%;
+    height: 4vh;
+}
+
+.bt-settings-back {
+    align-self: flex-start;
+    background: var(--bt-hl-color);
+    color: #fff;
+    border: none;
+    border-radius: 1vh;
+    padding: 1.5vh 4vw;
+    font-size: 3vh;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.bt-settings-secondary {
+    align-self: flex-start;
+    background: var(--bt-panel-active);
+    color: var(--bt-text);
+    border: 0.3vh solid var(--bt-hl-color);
+    border-radius: 1vh;
+    padding: 1.2vh 4vw;
+    font-size: 2.8vh;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* Camera indicator page */
+.bt-cam-feed {
+    align-self: center;
+    width: min(80vw, 60vh);
+    aspect-ratio: 4 / 3;
+    background: #000;
+    border-radius: 1.2vh;
+    overflow: hidden;
+}
+
+.bt-cam-feed video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1); /* mirror, like a selfie view */
+}
+
+.bt-cam-status {
+    font-size: 2.6vh;
+    min-height: 3.5vh;
+}
+
+.bt-cam-error {
+    color: #ff6b6b;
+    font-size: 2.6vh;
+}
+
+.bt-cam-check {
+    display: flex;
+    align-items: center;
+    gap: 1.5vw;
+    font-size: 2.8vh;
+}
+
+.bt-cam-check input {
+    width: 3vh;
+    height: 3vh;
+}
+
+.bt-meter {
+    width: 100%;
+    height: 2.5vh;
+    background: var(--bt-panel-active);
+    border-radius: 1vh;
+    overflow: hidden;
+}
+
+.bt-meter-fill {
+    height: 100%;
+    background: var(--bt-hl-color);
+    transition: width 80ms linear;
+}
+
+.bt-cam-flash {
+    outline: 1vh solid var(--bt-hl-color);
+    outline-offset: -1vh;
+}
+
+/* Off-screen detector video used on the main page (kept tiny but still rendering frames). */
+.bt-cam-hidden {
+    position: fixed;
+    width: 2px;
+    height: 2px;
+    bottom: 0;
+    right: 0;
+    opacity: 0.01;
+    pointer-events: none;
+}

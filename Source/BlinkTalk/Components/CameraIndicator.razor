@@ -1,0 +1,59 @@
+@using BlinkTalk.Services
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject CameraIndicatorConfig Config
+
+@* Hidden detector: when the camera indicator is enabled, runs face detection off-screen and
+   raises OnIndicated each time the user's trained gesture fires — the same effect as the helper
+   pressing the button. Renders nothing visible when disabled. *@
+@if (Config.IsEnabled)
+{
+    <video @ref="_video" class="bt-cam-hidden" autoplay playsinline muted></video>
+}
+
+@code {
+    [Parameter] public EventCallback OnIndicated { get; set; }
+
+    private ElementReference _video;
+    private IJSObjectReference? _module;
+    private DotNetObjectReference<CameraIndicator>? _selfRef;
+    private bool _started;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _started || !Config.IsEnabled)
+            return;
+        _started = true;
+        try
+        {
+            if (Microsoft.Maui.Devices.DeviceInfo.Platform == Microsoft.Maui.Devices.DevicePlatform.Android)
+            {
+                var status = await Microsoft.Maui.ApplicationModel.Permissions.RequestAsync<Microsoft.Maui.ApplicationModel.Permissions.Camera>();
+                if (status != Microsoft.Maui.ApplicationModel.PermissionStatus.Granted)
+                    return; // helper button still works
+            }
+
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/blinktalk-camera.js");
+            _selfRef = DotNetObjectReference.Create(this);
+            await _module.InvokeAsync<bool>("start", _video, _selfRef);
+            await _module.InvokeVoidAsync("setDetect", Config.Signal, Config.Threshold, 800);
+        }
+        catch
+        {
+            // If the camera can't start (no permission/hardware), the helper button still works.
+        }
+    }
+
+    [JSInvokable]
+    public Task OnCameraIndicated() => OnIndicated.InvokeAsync();
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is not null)
+        {
+            try { await _module.InvokeVoidAsync("stop"); } catch { /* ignore */ }
+            try { await _module.DisposeAsync(); } catch { /* ignore */ }
+        }
+        _selfRef?.Dispose();
+    }
+}
