@@ -1,0 +1,221 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '[0-9]*.[0-9]*.[0-9]*'
+
+jobs:
+  # ── 1. Validate ────────────────────────────────────────────────────────────
+  # Reject tags that don't match N.N.N exactly and tags whose commit is not
+  # reachable from master.
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate tag format
+        run: |
+          if ! [[ "$GITHUB_REF_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Tag '$GITHUB_REF_NAME' does not match required format N.N.N (no prefix, no suffix)."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch master and all tags
+        run: git fetch origin master --tags
+
+      - name: Verify tag commit is on master
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
+            echo "::error::Tag commit $GITHUB_SHA is not an ancestor of origin/master."
+            exit 1
+          fi
+
+  # ── 2. Test ────────────────────────────────────────────────────────────────
+  # All unit tests must pass before any artifact is built or released.
+  test:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      # The solution includes the MAUI app project (net10.0-android on Linux),
+      # so the Android MAUI workload is required for solution restore to succeed.
+      - name: Install MAUI Android workload
+        run: dotnet workload install maui-android
+
+      - name: Run tests
+        run: dotnet test --configuration Release
+
+  # ── 3. Build – Windows ────────────────────────────────────────────────────
+  # Produces:
+  #   • BlinkTalk-windows-msix-{version}.zip   — MSIX package (signed)
+  #   • BlinkTalk-windows-portable-{version}.zip — self-contained portable build
+  #
+  # Required secrets:
+  #   WINDOWS_CERTIFICATE          – Base64-encoded PFX; the certificate subject
+  #                                  must match the app's Publisher identity.
+  #   WINDOWS_CERTIFICATE_PASSWORD – Password for the PFX file.
+  build-windows:
+    needs: test
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Install MAUI Windows workload
+        run: dotnet workload install maui-windows
+
+      - name: Compute version code
+        shell: bash
+        run: |
+          IFS='.' read -ra P <<< "$VERSION"
+          echo "VERSION_CODE=$((${P[0]} * 10000 + ${P[1]} * 100 + ${P[2]}))" >> "$GITHUB_ENV"
+
+      - name: Decode signing certificate
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+        run: |
+          $bytes = [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE)
+          [IO.File]::WriteAllBytes("$env:RUNNER_TEMP\signing.pfx", $bytes)
+
+      - name: Build MSIX
+        shell: bash
+        run: |
+          dotnet publish Source/BlinkTalk/BlinkTalk.csproj \
+            -f net10.0-windows10.0.19041.0 \
+            -c Release \
+            -p:ApplicationDisplayVersion="$VERSION" \
+            -p:ApplicationVersion="$VERSION_CODE" \
+            -p:WindowsPackageType=Msix \
+            -p:AppxPackageSigningEnabled=true \
+            -p:PackageCertificateKeyFile="$RUNNER_TEMP/signing.pfx" \
+            -p:PackageCertificatePassword="${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}" \
+            -o publish/msix
+
+      - name: Package MSIX as ZIP
+        shell: pwsh
+        run: Compress-Archive -Path publish/msix/* -DestinationPath "BlinkTalk-windows-msix-$env:VERSION.zip"
+
+      - name: Build portable (self-contained)
+        shell: bash
+        run: |
+          dotnet publish Source/BlinkTalk/BlinkTalk.csproj \
+            -f net10.0-windows10.0.19041.0 \
+            -c Release \
+            -r win10-x64 \
+            --self-contained true \
+            -p:ApplicationDisplayVersion="$VERSION" \
+            -p:ApplicationVersion="$VERSION_CODE" \
+            -p:WindowsPackageType=None \
+            -o publish/portable
+
+      - name: Package portable as ZIP
+        shell: pwsh
+        run: Compress-Archive -Path publish/portable/* -DestinationPath "BlinkTalk-windows-portable-$env:VERSION.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifacts
+          path: |
+            BlinkTalk-windows-msix-${{ env.VERSION }}.zip
+            BlinkTalk-windows-portable-${{ env.VERSION }}.zip
+
+  # ── 4. Build – Android ────────────────────────────────────────────────────
+  # Produces:
+  #   • BlinkTalk-android-{version}.apk — release-signed APK
+  #
+  # Required secrets:
+  #   ANDROID_KEYSTORE          – Base64-encoded JKS/PKCS12 keystore.
+  #   ANDROID_KEYSTORE_PASSWORD – Keystore password.
+  #   ANDROID_KEY_ALIAS         – Key alias inside the keystore.
+  #   ANDROID_KEY_PASSWORD      – Key password.
+  build-android:
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Install MAUI Android workload
+        run: dotnet workload install maui-android
+
+      - name: Compute version code
+        run: |
+          IFS='.' read -ra P <<< "$VERSION"
+          echo "VERSION_CODE=$((${P[0]} * 10000 + ${P[1]} * 100 + ${P[2]}))" >> "$GITHUB_ENV"
+
+      - name: Decode keystore
+        env:
+          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+        run: echo "$ANDROID_KEYSTORE" | base64 --decode > "$RUNNER_TEMP/keystore.jks"
+
+      - name: Build signed APK
+        run: |
+          dotnet publish Source/BlinkTalk/BlinkTalk.csproj \
+            -f net10.0-android \
+            -c Release \
+            -p:ApplicationDisplayVersion="$VERSION" \
+            -p:ApplicationVersion="$VERSION_CODE" \
+            -p:AndroidSigningKeyStore="$RUNNER_TEMP/keystore.jks" \
+            -p:AndroidSigningKeyAlias="${{ secrets.ANDROID_KEY_ALIAS }}" \
+            -p:AndroidSigningKeyPass="${{ secrets.ANDROID_KEY_PASSWORD }}" \
+            -p:AndroidSigningStorePass="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
+            -p:AndroidPackageFormats=apk \
+            -o publish/android
+
+      - name: Rename APK
+        run: |
+          APK=$(find publish/android -name "*.apk" | head -1)
+          cp "$APK" "BlinkTalk-android-$VERSION.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-artifacts
+          path: BlinkTalk-android-${{ env.VERSION }}.apk
+
+  # ── 5. Release ────────────────────────────────────────────────────────────
+  # Creates a GitHub Release and attaches all build artifacts.
+  # Only runs if every preceding job succeeded.
+  release:
+    needs: [build-windows, build-android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ github.ref_name }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-artifacts
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: android-artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: BlinkTalk ${{ env.VERSION }}
+          generate_release_notes: true
+          files: |
+            BlinkTalk-windows-msix-${{ env.VERSION }}.zip
+            BlinkTalk-windows-portable-${{ env.VERSION }}.zip
+            BlinkTalk-android-${{ env.VERSION }}.apk
