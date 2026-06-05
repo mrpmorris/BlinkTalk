@@ -51,7 +51,7 @@ jobs:
         run: dotnet workload install maui-android
 
       - name: Run tests
-        run: dotnet test --configuration Release
+        run: dotnet test --configuration Release --blame-hang --blame-hang-timeout 2m
 
   # ── 3. Build – Windows ────────────────────────────────────────────────────
   # Produces:
