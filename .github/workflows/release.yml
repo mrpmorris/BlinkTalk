@@ -100,7 +100,7 @@ jobs:
             -c Release \
             -p:ApplicationDisplayVersion="$VERSION" \
             -p:ApplicationVersion="$VERSION_CODE" \
-            -p:WindowsPackageType=Msix \
+            -p:WindowsPackageType=MSIX \
             -p:AppxPackageSigningEnabled=true \
             -p:PackageCertificateKeyFile="$RUNNER_TEMP/signing.pfx" \
             -p:PackageCertificatePassword="${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}" \
