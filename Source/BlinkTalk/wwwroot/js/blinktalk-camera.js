@@ -141,6 +141,59 @@ export function setPreview() {
     detect = null;
 }
 
+// Continuous "guidance" tone whose pitch and volume track the live score for a signal, so the
+// user can hear how close they are to the threshold with their eyes closed (or off-screen). The
+// bar in the UI is visual-only; this is the audible equivalent. Idempotent: calling start again
+// just retargets it. Runs its own rAF loop reading the latest blendshape score directly.
+let toneOsc = null;
+let toneGain = null;
+let toneRaf = 0;
+let toneSignal = null;
+let toneThreshold = 0.5;
+
+export function startScoreTone(signal, threshold) {
+    stopScoreTone();
+    toneSignal = signal;
+    toneThreshold = threshold || 0.5;
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") { try { audioCtx.resume(); } catch { /* ignore */ } }
+    toneOsc = audioCtx.createOscillator();
+    toneGain = audioCtx.createGain();
+    toneOsc.type = "sine";
+    toneGain.gain.value = 0.0001;
+    toneOsc.connect(toneGain);
+    toneGain.connect(audioCtx.destination);
+    toneOsc.start();
+
+    const tick = () => {
+        if (!toneOsc) return;
+        const score = currentScore(toneSignal);                    // 0..1
+        const norm = Math.min(1.5, score / Math.max(0.05, toneThreshold)); // 1.0 == at threshold
+        // Stay silent for the lowest half of the way to the threshold; only sweep pitch/volume
+        // across the upper half (norm 0.5 → 1.5), so the user only hears feedback once they're
+        // genuinely closing in on the gesture.
+        const u = Math.max(0, (norm - 0.5) / 1.0);                 // 0 at half-threshold, 1 at 1.5×
+        const freq = 200 + u * 700;                                // ~200Hz at the halfway point → climbing
+        const vol = u <= 0 ? 0 : Math.min(0.22, 0.04 + u * 0.18);
+        const now = audioCtx.currentTime;
+        toneOsc.frequency.setTargetAtTime(freq, now, 0.03);
+        toneGain.gain.setTargetAtTime(vol, now, 0.03);
+        toneRaf = requestAnimationFrame(tick);
+    };
+    tick();
+}
+
+export function stopScoreTone() {
+    if (toneRaf) cancelAnimationFrame(toneRaf);
+    toneRaf = 0;
+    if (toneOsc) {
+        try { toneOsc.stop(); } catch { /* ignore */ }
+        try { toneOsc.disconnect(); } catch { /* ignore */ }
+        toneOsc = null;
+    }
+    toneGain = null;
+}
+
 // Short tone via Web Audio — used for "start capturing" / "stop" cues during training and to
 // confirm a detected gesture, since the user may be looking away from the screen.
 let audioCtx = null;
@@ -164,6 +217,7 @@ export function beep(frequency, durationMs) {
 
 export function stop() {
     running = false;
+    stopScoreTone();
     if (rafId) cancelAnimationFrame(rafId);
     rafId = 0;
     if (stream) {
