@@ -1,0 +1,31 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+
+  <PropertyGroup>
+    <!-- Final installer is named BlinkTalk-Setup.msi; the release workflow copies it to
+         a versioned BlinkTalk-windows-<version>.msi before uploading. -->
+    <OutputName>BlinkTalk-Setup</OutputName>
+    <OutputType>Package</OutputType>
+    <InstallerPlatform>x64</InstallerPlatform>
+
+    <!-- Some harvested third-party native DLLs carry a non-standard language id in their
+         version resource, which trips ICE03 ("Invalid Language Id"). It is harmless, so
+         suppress just that one validation check. -->
+    <SuppressIces>ICE03</SuppressIces>
+
+    <!-- These are supplied by CI (see .github/workflows/release.yml). The defaults let
+         you build locally after `dotnet publish`-ing the Windows app first.
+         A custom property name (AppPublishDir) is used on purpose: the MSBuild-reserved
+         "PublishDir" has its own meaning and must not be reused here. -->
+    <ProductVersion Condition="'$(ProductVersion)' == ''">0.0.1</ProductVersion>
+    <AppPublishDir Condition="'$(AppPublishDir)' == ''">$(MSBuildThisFileDirectory)..\BlinkTalk\bin\Release\net10.0-windows10.0.19041.0\win-x64\publish</AppPublishDir>
+
+    <!-- Surface the two values to the WiX preprocessor as $(var.ProductVersion) / $(var.PublishDir). -->
+    <DefineConstants>ProductVersion=$(ProductVersion);PublishDir=$(AppPublishDir)</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Provides the WixUI_InstallDir wizard (welcome / license / folder / progress / finish). -->
+    <PackageReference Include="WixToolset.UI.wixext" Version="5.0.2" />
+  </ItemGroup>
+
+</Project>

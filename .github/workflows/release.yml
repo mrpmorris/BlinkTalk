@@ -55,13 +55,8 @@ jobs:
 
   # ── 3. Build – Windows ────────────────────────────────────────────────────
   # Produces:
-  #   • BlinkTalk-windows-msix-{version}.zip   — MSIX package (signed)
-  #   • BlinkTalk-windows-portable-{version}.zip — self-contained portable build
-  #
-  # Required secrets:
-  #   WINDOWS_CERTIFICATE          – Base64-encoded PFX; the certificate subject
-  #                                  must match the app's Publisher identity.
-  #   WINDOWS_CERTIFICATE_PASSWORD – Password for the PFX file.
+  #   • BlinkTalk-windows-{version}.msi — WiX installer wrapping the self-contained
+  #     (unpackaged) build. No code-signing certificate required.
   build-windows:
     needs: test
     runs-on: windows-latest
@@ -83,33 +78,6 @@ jobs:
           IFS='.' read -ra P <<< "$VERSION"
           echo "VERSION_CODE=$((${P[0]} * 10000 + ${P[1]} * 100 + ${P[2]}))" >> "$GITHUB_ENV"
 
-      - name: Decode signing certificate
-        shell: pwsh
-        env:
-          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
-        run: |
-          $bytes = [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE)
-          [IO.File]::WriteAllBytes("$env:RUNNER_TEMP\signing.pfx", $bytes)
-
-      - name: Build MSIX
-        shell: bash
-        run: |
-          dotnet publish Source/BlinkTalk/BlinkTalk.csproj \
-            -f net10.0-windows10.0.19041.0 \
-            -p:WindowsPublish=true \
-            -c Release \
-            -p:ApplicationDisplayVersion="$VERSION" \
-            -p:ApplicationVersion="$VERSION_CODE" \
-            -p:WindowsPackageType=MSIX \
-            -p:AppxPackageSigningEnabled=true \
-            -p:PackageCertificateKeyFile="$RUNNER_TEMP/signing.pfx" \
-            -p:PackageCertificatePassword="${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}" \
-            -o publish/msix
-
-      - name: Package MSIX as ZIP
-        shell: pwsh
-        run: Compress-Archive -Path publish/msix/* -DestinationPath "BlinkTalk-windows-msix-$env:VERSION.zip"
-
       - name: Build portable (self-contained)
         shell: bash
         run: |
@@ -124,16 +92,20 @@ jobs:
             -p:WindowsPackageType=None \
             -o publish/portable
 
-      - name: Package portable as ZIP
-        shell: pwsh
-        run: Compress-Archive -Path publish/portable/* -DestinationPath "BlinkTalk-windows-portable-$env:VERSION.zip"
+      - name: Build MSI installer
+        shell: bash
+        run: |
+          dotnet build Source/Installer/BlinkTalk.wixproj \
+            -c Release \
+            -p:ProductVersion="$VERSION" \
+            -p:AppPublishDir="$PWD/publish/portable" \
+            -o publish/installer
+          cp publish/installer/BlinkTalk-Setup.msi "BlinkTalk-windows-$VERSION.msi"
 
       - uses: actions/upload-artifact@v4
         with:
           name: windows-artifacts
-          path: |
-            BlinkTalk-windows-msix-${{ env.VERSION }}.zip
-            BlinkTalk-windows-portable-${{ env.VERSION }}.zip
+          path: BlinkTalk-windows-${{ env.VERSION }}.msi
 
   # ── 4. Build – Android ────────────────────────────────────────────────────
   # Produces:
@@ -218,6 +190,5 @@ jobs:
           name: BlinkTalk ${{ env.VERSION }}
           generate_release_notes: true
           files: |
-            BlinkTalk-windows-msix-${{ env.VERSION }}.zip
-            BlinkTalk-windows-portable-${{ env.VERSION }}.zip
+            BlinkTalk-windows-${{ env.VERSION }}.msi
             BlinkTalk-android-${{ env.VERSION }}.apk
