@@ -19,7 +19,7 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -39,7 +39,7 @@ jobs:
     needs: validate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -68,7 +68,7 @@ jobs:
     env:
       VERSION: ${{ github.ref_name }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -117,7 +117,7 @@ jobs:
             -f net10.0-windows10.0.19041.0 \
             -p:TargetFrameworks=net10.0-windows10.0.19041.0 \
             -c Release \
-            -r win10-x64 \
+            -r win-x64 \
             --self-contained true \
             -p:ApplicationDisplayVersion="$VERSION" \
             -p:ApplicationVersion="$VERSION_CODE" \
@@ -150,7 +150,7 @@ jobs:
     env:
       VERSION: ${{ github.ref_name }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: actions/setup-dotnet@v4
         with:
