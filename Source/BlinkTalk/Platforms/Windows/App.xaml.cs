@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using Microsoft.UI.Xaml;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -16,6 +18,20 @@ public partial class App : MauiWinUIApplication
 	/// </summary>
 	public App()
 	{
+		// WebView2 defaults its user-data folder to a "<exe>.WebView2" directory next to the
+		// executable. When the app is installed under Program Files that location is read-only
+		// for standard users, so WebView2 fails to initialize and the BlazorWebView renders a
+		// blank screen. Redirect it to a per-user writable folder before any WebView is created.
+		if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WEBVIEW2_USER_DATA_FOLDER")))
+		{
+			string userDataFolder = Path.Combine(
+				Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+				"BlinkTalk",
+				"WebView2");
+			Directory.CreateDirectory(userDataFolder);
+			Environment.SetEnvironmentVariable("WEBVIEW2_USER_DATA_FOLDER", userDataFolder);
+		}
+
 		this.InitializeComponent();
 	}
 
