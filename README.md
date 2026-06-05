@@ -46,7 +46,7 @@ used words and natural word combinations are offered first.
 
 The solution (`BlinkTalk.sln`) has three projects under `Source/`:
 
-- **`BlinkTalk.Application`** (`netstandard2.0`) — all the scanning, prediction, and persistence logic.
+- **`BlinkTalk.Application` — all the scanning, prediction, and persistence logic.
   Contains no MAUI or Blazor types, so it can be unit-tested on plain .NET. Platform concerns enter only
   through interfaces (text-to-speech, settings, clock, UI dispatch, the database).
 - **`BlinkTalk`** — the .NET MAUI Blazor Hybrid host (Android, iOS, Mac Catalyst, Windows). Holds the

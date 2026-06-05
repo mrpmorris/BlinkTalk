@@ -1,9 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
     <PropertyGroup>
-        <TargetFrameworks>net10.0-android</TargetFrameworks>
-        <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('linux'))">$(TargetFrameworks);net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
-        <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
+        <!-- CI: pass -p:WindowsPublish=true to build ONLY the Windows TFM. This lets the
+             release pipeline publish the Windows artifact on a runner that has only the
+             maui-windows workload (no Android/iOS/MacCatalyst). A custom property name is
+             used deliberately: unlike the reserved TargetFrameworks, it does NOT flow into
+             referenced projects, so BlinkTalk.Application keeps its own target framework. -->
+        <TargetFrameworks Condition="'$(WindowsPublish)' == 'true'">net10.0-windows10.0.19041.0</TargetFrameworks>
+        <TargetFrameworks Condition="'$(WindowsPublish)' != 'true'">net10.0-android</TargetFrameworks>
+        <TargetFrameworks Condition="'$(WindowsPublish)' != 'true' and !$([MSBuild]::IsOSPlatform('linux'))">$(TargetFrameworks);net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
+        <TargetFrameworks Condition="'$(WindowsPublish)' != 'true' and $([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
 
         <!-- Note for MacCatalyst:
             The default runtime is maccatalyst-x64, except in Release config, in which case the default is maccatalyst-x64;maccatalyst-arm64.

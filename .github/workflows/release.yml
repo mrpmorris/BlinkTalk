@@ -96,6 +96,7 @@ jobs:
         run: |
           dotnet publish Source/BlinkTalk/BlinkTalk.csproj \
             -f net10.0-windows10.0.19041.0 \
+            -p:WindowsPublish=true \
             -c Release \
             -p:ApplicationDisplayVersion="$VERSION" \
             -p:ApplicationVersion="$VERSION_CODE" \
@@ -114,6 +115,7 @@ jobs:
         run: |
           dotnet publish Source/BlinkTalk/BlinkTalk.csproj \
             -f net10.0-windows10.0.19041.0 \
+            -p:WindowsPublish=true \
             -c Release \
             -r win-x64 \
             --self-contained true \
