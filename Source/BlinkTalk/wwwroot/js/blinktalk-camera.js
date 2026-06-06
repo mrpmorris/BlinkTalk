@@ -117,6 +117,14 @@ export function currentScore(signal) {
     return cat ? cat.score : 0;
 }
 
+// How many seconds the trained gesture has currently been held above threshold (0 if not being
+// held). Only meaningful in "detect" mode. The setup page shows this on the meter so the user can
+// see how long they naturally hold and size the dwell to match.
+export function currentHoldSeconds() {
+    if (mode !== "detect" || !detect || !wasAbove) return 0;
+    return (performance.now() - dwellStart) / 1000;
+}
+
 // Collect blendshape statistics over a time window (ms). Returns [{ name, mean, max }].
 // Used by training to compare a "relaxed" window against an "indicating" window.
 export function captureWindow(ms) {

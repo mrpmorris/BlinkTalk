@@ -25,22 +25,18 @@
     {
         <div class="bt-setting-row">
             <label>Learned gesture: <strong>@_signalDescription</strong></label>
-            <div class="bt-meter"><div class="bt-meter-fill" style="width:@($"{(int)(_liveScore * 100)}%")"></div></div>
-            <span>Try your gesture — the bar fills as the camera detects it.</span>
+            <div class="bt-meter"><div class="bt-meter-fill" style="width:@($"{(int)(_holdFraction * 100)}%")"></div></div>
+            <label for="holdTime">Hold time: @_dwellSeconds.ToString("0.0") s</label>
+            Hold your gesture and the bar fill with time. Set the slider where you'd like it to trigger. You'll hear a beep when the bar reaches it.
+            <input id="holdTime"
+                   type="range"
+                   min="0.1"
+                   max="2.0"
+                   step="0.1"
+                   value="@_dwellSeconds"
+                   @oninput="OnDwellChanged" />
         </div>
     }
-
-    <div class="bt-setting-row">
-        <label for="holdTime">Hold time: @_dwellSeconds.ToString("0.0") s</label>
-        How long to hold the gesture before it counts. Longer ignores normal blinks.
-        <input id="holdTime"
-               type="range"
-               min="0.1"
-               max="2.0"
-               step="0.1"
-               value="@_dwellSeconds"
-               @oninput="OnDwellChanged" />
-    </div>
 
     <button class="bt-settings-back" @onclick="TrainAsync" disabled="@_busy">@(_busy ? "Training…" : "Train")</button>
 
@@ -63,7 +59,7 @@
     private string _status = "Starting camera…";
     private string? _error;
     private string? _signalDescription;
-    private double _liveScore;
+    private double _holdFraction; // 0..1 = current hold time scaled to the 2s slider max
     private bool _busy;
     private bool _flash;
     private bool _started;
@@ -74,13 +70,23 @@
 
     protected override void OnInitialized() => _dwellSeconds = Config.DwellSeconds;
 
-    private void OnDwellChanged(ChangeEventArgs e)
+    private async Task OnDwellChanged(ChangeEventArgs e)
     {
         if (double.TryParse(e.Value?.ToString(), out double seconds))
         {
             _dwellSeconds = seconds;
             Config.DwellSeconds = seconds;
+            await ArmDetectAsync(); // re-arm so the beep triggers at the new hold time
         }
+    }
+
+    // Run live detection on this page so holding the gesture fills the time meter and beeps once the
+    // hold reaches the dwell — letting the user calibrate the hold time before enabling the camera.
+    private async Task ArmDetectAsync()
+    {
+        if (_module is null) return;
+        try { await _module.InvokeVoidAsync("setDetect", Config.Signal, Config.Threshold, _dwellSeconds * 1000, 800); }
+        catch { /* page tearing down */ }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -104,7 +110,8 @@
             if (Config.IsTrained)
             {
                 _signalDescription = Describe(Config.Signal);
-                StartMeterLoop(); // visual-only live feedback (no beep on this page)
+                await ArmDetectAsync();
+                StartMeterLoop();
             }
             _status = "Camera ready. Press Train and follow the prompts.";
         }
@@ -151,7 +158,8 @@
                 _signalDescription = Describe(signal);
                 _status = $"Training successful! I detected your “{_signalDescription}” gesture. Ensure ‘Use camera’ is ticked so you can use it.";
                 await SayAsync(_status);
-                StartMeterLoop(); // visual-only live feedback for the helper (no beep)
+                await ArmDetectAsync();
+                StartMeterLoop();
                 break; // done
             }
         }
@@ -211,21 +219,25 @@
         _meterCts = cts;
         _ = Task.Run(async () =>
         {
-            // Poll the live score to drive the visual bar (for the helper). No audio on this page.
+            // Poll how long the gesture has been held and show it on the bar, scaled to the 2s slider
+            // max so the bar and slider share one timeline. The beep at the dwell comes from JS.
             while (!cts.IsCancellationRequested && _module is not null)
             {
                 try
                 {
-                    _liveScore = await _module.InvokeAsync<double>("currentScore", Config.Signal);
+                    double heldSeconds = await _module.InvokeAsync<double>("currentHoldSeconds");
+                    _holdFraction = Math.Min(1.0, heldSeconds / 2.0);
                     await InvokeAsync(StateHasChanged);
                 }
                 catch { /* page tearing down */ }
-                await Task.Delay(150);
+                await Task.Delay(80);
             }
         });
     }
 
-    // Called from JS when the trained gesture fires — used here only as visual confirmation.
+    // Called from JS when the trained gesture fires (held past the dwell) — visual confirmation to
+    // accompany the JS beep. The dwell-edge callbacks are no-ops here: only the live Type page acts
+    // on them, but detect mode raises them so we must accept them without erroring.
     [JSInvokable]
     public async Task OnCameraIndicated()
     {
@@ -235,6 +247,9 @@
         _flash = false;
         await InvokeAsync(StateHasChanged);
     }
+
+    [JSInvokable] public Task OnDwellStarted() => Task.CompletedTask;
+    [JSInvokable] public Task OnDwellEnded() => Task.CompletedTask;
 
     private void OnUseCameraChanged(ChangeEventArgs e)
     {
