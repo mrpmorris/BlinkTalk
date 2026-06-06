@@ -1,7 +1,9 @@
 @using BlinkTalk.Services
+@using BlinkTalk.Services.Indicators
 @implements IAsyncDisposable
 @inject IJSRuntime JS
 @inject CameraIndicatorConfig Config
+@inject CameraGestureIndicator Indicator
 
 @* Hidden detector: when the camera indicator is enabled, runs face detection off-screen and
    raises OnIndicated each time the user's trained gesture fires — the same effect as the helper
@@ -12,8 +14,6 @@
 }
 
 @code {
-    [Parameter] public EventCallback OnIndicated { get; set; }
-
     private ElementReference _video;
     private IJSObjectReference? _module;
     private DotNetObjectReference<CameraIndicator>? _selfRef;
@@ -45,7 +45,11 @@
     }
 
     [JSInvokable]
-    public Task OnCameraIndicated() => OnIndicated.InvokeAsync();
+    public Task OnCameraIndicated()
+    {
+        Indicator.Trigger();
+        return Task.CompletedTask;
+    }
 
     public async ValueTask DisposeAsync()
     {

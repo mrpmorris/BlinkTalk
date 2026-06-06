@@ -60,8 +60,10 @@ Mac host. `dotnet build-server shutdown` releases file locks if a rename/delete 
 `TypingController`) owns a `Stack<IInputStrategy>` and the `SentenceBuilder`. `Push<T>()` enters a
 deeper scan level; `Pop()` returns to the parent. The strategies, in `Input/Strategies/`:
 `SectionSelector` (top: WordSelector / Keyboard / Speak) → `KeyboardRowSelector` → `KeyboardColumnSelector`,
-and `WordSuggestionSelector`. The single switch is `ScanController.Indicate()`, which routes to
-`strategies.Peek().ReceiveIndication()`.
+and `WordSuggestionSelector`. The single switch is inverted: each input source implements `IIndicator`
+(`Abstractions/IIndicator.cs`) and raises `Indicated`; the concrete sources are `PointerIndicator`,
+`KeyboardIndicator` and `CameraGestureIndicator` (`Services/Indicators/`). `ScanController` subscribes to
+every registered `IIndicator` in its constructor and routes the signal via `strategies.Peek().ReceiveIndication()`.
 
 **`FocusCycler` is the timer.** Each strategy creates one via `controller.NewCycler(...)`. It advances a
 focus index, calling `focusChanged` for each index where `mayFocus` is true, after a dwell; indices that

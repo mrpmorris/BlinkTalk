@@ -84,6 +84,14 @@ namespace BlinkTalk.Application.Tests
         public void SetString(string key, string value) => _strings[key] = value;
     }
 
+    /// <summary>A controllable indicator: <see cref="Fire"/> raises <see cref="Indicated"/>, standing
+    /// in for the pointer/keyboard/camera sources the controller subscribes to in the app.</summary>
+    public sealed class FakeIndicator : IIndicator
+    {
+        public event Action? Indicated;
+        public void Fire() => Indicated?.Invoke();
+    }
+
     public sealed class FixedClock : IClock
     {
         public DateTime UtcNow { get; set; } = new DateTime(2026, 6, 3, 0, 0, 0, DateTimeKind.Utc);

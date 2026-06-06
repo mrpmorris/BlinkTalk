@@ -1,7 +1,10 @@
 @page "/type"
 @using BlinkTalk.Application.Input.Strategies
+@using BlinkTalk.Services.Indicators
 @implements IDisposable
 @inject ScanController Controller
+@inject PointerIndicator Pointer
+@inject KeyboardIndicator Keyboard
 @inject NavigationManager Navigation
 
 <div class="bt-root"
@@ -67,8 +70,9 @@
         SPEAK
     </div>
 
-    @* When the camera indicator is enabled+trained, this fires the same Indicate() the button does. *@
-    <CameraIndicator OnIndicated="OnIndicate" />
+    @* When the camera indicator is enabled+trained, it triggers its own indicator, which the
+       controller subscribes to just like the pointer and keyboard. *@
+    <CameraIndicator />
 </div>
 
 @code {
@@ -95,12 +99,12 @@
 
     private void OnStateChanged() => InvokeAsync(StateHasChanged);
 
-    private void OnIndicate() => Controller.Indicate();
+    private void OnIndicate() => Pointer.Trigger();
 
     private void OnKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == " " || e.Key == "Spacebar" || e.Key == "Enter")
-            Controller.Indicate();
+            Keyboard.Trigger();
     }
 
     private void GoToSettings() => Navigation.NavigateTo("/settings");

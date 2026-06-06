@@ -7,7 +7,7 @@ namespace BlinkTalk.Application.Tests
 {
     public class ScanFlowTests
     {
-        private static (ScanController controller, StepDelay gate, FakeTextToSpeech tts) Build()
+        private static (ScanController controller, FakeIndicator indicator, StepDelay gate, FakeTextToSpeech tts) Build()
         {
             var word = new FakeWordService();
             var phrase = new FakePhraseService();
@@ -15,15 +15,17 @@ namespace BlinkTalk.Application.Tests
             var keyboard = KeyboardLayout.CreateDefault();
             var tts = new FakeTextToSpeech();
             var gate = new StepDelay();
+            var indicator = new FakeIndicator();
             var controller = new ScanController(
-                sentence, keyboard, tts, new FakeSettingsStore(), new InlineUiDispatcher(), gate.Delay);
-            return (controller, gate, tts);
+                sentence, keyboard, tts, new FakeSettingsStore(), new InlineUiDispatcher(),
+                new[] { indicator }, gate.Delay);
+            return (controller, indicator, gate, tts);
         }
 
         [Fact]
         public void StartEntersSectionSelectorAndHighlightsKeyboardWhenNothingElseAvailable()
         {
-            var (controller, _, tts) = Build();
+            var (controller, _, _, tts) = Build();
 
             controller.Start();
 
@@ -38,21 +40,21 @@ namespace BlinkTalk.Application.Tests
         [Fact]
         public void DrillingIntoKeyboardTypesALetterAndReturnsToRowScanning()
         {
-            var (controller, _, _) = Build();
+            var (controller, indicator, _, _) = Build();
             controller.Start();                  // highlight: Keyboard section
 
-            controller.Indicate();               // -> row selector (depth 2), row 0
+            indicator.Fire();                    // -> row selector (depth 2), row 0
             Assert.Equal(2, controller.Depth);
             Assert.Equal(HighlightKind.KeyboardRow, controller.Highlight.Kind);
             Assert.Equal(0, controller.Highlight.RowIndex);
 
-            controller.Indicate();               // -> column selector (depth 3), key (0,0)
+            indicator.Fire();                    // -> column selector (depth 3), key (0,0)
             Assert.Equal(3, controller.Depth);
             Assert.Equal(HighlightKind.Key, controller.Highlight.Kind);
             Assert.Equal(0, controller.Highlight.RowIndex);
             Assert.Equal(0, controller.Highlight.ColumnIndex);
 
-            controller.Indicate();               // type key (0,0) and pop back to rows
+            indicator.Fire();                    // type key (0,0) and pop back to rows
             Assert.Equal(2, controller.Depth);
             Assert.False(controller.Sentence.IsEmpty);
         }
@@ -60,9 +62,9 @@ namespace BlinkTalk.Application.Tests
         [Fact]
         public async Task RowSelectorAutoExitsAfterCyclingOnceWithoutSelection()
         {
-            var (controller, gate, _) = Build();
+            var (controller, indicator, gate, _) = Build();
             controller.Start();
-            controller.Indicate();               // into rows (depth 2), row 0 fired (count = 1)
+            indicator.Fire();                    // into rows (depth 2), row 0 fired (count = 1)
 
             int rows = controller.Keyboard.Rows.Count;
             // The row selector pops when FocusChangeCount > rows + 1.
@@ -75,13 +77,13 @@ namespace BlinkTalk.Application.Tests
         [Fact]
         public void SpeakingCommitsAndSpeaksTheSentence()
         {
-            var (controller, _, tts) = Build();
+            var (controller, indicator, _, tts) = Build();
             controller.Start();
 
             // Type a letter so the sentence is non-empty (enables the Speak section).
-            controller.Indicate(); // rows
-            controller.Indicate(); // keys of row 0
-            controller.Indicate(); // type (0,0) -> '1', back to rows
+            indicator.Fire(); // rows
+            indicator.Fire(); // keys of row 0
+            indicator.Fire(); // type (0,0) -> '1', back to rows
 
             string typed = controller.Sentence.ToString().Trim();
             Assert.False(string.IsNullOrEmpty(typed));

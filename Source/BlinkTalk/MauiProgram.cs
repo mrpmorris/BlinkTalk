@@ -1,4 +1,5 @@
 using BlinkTalk.Services;
+using BlinkTalk.Services.Indicators;
 using BlinkTalk.Application.Abstractions;
 using BlinkTalk.Application.Input;
 using BlinkTalk.Application.Persistence;
@@ -67,6 +68,15 @@ public static class MauiProgram
 		services.AddSingleton<IPhraseService, PhraseService>();
 		services.AddSingleton(KeyboardLayout.CreateDefault());
 		services.AddScoped<SentenceBuilder>();
+
+		// Indicators (input sources for the single switch). Scoped so they share the controller's
+		// lifetime; each is also exposed as IIndicator so the controller subscribes to all three.
+		services.AddScoped<PointerIndicator>();
+		services.AddScoped<KeyboardIndicator>();
+		services.AddScoped<CameraGestureIndicator>();
+		services.AddScoped<IIndicator>(sp => sp.GetRequiredService<PointerIndicator>());
+		services.AddScoped<IIndicator>(sp => sp.GetRequiredService<KeyboardIndicator>());
+		services.AddScoped<IIndicator>(sp => sp.GetRequiredService<CameraGestureIndicator>());
 
 		// Scanning controller (drives the UI)
 		services.AddScoped<ScanController>();

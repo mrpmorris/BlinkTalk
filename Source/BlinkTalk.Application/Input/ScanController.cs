@@ -14,11 +14,12 @@ namespace BlinkTalk.Application.Input
     /// the active strategy. Knows nothing about the UI framework — it raises <see cref="StateChanged"/>
     /// and the Razor layer re-renders.
     /// </summary>
-    public sealed class ScanController : IScanController
+    public sealed class ScanController : IScanController, IDisposable
     {
         private readonly IUiDispatcher _dispatcher;
         private readonly ISettingsStore _settings;
         private readonly Func<TimeSpan, CancellationToken, Task>? _delay;
+        private readonly IEnumerable<IIndicator> _indicators;
         private readonly Stack<IInputStrategy> _strategies = new Stack<IInputStrategy>();
         private HighlightTarget _highlight = HighlightTarget.None;
         private bool _started;
@@ -38,6 +39,7 @@ namespace BlinkTalk.Application.Input
             ITextToSpeechService speech,
             ISettingsStore settings,
             IUiDispatcher dispatcher,
+            IEnumerable<IIndicator> indicators,
             Func<TimeSpan, CancellationToken, Task>? delay = null)
         {
             Sentence = sentence;
@@ -45,8 +47,11 @@ namespace BlinkTalk.Application.Input
             Speech = speech;
             _settings = settings;
             _dispatcher = dispatcher;
+            _indicators = indicators;
             _delay = delay;
             Sentence.ViewModelChanged += (s, e) => RaiseStateChanged();
+            foreach (var indicator in _indicators)
+                indicator.Indicated += OnIndicated;
         }
 
         /// <summary>Scan speed in seconds, persisted in settings. Affects the next dwell.</summary>
@@ -68,8 +73,12 @@ namespace BlinkTalk.Application.Input
             RaiseStateChanged();
         }
 
-        /// <summary>The single switch input: the helper presses the button when the person blinks.</summary>
-        public void Indicate()
+        /// <summary>
+        /// The single switch input: raised by an <see cref="IIndicator"/> (the helper presses the
+        /// button, or the camera detects the gesture) when the person blinks. Routes to the active
+        /// strategy. Indicators raise this on the UI thread, preserving single-threaded mutation.
+        /// </summary>
+        private void OnIndicated()
         {
             if (_strategies.Count > 0)
                 _strategies.Peek().ReceiveIndication();
@@ -120,5 +129,11 @@ namespace BlinkTalk.Application.Input
         }
 
         private void RaiseStateChanged() => StateChanged?.Invoke();
+
+        public void Dispose()
+        {
+            foreach (var indicator in _indicators)
+                indicator.Indicated -= OnIndicated;
+        }
     }
 }
