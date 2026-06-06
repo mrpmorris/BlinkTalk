@@ -2,6 +2,8 @@
 
 Written for a friend with locked-in syndrome.
 
+Get the latest release [here](https://github.com/mrpmorris/BlinkTalk/releases).
+
 BlinkTalk is a single-switch [AAC](https://en.wikipedia.org/wiki/Augmentative_and_alternative_communication)
 (augmentative and alternative communication) app. A helper points the screen at the person they wish to
 communicate with and taps the screen whenever the person indicates (blinks, looks up, whatever they prefer).
