@@ -20,5 +20,6 @@ namespace BlinkTalk.Application.Abstractions
         public const string CameraTrained = "camera.trained";
         public const string CameraSignal = "camera.signal";       // MediaPipe blendshape category name
         public const string CameraThreshold = "camera.threshold"; // fire when the signal's score crosses this
+        public const string CameraDwellSeconds = "camera.dwellSeconds"; // how long the gesture must be held to count
     }
 }

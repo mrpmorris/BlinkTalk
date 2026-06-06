@@ -26,9 +26,21 @@
         <div class="bt-setting-row">
             <label>Learned gesture: <strong>@_signalDescription</strong></label>
             <div class="bt-meter"><div class="bt-meter-fill" style="width:@($"{(int)(_liveScore * 100)}%")"></div></div>
-            <span>Try your gesture — the tone rises in pitch as the camera detects it.</span>
+            <span>Try your gesture — the bar fills as the camera detects it.</span>
         </div>
     }
+
+    <div class="bt-setting-row">
+        <label for="holdTime">Hold time: @_dwellSeconds.ToString("0.0") s</label>
+        How long to hold the gesture before it counts. Longer ignores normal blinks.
+        <input id="holdTime"
+               type="range"
+               min="0.1"
+               max="2.0"
+               step="0.1"
+               value="@_dwellSeconds"
+               @oninput="OnDwellChanged" />
+    </div>
 
     <button class="bt-settings-back" @onclick="TrainAsync" disabled="@_busy">@(_busy ? "Training…" : "Train")</button>
 
@@ -55,9 +67,21 @@
     private bool _busy;
     private bool _flash;
     private bool _started;
+    private double _dwellSeconds;
     private CancellationTokenSource? _meterCts;
 
     private record BlendStat(string Name, double Mean, double Max);
+
+    protected override void OnInitialized() => _dwellSeconds = Config.DwellSeconds;
+
+    private void OnDwellChanged(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), out double seconds))
+        {
+            _dwellSeconds = seconds;
+            Config.DwellSeconds = seconds;
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -98,7 +122,6 @@
         _busy = true;
         _signalDescription = null;
         _meterCts?.Cancel();
-        try { await _module.InvokeVoidAsync("stopScoreTone"); } catch { /* ignore */ }
         await _module.InvokeVoidAsync("setPreview");
 
         try
@@ -188,12 +211,7 @@
         _meterCts = cts;
         _ = Task.Run(async () =>
         {
-            // Audible guidance: a tone whose pitch tracks the score, so the user gets feedback even
-            // with their eyes closed. The visual bar below is for the helper. The tone runs its own
-            // loop in JS; we only kick it off and let it ride alongside the meter polling.
-            try { if (_module is not null) await _module.InvokeVoidAsync("startScoreTone", Config.Signal, Config.Threshold); }
-            catch { /* page tearing down */ }
-
+            // Poll the live score to drive the visual bar (for the helper). No audio on this page.
             while (!cts.IsCancellationRequested && _module is not null)
             {
                 try

@@ -20,9 +20,16 @@ namespace BlinkTalk.Application.Input
         private readonly ISettingsStore _settings;
         private readonly Func<TimeSpan, CancellationToken, Task>? _delay;
         private readonly IEnumerable<IIndicator> _indicators;
+        private readonly IClock _clock;
         private readonly Stack<IInputStrategy> _strategies = new Stack<IInputStrategy>();
         private HighlightTarget _highlight = HighlightTarget.None;
         private bool _started;
+
+        // The single cycler currently running (exactly one is active at a time — each strategy
+        // stops its cycler before a child starts one). Paused while a camera gesture is held.
+        private FocusCycler? _activeCycler;
+        // Number of in-progress held gestures; while > 0 the active cycle is paused.
+        private int _dwellDepth;
 
         public SentenceBuilder Sentence { get; }
         public KeyboardLayout Keyboard { get; }
@@ -40,7 +47,8 @@ namespace BlinkTalk.Application.Input
             ISettingsStore settings,
             IUiDispatcher dispatcher,
             IEnumerable<IIndicator> indicators,
-            Func<TimeSpan, CancellationToken, Task>? delay = null)
+            Func<TimeSpan, CancellationToken, Task>? delay = null,
+            IClock? clock = null)
         {
             Sentence = sentence;
             Keyboard = keyboard;
@@ -49,9 +57,14 @@ namespace BlinkTalk.Application.Input
             _dispatcher = dispatcher;
             _indicators = indicators;
             _delay = delay;
+            _clock = clock ?? new SystemClock();
             Sentence.ViewModelChanged += (s, e) => RaiseStateChanged();
             foreach (var indicator in _indicators)
+            {
                 indicator.Indicated += OnIndicated;
+                indicator.DwellStarted += OnDwellStarted;
+                indicator.DwellEnded += OnDwellEnded;
+            }
         }
 
         /// <summary>Scan speed in seconds, persisted in settings. Affects the next dwell.</summary>
@@ -83,17 +96,53 @@ namespace BlinkTalk.Application.Input
                 _strategies.Peek().ReceiveIndication();
         }
 
+        // A held gesture started/ended (camera only). While one or more are in progress the active
+        // cycle is paused, so the highlight stays put and a selection lands on the element the user
+        // was on when the gesture began. DwellEnded always balances DwellStarted — including after
+        // a successful indication — so the counter returns to 0 and scanning resumes.
+        private void OnDwellStarted()
+        {
+            if (Interlocked.Increment(ref _dwellDepth) == 1)
+                _activeCycler?.Pause();
+        }
+
+        private void OnDwellEnded()
+        {
+            if (Interlocked.Decrement(ref _dwellDepth) <= 0)
+            {
+                Interlocked.Exchange(ref _dwellDepth, 0); // clamp against any unbalanced end
+                _activeCycler?.Resume();
+            }
+        }
+
         public FocusCycler NewCycler(Action<int> focusChanged, double firstCycleMultiplier = 1,
             Func<int, bool>? mayFocus = null, Action? onExhausted = null)
         {
-            return new FocusCycler(
+            FocusCycler cycler = null!;
+            cycler = new FocusCycler(
                 _dispatcher,
                 focusChanged,
                 () => TimeSpan.FromSeconds(CycleDelaySeconds),
                 firstCycleMultiplier,
                 mayFocus,
                 _delay,
-                onExhausted);
+                onExhausted,
+                _clock,
+                onRunningChanged: running =>
+                {
+                    if (running)
+                    {
+                        _activeCycler = cycler;
+                        // A gesture already in progress when this cycle starts → start it paused.
+                        if (Volatile.Read(ref _dwellDepth) > 0)
+                            cycler.Pause();
+                    }
+                    else if (ReferenceEquals(_activeCycler, cycler))
+                    {
+                        _activeCycler = null;
+                    }
+                });
+            return cycler;
         }
 
         public TStrategy Push<TStrategy>() where TStrategy : IInputStrategy, new()
@@ -132,7 +181,11 @@ namespace BlinkTalk.Application.Input
         public void Dispose()
         {
             foreach (var indicator in _indicators)
+            {
                 indicator.Indicated -= OnIndicated;
+                indicator.DwellStarted -= OnDwellStarted;
+                indicator.DwellEnded -= OnDwellEnded;
+            }
         }
     }
 }

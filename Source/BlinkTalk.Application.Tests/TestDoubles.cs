@@ -85,11 +85,53 @@ namespace BlinkTalk.Application.Tests
     }
 
     /// <summary>A controllable indicator: <see cref="Fire"/> raises <see cref="Indicated"/>, standing
-    /// in for the pointer/keyboard/camera sources the controller subscribes to in the app.</summary>
+    /// in for the pointer/keyboard/camera sources the controller subscribes to in the app. The dwell
+    /// events stand in for the camera's held-gesture edges.</summary>
     public sealed class FakeIndicator : IIndicator
     {
         public event Action? Indicated;
+        public event Action? DwellStarted;
+        public event Action? DwellEnded;
+
         public void Fire() => Indicated?.Invoke();
+        public void FireDwellStarted() => DwellStarted?.Invoke();
+        public void FireDwellEnded() => DwellEnded?.Invoke();
+    }
+
+    /// <summary>
+    /// A delay the test completes by hand, recording every requested duration. Unlike
+    /// <see cref="StepDelay"/> it lets a test inspect the duration asked for (to verify a paused
+    /// dwell resumes with only the remaining time) and signals when the cycler has entered a delay.
+    /// </summary>
+    public sealed class GatedDelay
+    {
+        private readonly SemaphoreSlim _entered = new SemaphoreSlim(0);
+        private TaskCompletionSource<bool>? _current;
+
+        /// <summary>Every duration passed to <see cref="Delay"/>, in order.</summary>
+        public List<TimeSpan> Requested { get; } = new List<TimeSpan>();
+
+        public Task Delay(TimeSpan duration, CancellationToken ct)
+        {
+            Requested.Add(duration);
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            _current = tcs;
+            var registration = ct.Register(() => tcs.TrySetCanceled(ct));
+            _entered.Release();
+            return AwaitThenUnregister(tcs.Task, registration);
+        }
+
+        private static async Task AwaitThenUnregister(Task task, CancellationTokenRegistration registration)
+        {
+            try { await task.ConfigureAwait(false); }
+            finally { registration.Dispose(); }
+        }
+
+        /// <summary>Wait until the cycler has entered (parked in) its next delay.</summary>
+        public Task WaitEnteredAsync() => _entered.WaitAsync();
+
+        /// <summary>Complete the current delay so the cycler advances.</summary>
+        public void Complete() => _current?.TrySetResult(true);
     }
 
     public sealed class FixedClock : IClock

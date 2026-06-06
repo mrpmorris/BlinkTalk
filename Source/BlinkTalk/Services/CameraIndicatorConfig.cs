@@ -50,6 +50,16 @@ namespace BlinkTalk.Services
             set => _settings.SetDouble(SettingsKeys.CameraThreshold, value);
         }
 
+        /// <summary>
+        /// How long (seconds) the trained gesture must be held before it counts as an indication.
+        /// Reflex blinks are ~0.1–0.2s, so a higher hold time rejects them. Slider range 0.1–2.0.
+        /// </summary>
+        public double DwellSeconds
+        {
+            get => _settings.GetDouble(SettingsKeys.CameraDwellSeconds, 0.3);
+            set => _settings.SetDouble(SettingsKeys.CameraDwellSeconds, value);
+        }
+
         public void SaveTraining(string signal, double threshold)
         {
             Signal = signal;

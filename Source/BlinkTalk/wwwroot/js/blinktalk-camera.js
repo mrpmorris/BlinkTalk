@@ -23,9 +23,11 @@ let rafId = 0;
 let latest = null;            // most recent blendshape categories [{categoryName, score}]
 
 let mode = "preview";          // "preview" | "detect"
-let detect = null;             // { signal, threshold, refractoryMs }
+let detect = null;             // { signal, threshold, dwellMs, refractoryMs }
 let dotnetRef = null;
-let wasAbove = false;
+let wasAbove = false;          // was the signal above threshold on the previous frame
+let dwellStart = 0;            // performance.now() when the current hold began (rising edge)
+let firedThisHold = false;     // an indication has already fired for the current hold
 let refractoryUntil = 0;
 
 // Start the camera and the face landmarker, attaching the feed to the given <video> element.
@@ -64,17 +66,35 @@ function loop() {
             const faces = result && result.faceBlendshapes;
             latest = faces && faces.length ? faces[0].categories : null;
 
-            if (mode === "detect" && detect && latest) {
-                const cat = latest.find(c => c.categoryName === detect.signal);
+            // Run the detector even when no face is visible: a lost face counts as "below
+            // threshold", which releases a held gesture (DwellEnded) so the scan can't stay paused.
+            if (mode === "detect" && detect) {
+                const cat = latest && latest.find(c => c.categoryName === detect.signal);
                 const score = cat ? cat.score : 0;
                 const now = performance.now();
                 const above = score >= detect.threshold;
-                // Rising edge + refractory window so one gesture = one indication.
-                if (above && !wasAbove && now >= refractoryUntil) {
+
+                if (above && !wasAbove) {
+                    // Rising edge: the gesture begins. Not an indication yet — pause the scan.
+                    dwellStart = now;
+                    firedThisHold = false;
+                    if (dotnetRef) dotnetRef.invokeMethodAsync("OnDwellStarted");
+                }
+
+                // Held long enough → fire one indication (refractory debounces jitter within a hold).
+                if (above && !firedThisHold && (now - dwellStart) >= detect.dwellMs && now >= refractoryUntil) {
+                    firedThisHold = true;
                     refractoryUntil = now + (detect.refractoryMs || 800);
                     beep(1046, 110); // immediate audible confirmation (eyes may be off-screen)
                     if (dotnetRef) dotnetRef.invokeMethodAsync("OnCameraIndicated");
                 }
+
+                if (!above && wasAbove) {
+                    // Falling edge: the gesture ends. Fires even if an indication already fired,
+                    // so the scan's pause counter is always balanced and scanning resumes.
+                    if (dotnetRef) dotnetRef.invokeMethodAsync("OnDwellEnded");
+                }
+
                 wasAbove = above;
             }
         }
@@ -128,70 +148,19 @@ export function captureWindow(ms) {
     });
 }
 
-// Switch to live detection with a trained signal/threshold.
-export function setDetect(signal, threshold, refractoryMs) {
-    detect = { signal, threshold, refractoryMs: refractoryMs || 800 };
+// Switch to live detection with a trained signal/threshold. dwellMs is how long the signal must
+// stay above threshold before it counts as an indication (so brief reflex blinks are ignored).
+export function setDetect(signal, threshold, dwellMs, refractoryMs) {
+    detect = { signal, threshold, dwellMs: dwellMs || 0, refractoryMs: refractoryMs || 800 };
     mode = "detect";
     wasAbove = false;
+    firedThisHold = false;
     refractoryUntil = 0;
 }
 
 export function setPreview() {
     mode = "preview";
     detect = null;
-}
-
-// Continuous "guidance" tone whose pitch and volume track the live score for a signal, so the
-// user can hear how close they are to the threshold with their eyes closed (or off-screen). The
-// bar in the UI is visual-only; this is the audible equivalent. Idempotent: calling start again
-// just retargets it. Runs its own rAF loop reading the latest blendshape score directly.
-let toneOsc = null;
-let toneGain = null;
-let toneRaf = 0;
-let toneSignal = null;
-let toneThreshold = 0.5;
-
-export function startScoreTone(signal, threshold) {
-    stopScoreTone();
-    toneSignal = signal;
-    toneThreshold = threshold || 0.5;
-    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === "suspended") { try { audioCtx.resume(); } catch { /* ignore */ } }
-    toneOsc = audioCtx.createOscillator();
-    toneGain = audioCtx.createGain();
-    toneOsc.type = "sine";
-    toneGain.gain.value = 0.0001;
-    toneOsc.connect(toneGain);
-    toneGain.connect(audioCtx.destination);
-    toneOsc.start();
-
-    const tick = () => {
-        if (!toneOsc) return;
-        const score = currentScore(toneSignal);                    // 0..1
-        const norm = Math.min(1.5, score / Math.max(0.05, toneThreshold)); // 1.0 == at threshold
-        // Stay silent for the lowest half of the way to the threshold; only sweep pitch/volume
-        // across the upper half (norm 0.5 → 1.5), so the user only hears feedback once they're
-        // genuinely closing in on the gesture.
-        const u = Math.max(0, (norm - 0.5) / 1.0);                 // 0 at half-threshold, 1 at 1.5×
-        const freq = 200 + u * 700;                                // ~200Hz at the halfway point → climbing
-        const vol = u <= 0 ? 0 : Math.min(0.22, 0.04 + u * 0.18);
-        const now = audioCtx.currentTime;
-        toneOsc.frequency.setTargetAtTime(freq, now, 0.03);
-        toneGain.gain.setTargetAtTime(vol, now, 0.03);
-        toneRaf = requestAnimationFrame(tick);
-    };
-    tick();
-}
-
-export function stopScoreTone() {
-    if (toneRaf) cancelAnimationFrame(toneRaf);
-    toneRaf = 0;
-    if (toneOsc) {
-        try { toneOsc.stop(); } catch { /* ignore */ }
-        try { toneOsc.disconnect(); } catch { /* ignore */ }
-        toneOsc = null;
-    }
-    toneGain = null;
 }
 
 // Short tone via Web Audio — used for "start capturing" / "stop" cues during training and to
@@ -217,7 +186,6 @@ export function beep(frequency, durationMs) {
 
 export function stop() {
     running = false;
-    stopScoreTone();
     if (rafId) cancelAnimationFrame(rafId);
     rafId = 0;
     if (stream) {
