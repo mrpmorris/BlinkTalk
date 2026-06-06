@@ -28,7 +28,7 @@ namespace BlinkTalk.Application.Input.Strategies
             _activeRow = rowIndex;
             _keyCount = _controller.Keyboard.Rows[rowIndex].Count;
             _cycler?.Stop();
-            _cycler = _controller.NewCycler(FocusIndexChanged);
+            _cycler = _controller.NewCycler(FocusIndexChanged, firstCycleMultiplier: Consts.FirstCycleDelayMultiplier);
             _cycler.Start(_keyCount);
         }
 

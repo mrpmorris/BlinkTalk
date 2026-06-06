@@ -14,7 +14,7 @@ namespace BlinkTalk.Application.Text
         /// The first item in a fresh scan dwells longer so it is easier to catch.
         /// Matches the original FocusCycler firstCycleDelayMultiplier.
         /// </summary>
-        public const double FirstCycleDelayMultiplier = 1.5;
+        public const double FirstCycleDelayMultiplier = 2;
 
         public static TimeSpan DefaultCycleDelay => TimeSpan.FromSeconds(DefaultCycleDelaySeconds);
     }
