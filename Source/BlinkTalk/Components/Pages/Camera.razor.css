@@ -1,0 +1,51 @@
+/* Camera setup page layout (scoped to Camera.razor). Builds on the shared .bt-settings frame
+   (fixed, full-screen, padded). A two-row grid keeps the feed + status pinned and fully visible
+   while the controls below scroll. */
+.bt-cam-page {
+    display: grid;
+    grid-template-rows: auto 1fr; /* pinned top, then the scrolling remainder */
+    overflow: hidden;             /* the page itself never scrolls */
+}
+
+/* Pinned top, stacked vertically and horizontally centred: heading, feed, Train, status. */
+.bt-cam-top {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 3vh;
+    min-height: 0;
+}
+
+/* The Train button defaults to align-self: flex-start (shared rule); centre it here. */
+.bt-cam-top .bt-settings-back {
+    align-self: center;
+}
+
+/* Keep the Train button and its status line close together (the top's 3vh gap separates this
+   group from the feed). */
+.bt-cam-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6vh;
+}
+
+/* Drop the default paragraph margins so the status/error sit tight to the button and don't
+   leave a large gap beneath the status text. */
+.bt-cam-actions p {
+    margin: 0;
+}
+
+.bt-cam-scroll {
+    min-height: 0;                /* let the 1fr row scroll rather than overflow the page */
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 3vh;
+}
+
+/* Half the default feed size (the shared rule sets min(80vw, 60vh)). Centred by .bt-cam-top. */
+.bt-cam-feed {
+    width: min(40vw, 30vh);
+}

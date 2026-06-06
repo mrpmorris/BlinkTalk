@@ -7,48 +7,51 @@
 @inject ITextToSpeechService Speech
 @inject NavigationManager Navigation
 
-<div class="bt-settings @(_flash ? "bt-cam-flash" : "")">
-    <h1>Camera indicator</h1>
+<div class="bt-settings bt-cam-page @(_flash ? "bt-cam-flash" : "")">
+    <div class="bt-cam-top">
+        <div class="bt-cam-feed">
+            <video @ref="_video" autoplay playsinline muted></video>
+        </div>
 
-    @if (_error is not null)
-    {
-        <p class="bt-cam-error">@_error</p>
-    }
-
-    <div class="bt-cam-feed">
-        <video @ref="_video" autoplay playsinline muted></video>
+        <div class="bt-cam-actions">
+            <button class="bt-settings-back" @onclick="TrainAsync" disabled="@_busy">@(_busy ? "Training…" : "Train")</button>
+            @if (_error is not null)
+            {
+                <p class="bt-cam-error">@_error</p>
+            }
+            <p class="bt-cam-status">@_status</p>
+        </div>
     </div>
 
-    <p class="bt-cam-status">@_status</p>
+    <div class="bt-cam-scroll">
+        @if (_signalDescription is not null)
+        {
+            <div class="bt-setting-row">
+                <h2>Eye gesture</h2>
+                <label>Learned gesture: <strong>@_signalDescription</strong></label>
+                <div class="bt-meter"><div class="bt-meter-fill" style="width:@($"{(int)(_holdFraction * 100)}%")"></div></div>
+                <label for="holdTime">Hold time: @_dwellSeconds.ToString("0.0") s</label>
+                Hold your gesture and the bar fill with time. Set the slider where you'd like it to trigger. You'll hear a beep when the bar reaches it.
+                <input id="holdTime"
+                       type="range"
+                       min="0.1"
+                       max="2.0"
+                       step="0.1"
+                       value="@_dwellSeconds"
+                       @oninput="OnDwellChanged" />
+            </div>
+        }
 
-    @if (_signalDescription is not null)
-    {
-        <div class="bt-setting-row">
-            <label>Learned gesture: <strong>@_signalDescription</strong></label>
-            <div class="bt-meter"><div class="bt-meter-fill" style="width:@($"{(int)(_holdFraction * 100)}%")"></div></div>
-            <label for="holdTime">Hold time: @_dwellSeconds.ToString("0.0") s</label>
-            Hold your gesture and the bar fill with time. Set the slider where you'd like it to trigger. You'll hear a beep when the bar reaches it.
-            <input id="holdTime"
-                   type="range"
-                   min="0.1"
-                   max="2.0"
-                   step="0.1"
-                   value="@_dwellSeconds"
-                   @oninput="OnDwellChanged" />
-        </div>
-    }
+        <label class="bt-cam-check">
+            <input type="checkbox"
+                   checked="@Config.IsEnabled"
+                   disabled="@(!Config.IsTrained || _busy)"
+                   @onchange="OnUseCameraChanged" />
+            Use camera @(Config.IsTrained ? "" : "(train first)")
+        </label>
 
-    <button class="bt-settings-back" @onclick="TrainAsync" disabled="@_busy">@(_busy ? "Training…" : "Train")</button>
-
-    <label class="bt-cam-check">
-        <input type="checkbox"
-               checked="@Config.IsEnabled"
-               disabled="@(!Config.IsTrained || _busy)"
-               @onchange="OnUseCameraChanged" />
-        Use camera @(Config.IsTrained ? "" : "(train first)")
-    </label>
-
-    <button class="bt-settings-back" @onclick="GoBack">Done</button>
+        <button class="bt-settings-back" @onclick="GoBack">Done</button>
+    </div>
 </div>
 
 @code {
@@ -259,9 +262,8 @@
     private static string Describe(string signal) => signal switch
     {
         "eyeLookUpLeft" or "eyeLookUpRight" => "look up",
-        "eyeLookDownLeft" or "eyeLookDownRight" => "look down",
+        "eyeLookDownLeft" or "eyeLookDownRight" or "eyeBlinkLeft" or "eyeBlinkRight" => "blink",
         "eyeLookInLeft" or "eyeLookInRight" or "eyeLookOutLeft" or "eyeLookOutRight" => "look sideways",
-        "eyeBlinkLeft" or "eyeBlinkRight" => "blink",
         "browInnerUp" or "browOuterUpLeft" or "browOuterUpRight" => "raise eyebrows",
         "mouthSmileLeft" or "mouthSmileRight" => "smile",
         "jawOpen" => "open mouth",
