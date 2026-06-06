@@ -79,8 +79,10 @@ html, body {
     flex: 0 0 auto;
     min-height: 12vh;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
+    gap: 1vw;
     text-align: center;
     padding: 1.5vh 2vw;
     font-size: 5vh;
@@ -93,6 +95,17 @@ html, body {
 
 .bt-sentence.bt-pending {
     color: var(--bt-text-dim);
+}
+
+/* The word currently being typed, boxed like a word-list tile. Sits at the end of the sentence;
+   a min-width keeps it visible (as an empty box) just after a space, before the next letter. */
+.bt-current-word {
+    display: inline-block;
+    min-width: 1.2em;
+    min-height: 1em;
+    padding: 0.2vh 1.2vw;
+    border-radius: 1vh;
+    background: #2a2f3a;
 }
 
 .bt-sentence-placeholder {

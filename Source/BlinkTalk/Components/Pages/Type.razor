@@ -28,7 +28,9 @@
         }
         else
         {
-            @SentenceText
+            @* Committed words read as a normal sentence; the word being edited sits in a box
+               (empty after a space, showing a new word has been started). *@
+            @CommittedText<span class="bt-current-word">@CurrentWord</span>
         }
     </div>
 
@@ -81,6 +83,20 @@
     private IReadOnlyList<string> Words => Controller.Sentence.SuggestedWords;
     private IReadOnlyList<IReadOnlyList<KeyCode>> Rows => Controller.Keyboard.Rows;
     private string SentenceText => Controller.Sentence.ToString();
+
+    // The word currently being typed (shown in a box); empty just after a space.
+    private string CurrentWord => Controller.Sentence.CurrentWord;
+
+    // The already-committed words, rendered as a normal sentence. SentenceText is the committed
+    // words plus (when typing) " " + CurrentWord, so strip that suffix to get the committed part.
+    private string CommittedText
+    {
+        get
+        {
+            string full = SentenceText;
+            return CurrentWord.Length == 0 ? full : full.Substring(0, full.Length - CurrentWord.Length - 1);
+        }
+    }
 
     protected override void OnInitialized()
     {

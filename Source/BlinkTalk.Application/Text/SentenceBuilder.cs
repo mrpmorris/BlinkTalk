@@ -40,6 +40,10 @@ namespace BlinkTalk.Application.Text
 
         public bool IsEmpty => string.IsNullOrEmpty(ToString());
 
+        /// <summary>The word currently being typed (empty at a committed word boundary). Exposed as
+        /// raw state because <see cref="ToString"/> can't distinguish it from a trailing space.</summary>
+        public string CurrentWord => _currentWord;
+
         public void Input(KeyCode keyCode)
         {
             CheckForClearOnInput();
