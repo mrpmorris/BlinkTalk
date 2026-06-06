@@ -61,7 +61,7 @@ namespace BlinkTalk.Application.Input
             set => _settings.SetDouble(SettingsKeys.CycleDelaySeconds, value);
         }
 
-        /// <summary>Begin scanning: load suggestions, enter the top-level section selector, greet.</summary>
+        /// <summary>Begin scanning: load suggestions and enter the top-level section selector.</summary>
         public void Start()
         {
             if (_started)
@@ -69,7 +69,6 @@ namespace BlinkTalk.Application.Input
             _started = true;
             Sentence.Initialize();
             Push<SectionSelectorInputStrategy>();
-            _ = Speech.SpeakAsync("Blink talk");
             RaiseStateChanged();
         }
 

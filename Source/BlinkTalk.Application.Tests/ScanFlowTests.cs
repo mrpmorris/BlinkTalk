@@ -34,7 +34,8 @@ namespace BlinkTalk.Application.Tests
             Assert.Equal(1, controller.Depth);
             Assert.Equal(HighlightKind.Section, controller.Highlight.Kind);
             Assert.Equal(Section.Keyboard, controller.Highlight.Section);
-            Assert.Contains("Blink talk", tts.Spoken);
+            // Starting is silent — no spoken greeting.
+            Assert.Empty(tts.Spoken);
         }
 
         [Fact]
