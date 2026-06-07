@@ -7,7 +7,7 @@ namespace BlinkTalk.Components.Pages;
 
 public partial class Type
 {
-	private ElementReference _root;
+	private ElementReference Root;
 
 	private IReadOnlyList<string> Words => Controller.Sentence.SuggestedWords;
 	private IReadOnlyList<IReadOnlyList<KeyCode>> Rows => Controller.Keyboard.Rows;
@@ -38,7 +38,7 @@ public partial class Type
 		if (firstRender)
 		{
 			// Make the surface focusable so the keyboard switch (Space/Enter) is captured.
-			try { await _root.FocusAsync(); } catch { /* focus best-effort */ }
+			try { await Root.FocusAsync(); } catch { /* focus best-effort */ }
 		}
 	}
 

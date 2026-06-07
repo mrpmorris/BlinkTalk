@@ -35,11 +35,11 @@ public sealed class FocusCycler
     private readonly Action<bool>? OnRunningChanged;
     private CancellationTokenSource? Cts;
 
-    // Pause state. _paused is set/cleared on the UI thread (Pause/Resume run on it), and read
-    // by the dwell loop on the same thread; _resume is the gate the loop awaits while paused;
-    // _dwellInterrupt cancels the in-flight delay so its elapsed portion can be captured.
+    // Pause state. Paused is set/cleared on the UI thread (Pause/Resume run on it), and read
+    // by the dwell loop on the same thread; ResumeGate is the gate the loop awaits while paused;
+    // DwellInterrupt cancels the in-flight delay so its elapsed portion can be captured.
     private bool Paused;
-    private TaskCompletionSource<bool>? _resume;
+    private TaskCompletionSource<bool>? ResumeGate;
     private CancellationTokenSource? DwellInterrupt;
 
     public int FocusChangeCount { get; private set; }
@@ -91,7 +91,7 @@ public sealed class FocusCycler
             // (rather than resuming the scan).
             Cts.Cancel();
             Paused = false;
-            _resume?.TrySetResult(true);
+            ResumeGate?.TrySetResult(true);
             DwellInterrupt?.Cancel();
 
             Cts.Dispose();
@@ -109,7 +109,7 @@ public sealed class FocusCycler
         if (Paused)
             return;
         Paused = true;
-        _resume = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        ResumeGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         // Interrupt the in-flight dwell so the loop captures how much of it has elapsed.
         DwellInterrupt?.Cancel();
     }
@@ -120,7 +120,7 @@ public sealed class FocusCycler
         if (!Paused)
             return;
         Paused = false;
-        _resume?.TrySetResult(true);
+        ResumeGate?.TrySetResult(true);
     }
 
     private async Task RunAsync(int numberOfItems, CancellationToken ct)
@@ -234,7 +234,7 @@ public sealed class FocusCycler
     // has no Task.WaitAsync(CancellationToken), so make cancellation complete the same gate.
     private async Task WaitForResumeAsync(CancellationToken ct)
     {
-        TaskCompletionSource<bool>? resume = _resume;
+        TaskCompletionSource<bool>? resume = ResumeGate;
         if (resume == null)
             return;
 

@@ -5,17 +5,17 @@ namespace BlinkTalk.Components;
 
 public partial class CameraIndicator
 {
-	private ElementReference _video;
-	private IJSObjectReference? _module;
-	private DotNetObjectReference<CameraIndicator>? _selfRef;
-	private bool _started;
-	private bool _dwelling; // true between OnDwellStarted and OnDwellEnded, so teardown can balance
+	private ElementReference Video;
+	private IJSObjectReference? Module;
+	private DotNetObjectReference<CameraIndicator>? SelfRef;
+	private bool Started;
+	private bool Dwelling; // true between OnDwellStarted and OnDwellEnded, so teardown can balance
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
-		if (!firstRender || _started || !Config.IsEnabled)
+		if (!firstRender || Started || !Config.IsEnabled)
 			return;
-		_started = true;
+		Started = true;
 		try
 		{
 			if (Microsoft.Maui.Devices.DeviceInfo.Platform == Microsoft.Maui.Devices.DevicePlatform.Android)
@@ -25,10 +25,10 @@ public partial class CameraIndicator
 					return; // helper button still works
 			}
 
-			_module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/blinktalk-camera.js");
-			_selfRef = DotNetObjectReference.Create(this);
-			await _module.InvokeAsync<bool>("start", _video, _selfRef);
-			await _module.InvokeVoidAsync("setDetect", Config.Signal, Config.Threshold, Config.DwellSeconds * 1000, 800);
+			Module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/blinktalk-camera.js");
+			SelfRef = DotNetObjectReference.Create(this);
+			await Module.InvokeAsync<bool>("start", Video, SelfRef);
+			await Module.InvokeVoidAsync("setDetect", Config.Signal, Config.Threshold, Config.DwellSeconds * 1000, 800);
 		}
 		catch
 		{
@@ -46,7 +46,7 @@ public partial class CameraIndicator
 	[JSInvokable]
 	public Task OnDwellStarted()
 	{
-		_dwelling = true;
+		Dwelling = true;
 		Indicator.TriggerDwellStarted();
 		return Task.CompletedTask;
 	}
@@ -54,7 +54,7 @@ public partial class CameraIndicator
 	[JSInvokable]
 	public Task OnDwellEnded()
 	{
-		_dwelling = false;
+		Dwelling = false;
 		Indicator.TriggerDwellEnded();
 		return Task.CompletedTask;
 	}
@@ -63,16 +63,16 @@ public partial class CameraIndicator
 	{
 		// If a gesture is still held as we tear down, balance the counter so the scan doesn't
 		// stay paused forever. JS stop() deliberately stays silent, so this is the sole balancer.
-		if (_dwelling)
+		if (Dwelling)
 		{
-			_dwelling = false;
+			Dwelling = false;
 			try { Indicator.TriggerDwellEnded(); } catch { /* ignore */ }
 		}
-		if (_module is not null)
+		if (Module is not null)
 		{
-			try { await _module.InvokeVoidAsync("stop"); } catch { /* ignore */ }
-			try { await _module.DisposeAsync(); } catch { /* ignore */ }
+			try { await Module.InvokeVoidAsync("stop"); } catch { /* ignore */ }
+			try { await Module.DisposeAsync(); } catch { /* ignore */ }
 		}
-		_selfRef?.Dispose();
+		SelfRef?.Dispose();
 	}
 }

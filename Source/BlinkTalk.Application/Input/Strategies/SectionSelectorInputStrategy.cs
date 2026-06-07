@@ -7,7 +7,7 @@ namespace BlinkTalk.Application.Input.Strategies;
 /// Top-level strategy: scans the three sections (WordSelector, Keyboard, Speak). Indicating
 /// drills into the word or keyboard scanners, or commits and speaks the sentence. Ported from
 /// the original SectionSelectorInputStrategy, including the "don't re-offer Word selection
-/// immediately after leaving it" rule via <see cref="_skipWordSelection"/>.
+/// immediately after leaving it" rule via <see cref="SkipWordSelection"/>.
 /// </summary>
 public sealed class SectionSelectorInputStrategy : IInputStrategy
 {

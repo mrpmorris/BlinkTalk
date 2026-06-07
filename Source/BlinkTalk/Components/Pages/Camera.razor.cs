@@ -5,29 +5,29 @@ namespace BlinkTalk.Components.Pages;
 
 public partial class Camera
 {
-	private ElementReference _video;
-	private IJSObjectReference? _module;
-	private DotNetObjectReference<Camera>? _selfRef;
+	private ElementReference Video;
+	private IJSObjectReference? Module;
+	private DotNetObjectReference<Camera>? SelfRef;
 
-	private string _status = "Starting camera…";
-	private string? _error;
-	private string? _signalDescription;
-	private double _holdFraction; // 0..1 = current hold time scaled to the 2s slider max
-	private bool _busy;
-	private bool _flash;
-	private bool _started;
-	private double _dwellSeconds;
-	private CancellationTokenSource? _meterCts;
+	private string Status = "Starting camera…";
+	private string? Error;
+	private string? SignalDescription;
+	private double HoldFraction; // 0..1 = current hold time scaled to the 2s slider max
+	private bool Busy;
+	private bool Flash;
+	private bool Started;
+	private double DwellSeconds;
+	private CancellationTokenSource? MeterCts;
 
 	private record BlendStat(string Name, double Mean, double Max);
 
-	protected override void OnInitialized() => _dwellSeconds = Config.DwellSeconds;
+	protected override void OnInitialized() => DwellSeconds = Config.DwellSeconds;
 
 	private async Task OnDwellChanged(ChangeEventArgs e)
 	{
 		if (double.TryParse(e.Value?.ToString(), out double seconds))
 		{
-			_dwellSeconds = seconds;
+			DwellSeconds = seconds;
 			Config.DwellSeconds = seconds;
 			await ArmDetectAsync(); // re-arm so the beep triggers at the new hold time
 		}
@@ -37,8 +37,8 @@ public partial class Camera
 	// hold reaches the dwell — letting the user calibrate the hold time before enabling the camera.
 	private async Task ArmDetectAsync()
 	{
-		if (_module is null) return;
-		try { await _module.InvokeVoidAsync("setDetect", Config.Signal, Config.Threshold, _dwellSeconds * 1000, 800); }
+		if (Module is null) return;
+		try { await Module.InvokeVoidAsync("setDetect", Config.Signal, Config.Threshold, DwellSeconds * 1000, 800); }
 		catch { /* page tearing down */ }
 	}
 
@@ -49,40 +49,40 @@ public partial class Camera
 		{
 			if (!await EnsureCameraPermissionAsync())
 			{
-				_error = "Camera permission was denied. Enable the camera for BlinkTalk in your device settings, then reopen this page.";
-				_status = "";
+				Error = "Camera permission was denied. Enable the camera for BlinkTalk in your device settings, then reopen this page.";
+				Status = "";
 				await InvokeAsync(StateHasChanged);
 				return;
 			}
 
-			_module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/blinktalk-camera.js");
-			_selfRef = DotNetObjectReference.Create(this);
-			await _module.InvokeAsync<bool>("start", _video, _selfRef);
-			_started = true;
+			Module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/blinktalk-camera.js");
+			SelfRef = DotNetObjectReference.Create(this);
+			await Module.InvokeAsync<bool>("start", Video, SelfRef);
+			Started = true;
 
 			if (Config.IsTrained)
 			{
-				_signalDescription = Describe(Config.Signal);
+				SignalDescription = Describe(Config.Signal);
 				await ArmDetectAsync();
 				StartMeterLoop();
 			}
-			_status = "Camera ready. Press Train and follow the prompts.";
+			Status = "Camera ready. Press Train and follow the prompts.";
 		}
 		catch (Exception ex)
 		{
-			_error = "Could not start the camera: " + ex.Message;
-			_status = "";
+			Error = "Could not start the camera: " + ex.Message;
+			Status = "";
 		}
 		await InvokeAsync(StateHasChanged);
 	}
 
 	private async Task TrainAsync()
 	{
-		if (_module is null || !_started || _busy) return;
-		_busy = true;
-		_signalDescription = null;
-		_meterCts?.Cancel();
-		await _module.InvokeVoidAsync("setPreview");
+		if (Module is null || !Started || Busy) return;
+		Busy = true;
+		SignalDescription = null;
+		MeterCts?.Cancel();
+		await Module.InvokeVoidAsync("setPreview");
 
 		try
 		{
@@ -92,25 +92,25 @@ public partial class Camera
 			while (true)
 			{
 				await SayAsync("Look at the screen and relax your face. Do not look at the camera.");
-				var neutral = await _module.InvokeAsync<BlendStat[]>("captureWindow", 3000);
+				var neutral = await Module.InvokeAsync<BlendStat[]>("captureWindow", 3000);
 
 				await SayAsync("Now make your indicating gesture and hold it until I tell you to relax.");
-				var active = await _module.InvokeAsync<BlendStat[]>("captureWindow", 3000);
+				var active = await Module.InvokeAsync<BlendStat[]>("captureWindow", 3000);
 
 				await SayAsync("Now relax.");
 
 				var (signal, threshold, separation) = ChooseSignal(neutral, active);
 				if (signal is null)
 				{
-					_status = "I couldn't detect a clear, repeatable gesture — let's try again.";
-					await SayAsync(_status);
+					Status = "I couldn't detect a clear, repeatable gesture — let's try again.";
+					await SayAsync(Status);
 					continue; // restart the training run
 				}
 
 				Config.SaveTraining(signal, threshold);
-				_signalDescription = Describe(signal);
-				_status = $"Training successful! I detected your “{_signalDescription}” gesture. Ensure ‘Use camera’ is ticked so you can use it.";
-				await SayAsync(_status);
+				SignalDescription = Describe(signal);
+				Status = $"Training successful! I detected your “{SignalDescription}” gesture. Ensure ‘Use camera’ is ticked so you can use it.";
+				await SayAsync(Status);
 				await ArmDetectAsync();
 				StartMeterLoop();
 				break; // done
@@ -118,11 +118,11 @@ public partial class Camera
 		}
 		catch (Exception ex)
 		{
-			_error = "Training failed: " + ex.Message;
+			Error = "Training failed: " + ex.Message;
 		}
 		finally
 		{
-			_busy = false;
+			Busy = false;
 			await InvokeAsync(StateHasChanged);
 		}
 	}
@@ -160,26 +160,26 @@ public partial class Camera
 	// looking away). Awaits speech so the start tone doesn't talk over the instruction.
 	private async Task SayAsync(string text)
 	{
-		_status = text;
+		Status = text;
 		await InvokeAsync(StateHasChanged);
 		try { await Speech.SpeakAsync(text); } catch { /* TTS unavailable; on-screen text remains */ }
 	}
 
 	private void StartMeterLoop()
 	{
-		_meterCts?.Cancel();
+		MeterCts?.Cancel();
 		var cts = new CancellationTokenSource();
-		_meterCts = cts;
+		MeterCts = cts;
 		_ = Task.Run(async () =>
 		{
 			// Poll how long the gesture has been held and show it on the bar, scaled to the 2s slider
 			// max so the bar and slider share one timeline. The beep at the dwell comes from JS.
-			while (!cts.IsCancellationRequested && _module is not null)
+			while (!cts.IsCancellationRequested && Module is not null)
 			{
 				try
 				{
-					double heldSeconds = await _module.InvokeAsync<double>("currentHoldSeconds");
-					_holdFraction = Math.Min(1.0, heldSeconds / 2.0);
+					double heldSeconds = await Module.InvokeAsync<double>("currentHoldSeconds");
+					HoldFraction = Math.Min(1.0, heldSeconds / 2.0);
 					await InvokeAsync(StateHasChanged);
 				}
 				catch { /* page tearing down */ }
@@ -194,10 +194,10 @@ public partial class Camera
 	[JSInvokable]
 	public async Task OnCameraIndicated()
 	{
-		_flash = true;
+		Flash = true;
 		await InvokeAsync(StateHasChanged);
 		await Task.Delay(180);
-		_flash = false;
+		Flash = false;
 		await InvokeAsync(StateHasChanged);
 	}
 
@@ -234,12 +234,12 @@ public partial class Camera
 
 	public async ValueTask DisposeAsync()
 	{
-		_meterCts?.Cancel();
-		if (_module is not null)
+		MeterCts?.Cancel();
+		if (Module is not null)
 		{
-			try { await _module.InvokeVoidAsync("stop"); } catch { /* ignore */ }
-			try { await _module.DisposeAsync(); } catch { /* ignore */ }
+			try { await Module.InvokeVoidAsync("stop"); } catch { /* ignore */ }
+			try { await Module.DisposeAsync(); } catch { /* ignore */ }
 		}
-		_selfRef?.Dispose();
+		SelfRef?.Dispose();
 	}
 }

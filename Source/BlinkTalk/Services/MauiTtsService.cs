@@ -22,7 +22,7 @@ public sealed class MauiTtsService : ITextToSpeechService
     private const float Volume = 1.0f;
 
     private CancellationTokenSource? CurrentSpeech;
-    private Locale? _locale;
+    private Locale? ResolvedLocale;
     private bool LocaleResolved;
 
     public async Task SpeakAsync(string text)
@@ -55,20 +55,20 @@ public sealed class MauiTtsService : ITextToSpeechService
     private async Task<Locale?> ResolveLocaleAsync()
     {
         if (LocaleResolved)
-            return _locale;
+            return ResolvedLocale;
 
         try
         {
             var locales = (await TextToSpeech.Default.GetLocalesAsync()).ToList();
-            _locale = locales.FirstOrDefault(l => l.Language == "en" && l.Country == "GB")
+            ResolvedLocale = locales.FirstOrDefault(l => l.Language == "en" && l.Country == "GB")
                       ?? locales.FirstOrDefault(l => l.Language == "en");
         }
         catch
         {
-            _locale = null; // Fall back to the system default voice.
+            ResolvedLocale = null; // Fall back to the system default voice.
         }
 
         LocaleResolved = true;
-        return _locale;
+        return ResolvedLocale;
     }
 }

@@ -14,8 +14,8 @@ namespace BlinkTalk.Application.Tests;
 /// </summary>
 public sealed class StepDelay
 {
-    // _parked is released by the cycler once it has fired a tick and parked in Delay.
-    // _go is released by the test to allow exactly one more tick. The semaphores make the
+    // Parked is released by the cycler once it has fired a tick and parked in Delay.
+    // Go is released by the test to allow exactly one more tick. The semaphores make the
     // handshake robust regardless of whether continuations resume sync or async.
     private readonly SemaphoreSlim Parked = new SemaphoreSlim(0);
     private readonly SemaphoreSlim Go = new SemaphoreSlim(0);
