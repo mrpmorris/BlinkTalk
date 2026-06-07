@@ -10,26 +10,19 @@ namespace BlinkTalk.Application.Input.Strategies;
 /// </summary>
 public sealed class KeyboardColumnSelectorInputStrategy : IInputStrategy
 {
-    private IScanController Controller = null!;
-    private SentenceBuilder Sentence = null!;
     private int ActiveRow;
-    private int KeyCount;
-    private int FocusedColumn;
+    private IScanController Controller = null!;
     private FocusCycler? Cycler;
+    private int FocusedColumn;
+    private int KeyCount;
+    private SentenceBuilder Sentence = null!;
+
+    public void ChildStrategyActivated(IInputStrategy childStrategy) { }
 
     public void Initialize(IScanController controller)
     {
         Controller = controller;
         Sentence = controller.Sentence;
-    }
-
-    public void SetActiveRow(int rowIndex)
-    {
-        ActiveRow = rowIndex;
-        KeyCount = Controller.Keyboard.Rows[rowIndex].Count;
-        Cycler?.Stop();
-        Cycler = Controller.NewCycler(FocusIndexChanged, firstCycleMultiplier: Consts.FirstCycleDelayMultiplier);
-        Cycler.Start(KeyCount);
     }
 
     public void ReceiveIndication()
@@ -40,7 +33,14 @@ public sealed class KeyboardColumnSelectorInputStrategy : IInputStrategy
         Controller.Pop();
     }
 
-    public void ChildStrategyActivated(IInputStrategy childStrategy) { }
+    public void SetActiveRow(int rowIndex)
+    {
+        ActiveRow = rowIndex;
+        KeyCount = Controller.Keyboard.Rows[rowIndex].Count;
+        Cycler?.Stop();
+        Cycler = Controller.NewCycler(FocusIndexChanged, firstCycleMultiplier: Consts.FirstCycleDelayMultiplier);
+        Cycler.Start(KeyCount);
+    }
 
     public void Terminated() => Cycler?.Stop();
 

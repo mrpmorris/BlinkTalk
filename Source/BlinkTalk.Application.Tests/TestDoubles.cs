@@ -17,8 +17,8 @@ public sealed class StepDelay
     // Parked is released by the cycler once it has fired a tick and parked in Delay.
     // Go is released by the test to allow exactly one more tick. The semaphores make the
     // handshake robust regardless of whether continuations resume sync or async.
-    private readonly SemaphoreSlim Parked = new SemaphoreSlim(0);
     private readonly SemaphoreSlim Go = new SemaphoreSlim(0);
+    private readonly SemaphoreSlim Parked = new SemaphoreSlim(0);
 
     public async Task Delay(TimeSpan _, CancellationToken ct)
     {
@@ -38,21 +38,21 @@ public sealed class StepDelay
 
 public sealed class FakeWordService : IWordService
 {
-    private int NextId;
     public IReadOnlyList<string> Suggestions { get; set; } = Array.Empty<string>();
+    private int NextId;
 
-    public void IncreaseWordUsage(string word, out int wordId) => wordId = ++NextId;
     public void DecreaseWordUsage(int wordId) { }
     public List<string> GetWordSuggestions(string? currentWord, int numberOfWords) => new List<string>(Suggestions);
+    public void IncreaseWordUsage(string word, out int wordId) => wordId = ++NextId;
 }
 
 public sealed class FakePhraseService : IPhraseService
 {
     public IReadOnlyList<string> Suggestions { get; set; } = Array.Empty<string>();
 
-    public void IncrementPhraseUsage(IEnumerable<int> wordIds) { }
     public List<string> GetWordSuggestions(IEnumerable<int> wordIds, string? currentWord, int numberOfWords) =>
         new List<string>(Suggestions);
+    public void IncrementPhraseUsage(IEnumerable<int> wordIds) { }
 }
 
 public sealed class FakeTextToSpeech : ITextToSpeechService
@@ -67,20 +67,18 @@ public sealed class FakeTextToSpeech : ITextToSpeechService
 
 public sealed class FakeSettingsStore : ISettingsStore
 {
-    private readonly Dictionary<string, double> Doubles = new Dictionary<string, double>();
     private readonly Dictionary<string, bool> Bools = new Dictionary<string, bool>();
+    private readonly Dictionary<string, double> Doubles = new Dictionary<string, double>();
     private readonly Dictionary<string, string> Strings = new Dictionary<string, string>();
-
-    public double GetDouble(string key, double defaultValue) =>
-        Doubles.TryGetValue(key, out var v) ? v : defaultValue;
-    public void SetDouble(string key, double value) => Doubles[key] = value;
 
     public bool GetBool(string key, bool defaultValue) =>
         Bools.TryGetValue(key, out var v) ? v : defaultValue;
-    public void SetBool(string key, bool value) => Bools[key] = value;
-
+    public double GetDouble(string key, double defaultValue) =>
+        Doubles.TryGetValue(key, out var v) ? v : defaultValue;
     public string GetString(string key, string defaultValue) =>
         Strings.TryGetValue(key, out var v) ? v : defaultValue;
+    public void SetBool(string key, bool value) => Bools[key] = value;
+    public void SetDouble(string key, double value) => Doubles[key] = value;
     public void SetString(string key, string value) => Strings[key] = value;
 }
 
@@ -89,13 +87,13 @@ public sealed class FakeSettingsStore : ISettingsStore
 /// events stand in for the camera's held-gesture edges.</summary>
 public sealed class FakeIndicator : IIndicator
 {
-    public event Action? Indicated;
-    public event Action? DwellStarted;
     public event Action? DwellEnded;
+    public event Action? DwellStarted;
+    public event Action? Indicated;
 
     public void Fire() => Indicated?.Invoke();
-    public void FireDwellStarted() => DwellStarted?.Invoke();
     public void FireDwellEnded() => DwellEnded?.Invoke();
+    public void FireDwellStarted() => DwellStarted?.Invoke();
 }
 
 /// <summary>
@@ -105,11 +103,13 @@ public sealed class FakeIndicator : IIndicator
 /// </summary>
 public sealed class GatedDelay
 {
-    private readonly SemaphoreSlim Entered = new SemaphoreSlim(0);
-    private TaskCompletionSource<bool>? Current;
-
     /// <summary>Every duration passed to <see cref="Delay"/>, in order.</summary>
     public List<TimeSpan> Requested { get; } = new List<TimeSpan>();
+    private TaskCompletionSource<bool>? Current;
+    private readonly SemaphoreSlim Entered = new SemaphoreSlim(0);
+
+    /// <summary>Complete the current delay so the cycler advances.</summary>
+    public void Complete() => Current?.TrySetResult(true);
 
     public Task Delay(TimeSpan duration, CancellationToken ct)
     {
@@ -121,17 +121,14 @@ public sealed class GatedDelay
         return AwaitThenUnregister(tcs.Task, registration);
     }
 
+    /// <summary>Wait until the cycler has entered (parked in) its next delay.</summary>
+    public Task WaitEnteredAsync() => Entered.WaitAsync();
+
     private static async Task AwaitThenUnregister(Task task, CancellationTokenRegistration registration)
     {
         try { await task.ConfigureAwait(false); }
         finally { registration.Dispose(); }
     }
-
-    /// <summary>Wait until the cycler has entered (parked in) its next delay.</summary>
-    public Task WaitEnteredAsync() => Entered.WaitAsync();
-
-    /// <summary>Complete the current delay so the cycler advances.</summary>
-    public void Complete() => Current?.TrySetResult(true);
 }
 
 public sealed class FixedClock : IClock

@@ -20,19 +20,6 @@ public sealed class WordService : IWordService
         Database = database;
     }
 
-    public void IncreaseWordUsage(string word, out int wordId)
-    {
-        word = word.ToUpper();
-
-        wordId = GetWordId(word);
-        if (wordId == -1)
-            wordId = CreateWord(word);
-
-        Database.ExecuteNonQuery(
-            "Update Words set UserSelectionCount = UserSelectionCount + 1 where Id = @id",
-            ("@id", wordId));
-    }
-
     public void DecreaseWordUsage(int wordId)
     {
         Database.ExecuteNonQuery(
@@ -56,6 +43,27 @@ public sealed class WordService : IWordService
         return data.Rows.Select(x => (string)x["Word"]!).ToList();
     }
 
+    public void IncreaseWordUsage(string word, out int wordId)
+    {
+        word = word.ToUpper();
+
+        wordId = GetWordId(word);
+        if (wordId == -1)
+            wordId = CreateWord(word);
+
+        Database.ExecuteNonQuery(
+            "Update Words set UserSelectionCount = UserSelectionCount + 1 where Id = @id",
+            ("@id", wordId));
+    }
+
+    private int CreateWord(string word)
+    {
+        Database.ExecuteNonQuery(
+            "Insert into Words (Word, LanguageUsageCount, UserSelectionCount) values (@word, 0, 0)",
+            ("@word", word));
+        return GetWordId(word);
+    }
+
     private int GetWordId(string word)
     {
         DataTable data = Database.ExecuteQuery(
@@ -65,13 +73,5 @@ public sealed class WordService : IWordService
         if (data.Rows.Count == 1)
             result = Convert.ToInt32(data.Rows[0]["ID"]);
         return result;
-    }
-
-    private int CreateWord(string word)
-    {
-        Database.ExecuteNonQuery(
-            "Insert into Words (Word, LanguageUsageCount, UserSelectionCount) values (@word, 0, 0)",
-            ("@word", word));
-        return GetWordId(word);
     }
 }

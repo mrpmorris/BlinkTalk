@@ -19,27 +19,15 @@ public partial class Camera
 	private double DwellSeconds;
 	private CancellationTokenSource? MeterCts;
 
-	private record BlendStat(string Name, double Mean, double Max);
-
-	protected override void OnInitialized() => DwellSeconds = Config.DwellSeconds;
-
-	private async Task OnDwellChanged(ChangeEventArgs e)
+	async ValueTask IAsyncDisposable.DisposeAsync()
 	{
-		if (double.TryParse(e.Value?.ToString(), out double seconds))
+		MeterCts?.Cancel();
+		if (Module is not null)
 		{
-			DwellSeconds = seconds;
-			Config.DwellSeconds = seconds;
-			await ArmDetectAsync(); // re-arm so the beep triggers at the new hold time
+			try { await Module.InvokeVoidAsync("stop"); } catch { /* ignore */ }
+			try { await Module.DisposeAsync(); } catch { /* ignore */ }
 		}
-	}
-
-	// Run live detection on this page so holding the gesture fills the time meter and beeps once the
-	// hold reaches the dwell — letting the user calibrate the hold time before enabling the camera.
-	private async Task ArmDetectAsync()
-	{
-		if (Module is null) return;
-		try { await Module.InvokeVoidAsync("setDetect", Config.Signal, Config.Threshold, DwellSeconds * 1000, 800); }
-		catch { /* page tearing down */ }
+		JSCallbacks?.Dispose();
 	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -74,6 +62,132 @@ public partial class Camera
 			Status = "";
 		}
 		await InvokeAsync(StateHasChanged);
+	}
+
+	protected override void OnInitialized() => DwellSeconds = Config.DwellSeconds;
+
+	// Run live detection on this page so holding the gesture fills the time meter and beeps once the
+	// hold reaches the dwell — letting the user calibrate the hold time before enabling the camera.
+	private async Task ArmDetectAsync()
+	{
+		if (Module is null) return;
+		try { await Module.InvokeVoidAsync("setDetect", Config.Signal, Config.Threshold, DwellSeconds * 1000, 800); }
+		catch { /* page tearing down */ }
+	}
+
+	// Pick the blendshape whose score increases most from the relaxed window to the indicating
+	// window. The threshold sits midway between the two means; require a minimum separation so we
+	// don't lock onto noise.
+	private static (string? signal, double threshold, double separation) ChooseSignal(BlendStat[] neutral, BlendStat[] active)
+	{
+		const double MinSeparation = 0.15;
+		var neutralByName = neutral.ToDictionary(s => s.Name, s => s.Mean);
+
+		string? best = null;
+		double bestDiff = 0;
+		double bestNeutralMean = 0;
+		foreach (var a in active)
+		{
+			double neutralMean = neutralByName.TryGetValue(a.Name, out var n) ? n : 0;
+			double diff = a.Mean - neutralMean;
+			if (diff > bestDiff)
+			{
+				bestDiff = diff;
+				best = a.Name;
+				bestNeutralMean = neutralMean;
+			}
+		}
+
+		if (best is null || bestDiff < MinSeparation)
+			return (null, 0, bestDiff);
+
+		return (best, bestNeutralMean + bestDiff * 0.5, bestDiff);
+	}
+
+	private static string Describe(string signal) => signal switch {
+		"eyeLookUpLeft" or "eyeLookUpRight" => "look up",
+		"eyeLookDownLeft" or "eyeLookDownRight" or "eyeBlinkLeft" or "eyeBlinkRight" => "blink",
+		"eyeLookInLeft" or "eyeLookInRight" or "eyeLookOutLeft" or "eyeLookOutRight" => "look sideways",
+		"browInnerUp" or "browOuterUpLeft" or "browOuterUpRight" => "raise eyebrows",
+		"mouthSmileLeft" or "mouthSmileRight" => "smile",
+		"jawOpen" => "open mouth",
+		_ => signal
+	};
+
+	// Android requires the OS camera permission at runtime (in addition to the WebView grant).
+	// Other platforms either prompt automatically (iOS/Mac WKWebView, Windows WebView2) or don't gate it.
+	private static async Task<bool> EnsureCameraPermissionAsync()
+	{
+		if (Microsoft.Maui.Devices.DeviceInfo.Platform != Microsoft.Maui.Devices.DevicePlatform.Android)
+			return true;
+
+		var status = await Microsoft.Maui.ApplicationModel.Permissions.RequestAsync<Microsoft.Maui.ApplicationModel.Permissions.Camera>();
+		return status == Microsoft.Maui.ApplicationModel.PermissionStatus.Granted;
+	}
+
+	private void GoBack() => Navigation.NavigateTo("/settings");
+
+	// Called from JS when the trained gesture fires (held past the dwell) — visual confirmation to
+	// accompany the JS beep. The dwell-edge callbacks are no-ops here: only the live Type page acts
+	// on them, but detect mode raises them so we must accept them without erroring.
+	private async Task OnCameraIndicated()
+	{
+		Flash = true;
+		await InvokeAsync(StateHasChanged);
+		await Task.Delay(180);
+		Flash = false;
+		await InvokeAsync(StateHasChanged);
+	}
+
+	private async Task OnDwellChanged(ChangeEventArgs e)
+	{
+		if (double.TryParse(e.Value?.ToString(), out double seconds))
+		{
+			DwellSeconds = seconds;
+			Config.DwellSeconds = seconds;
+			await ArmDetectAsync(); // re-arm so the beep triggers at the new hold time
+		}
+	}
+
+	private Task OnDwellEnded() => Task.CompletedTask;
+
+	private Task OnDwellStarted() => Task.CompletedTask;
+
+	private void OnUseCameraChanged(ChangeEventArgs e)
+	{
+		Config.IsEnabled = e.Value is bool b && b;
+	}
+
+	// Show the prompt on screen (for the helper) and speak it aloud (for the user, who may be
+	// looking away). Awaits speech so the start tone doesn't talk over the instruction.
+	private async Task SayAsync(string text)
+	{
+		Status = text;
+		await InvokeAsync(StateHasChanged);
+		try { await Speech.SpeakAsync(text); } catch { /* TTS unavailable; on-screen text remains */ }
+	}
+
+	private void StartMeterLoop()
+	{
+		MeterCts?.Cancel();
+		var cts = new CancellationTokenSource();
+		MeterCts = cts;
+		_ = Task.Run(async () =>
+		{
+			// Poll how long the gesture has been held and show it on the bar, scaled to the 2s slider
+			// max so the bar and slider share one timeline. The beep at the dwell comes from JS.
+			while (!cts.IsCancellationRequested && Module is not null)
+			{
+				try
+				{
+					double heldSeconds = await Module.InvokeAsync<double>("currentHoldSeconds");
+					HoldFraction = Math.Min(1.0, heldSeconds / 2.0);
+					await InvokeAsync(StateHasChanged);
+				}
+				catch { /* page tearing down */ }
+				await Task.Delay(80);
+			}
+		});
 	}
 
 	private async Task TrainAsync()
@@ -127,120 +241,7 @@ public partial class Camera
 		}
 	}
 
-	// Pick the blendshape whose score increases most from the relaxed window to the indicating
-	// window. The threshold sits midway between the two means; require a minimum separation so we
-	// don't lock onto noise.
-	private static (string? signal, double threshold, double separation) ChooseSignal(BlendStat[] neutral, BlendStat[] active)
-	{
-		const double MinSeparation = 0.15;
-		var neutralByName = neutral.ToDictionary(s => s.Name, s => s.Mean);
-
-		string? best = null;
-		double bestDiff = 0;
-		double bestNeutralMean = 0;
-		foreach (var a in active)
-		{
-			double neutralMean = neutralByName.TryGetValue(a.Name, out var n) ? n : 0;
-			double diff = a.Mean - neutralMean;
-			if (diff > bestDiff)
-			{
-				bestDiff = diff;
-				best = a.Name;
-				bestNeutralMean = neutralMean;
-			}
-		}
-
-		if (best is null || bestDiff < MinSeparation)
-			return (null, 0, bestDiff);
-
-		return (best, bestNeutralMean + bestDiff * 0.5, bestDiff);
-	}
-
-	// Show the prompt on screen (for the helper) and speak it aloud (for the user, who may be
-	// looking away). Awaits speech so the start tone doesn't talk over the instruction.
-	private async Task SayAsync(string text)
-	{
-		Status = text;
-		await InvokeAsync(StateHasChanged);
-		try { await Speech.SpeakAsync(text); } catch { /* TTS unavailable; on-screen text remains */ }
-	}
-
-	private void StartMeterLoop()
-	{
-		MeterCts?.Cancel();
-		var cts = new CancellationTokenSource();
-		MeterCts = cts;
-		_ = Task.Run(async () =>
-		{
-			// Poll how long the gesture has been held and show it on the bar, scaled to the 2s slider
-			// max so the bar and slider share one timeline. The beep at the dwell comes from JS.
-			while (!cts.IsCancellationRequested && Module is not null)
-			{
-				try
-				{
-					double heldSeconds = await Module.InvokeAsync<double>("currentHoldSeconds");
-					HoldFraction = Math.Min(1.0, heldSeconds / 2.0);
-					await InvokeAsync(StateHasChanged);
-				}
-				catch { /* page tearing down */ }
-				await Task.Delay(80);
-			}
-		});
-	}
-
-	// Called from JS when the trained gesture fires (held past the dwell) — visual confirmation to
-	// accompany the JS beep. The dwell-edge callbacks are no-ops here: only the live Type page acts
-	// on them, but detect mode raises them so we must accept them without erroring.
-	private async Task OnCameraIndicated()
-	{
-		Flash = true;
-		await InvokeAsync(StateHasChanged);
-		await Task.Delay(180);
-		Flash = false;
-		await InvokeAsync(StateHasChanged);
-	}
-
-	private Task OnDwellStarted() => Task.CompletedTask;
-	private Task OnDwellEnded() => Task.CompletedTask;
-
-	private void OnUseCameraChanged(ChangeEventArgs e)
-	{
-		Config.IsEnabled = e.Value is bool b && b;
-	}
-
-	private static string Describe(string signal) => signal switch {
-		"eyeLookUpLeft" or "eyeLookUpRight" => "look up",
-		"eyeLookDownLeft" or "eyeLookDownRight" or "eyeBlinkLeft" or "eyeBlinkRight" => "blink",
-		"eyeLookInLeft" or "eyeLookInRight" or "eyeLookOutLeft" or "eyeLookOutRight" => "look sideways",
-		"browInnerUp" or "browOuterUpLeft" or "browOuterUpRight" => "raise eyebrows",
-		"mouthSmileLeft" or "mouthSmileRight" => "smile",
-		"jawOpen" => "open mouth",
-		_ => signal
-	};
-
-	// Android requires the OS camera permission at runtime (in addition to the WebView grant).
-	// Other platforms either prompt automatically (iOS/Mac WKWebView, Windows WebView2) or don't gate it.
-	private static async Task<bool> EnsureCameraPermissionAsync()
-	{
-		if (Microsoft.Maui.Devices.DeviceInfo.Platform != Microsoft.Maui.Devices.DevicePlatform.Android)
-			return true;
-
-		var status = await Microsoft.Maui.ApplicationModel.Permissions.RequestAsync<Microsoft.Maui.ApplicationModel.Permissions.Camera>();
-		return status == Microsoft.Maui.ApplicationModel.PermissionStatus.Granted;
-	}
-
-	private void GoBack() => Navigation.NavigateTo("/settings");
-
-	async ValueTask IAsyncDisposable.DisposeAsync()
-	{
-		MeterCts?.Cancel();
-		if (Module is not null)
-		{
-			try { await Module.InvokeVoidAsync("stop"); } catch { /* ignore */ }
-			try { await Module.DisposeAsync(); } catch { /* ignore */ }
-		}
-		JSCallbacks?.Dispose();
-	}
+	private record BlendStat(string Name, double Mean, double Max);
 
 	// JS invokes these by name on the DotNetObjectReference. Holding them in a nested class keeps the
 	// [JSInvokable] surface off the component; each call just forwards to the component's handler.
@@ -254,9 +255,9 @@ public partial class Camera
 		public Task OnCameraIndicated() => Owner.OnCameraIndicated();
 
 		[JSInvokable]
-		public Task OnDwellStarted() => Owner.OnDwellStarted();
+		public Task OnDwellEnded() => Owner.OnDwellEnded();
 
 		[JSInvokable]
-		public Task OnDwellEnded() => Owner.OnDwellEnded();
+		public Task OnDwellStarted() => Owner.OnDwellStarted();
 	}
 }

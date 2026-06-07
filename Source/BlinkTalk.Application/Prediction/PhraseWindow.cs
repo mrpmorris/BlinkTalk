@@ -10,9 +10,9 @@ namespace BlinkTalk.Application.Prediction;
 /// </summary>
 public sealed class PhraseWindow
 {
-    public int? PrecedingWord3Id { get; }
-    public int? PrecedingWord2Id { get; }
     public int? PrecedingWord1Id { get; }
+    public int? PrecedingWord2Id { get; }
+    public int? PrecedingWord3Id { get; }
     public int SuggestedWordId { get; }
 
     public PhraseWindow(int wordId)
@@ -28,15 +28,6 @@ public sealed class PhraseWindow
         SuggestedWordId = suggestedWordId;
     }
 
-    public PhraseWindow Next(int wordId)
-    {
-        return new PhraseWindow(
-            precedingWord3Id: PrecedingWord2Id,
-            precedingWord2Id: PrecedingWord1Id,
-            precedingWord1Id: SuggestedWordId,
-            suggestedWordId: wordId);
-    }
-
     public static IEnumerable<PhraseWindow> CreatePhraseWindows(IEnumerable<int> wordIds)
     {
         var result = new List<PhraseWindow>();
@@ -50,5 +41,14 @@ public sealed class PhraseWindow
             result.Add(wordWindow);
         }
         return result;
+    }
+
+    public PhraseWindow Next(int wordId)
+    {
+        return new PhraseWindow(
+            precedingWord3Id: PrecedingWord2Id,
+            precedingWord2Id: PrecedingWord1Id,
+            precedingWord1Id: SuggestedWordId,
+            suggestedWordId: wordId);
     }
 }

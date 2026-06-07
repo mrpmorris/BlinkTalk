@@ -14,15 +14,19 @@ namespace BlinkTalk.Application.Text;
 /// </summary>
 public sealed class SentenceBuilder
 {
-    public event EventHandler? ViewModelChanged;
+    /// <summary>The word currently being typed (empty at a committed word boundary). Exposed as
+    /// raw state because <see cref="ToString"/> can't distinguish it from a trailing space.</summary>
+    public string CurrentWord { get; private set; } = "";
     public bool ShouldClearOnNextInput { get; private set; }
     public IReadOnlyList<string> SuggestedWords { get; private set; } = Array.Empty<string>();
 
-    private const int NumberOfSuggestedWords = 6;
-    private readonly List<KeyValuePair<int, string>> Words = new List<KeyValuePair<int, string>>();
+    public event EventHandler? ViewModelChanged;
+
     private readonly Dictionary<KeyCode, char> CharsByKeyCode;
-    private readonly IWordService WordService;
+    private const int NumberOfSuggestedWords = 6;
     private readonly IPhraseService PhraseService;
+    private readonly List<KeyValuePair<int, string>> Words = new List<KeyValuePair<int, string>>();
+    private readonly IWordService WordService;
 
     public SentenceBuilder(IWordService wordService, IPhraseService phraseService)
     {
@@ -31,17 +35,23 @@ public sealed class SentenceBuilder
         CharsByKeyCode = BuildCharMap();
     }
 
+    public bool IsEmpty => string.IsNullOrEmpty(ToString());
+
+    public string Commit()
+    {
+        if (!string.IsNullOrEmpty(CurrentWord))
+            PushCurrentWord();
+        PhraseService.IncrementPhraseUsage(Words.Select(x => x.Key));
+        ShouldClearOnNextInput = true;
+        DoViewModelChanged();
+        return ToString();
+    }
+
     /// <summary>Must be called once the database is available (loads the initial suggestions).</summary>
     public void Initialize()
     {
         GetWordSuggestions();
     }
-
-    public bool IsEmpty => string.IsNullOrEmpty(ToString());
-
-    /// <summary>The word currently being typed (empty at a committed word boundary). Exposed as
-    /// raw state because <see cref="ToString"/> can't distinguish it from a trailing space.</summary>
-    public string CurrentWord { get; private set; } = "";
 
     public void Input(KeyCode keyCode)
     {
@@ -61,16 +71,6 @@ public sealed class SentenceBuilder
         DoViewModelChanged();
     }
 
-    public string Commit()
-    {
-        if (!string.IsNullOrEmpty(CurrentWord))
-            PushCurrentWord();
-        PhraseService.IncrementPhraseUsage(Words.Select(x => x.Key));
-        ShouldClearOnNextInput = true;
-        DoViewModelChanged();
-        return ToString();
-    }
-
     public void PushWord(string word)
     {
         CheckForClearOnInput();
@@ -86,31 +86,6 @@ public sealed class SentenceBuilder
         return result;
     }
 
-    private void Clear()
-    {
-        Words.Clear();
-        CurrentWord = "";
-        DoViewModelChanged();
-    }
-
-    private void CheckForClearOnInput()
-    {
-        if (ShouldClearOnNextInput)
-            Clear();
-        ShouldClearOnNextInput = false;
-    }
-
-    private void PushCurrentWord()
-    {
-        if (!string.IsNullOrEmpty(CurrentWord))
-        {
-            WordService.IncreaseWordUsage(CurrentWord, out int wordId);
-            Words.Add(new KeyValuePair<int, string>(wordId, CurrentWord));
-            CurrentWord = "";
-        }
-        DoViewModelChanged();
-    }
-
     private void Backspace()
     {
         if (CurrentWord.Length > 0)
@@ -120,13 +95,38 @@ public sealed class SentenceBuilder
         DoViewModelChanged();
     }
 
-    private void PopWord()
+    private static Dictionary<KeyCode, char> BuildCharMap()
     {
-        if (Words.Count == 0)
-            return;
-        KeyValuePair<int, string> wordInfo = Words[Words.Count - 1];
-        Words.RemoveAt(Words.Count - 1);
-        WordService.DecreaseWordUsage(wordInfo.Key);
+        return new Dictionary<KeyCode, char>
+        {
+            { KeyCode.A, 'A' }, { KeyCode.B, 'B' }, { KeyCode.C, 'C' }, { KeyCode.D, 'D' },
+            { KeyCode.E, 'E' }, { KeyCode.F, 'F' }, { KeyCode.G, 'G' }, { KeyCode.H, 'H' },
+            { KeyCode.I, 'I' }, { KeyCode.J, 'J' }, { KeyCode.K, 'K' }, { KeyCode.L, 'L' },
+            { KeyCode.M, 'M' }, { KeyCode.N, 'N' }, { KeyCode.O, 'O' }, { KeyCode.P, 'P' },
+            { KeyCode.Q, 'Q' }, { KeyCode.R, 'R' }, { KeyCode.S, 'S' }, { KeyCode.T, 'T' },
+            { KeyCode.U, 'U' }, { KeyCode.V, 'V' }, { KeyCode.W, 'W' }, { KeyCode.X, 'X' },
+            { KeyCode.Y, 'Y' }, { KeyCode.Z, 'Z' },
+            { KeyCode.Number0, '0' }, { KeyCode.Number1, '1' }, { KeyCode.Number2, '2' },
+            { KeyCode.Number3, '3' }, { KeyCode.Number4, '4' }, { KeyCode.Number5, '5' },
+            { KeyCode.Number6, '6' }, { KeyCode.Number7, '7' }, { KeyCode.Number8, '8' },
+            { KeyCode.Number9, '9' },
+            { KeyCode.Comma, ',' }, { KeyCode.Period, '.' }, { KeyCode.Exclaim, '!' },
+            { KeyCode.Question, '?' }
+        };
+    }
+
+    private void CheckForClearOnInput()
+    {
+        if (ShouldClearOnNextInput)
+            Clear();
+        ShouldClearOnNextInput = false;
+    }
+
+    private void Clear()
+    {
+        Words.Clear();
+        CurrentWord = "";
+        DoViewModelChanged();
     }
 
     private void DoViewModelChanged()
@@ -148,23 +148,23 @@ public sealed class SentenceBuilder
         SuggestedWords = result.Distinct(StringComparer.CurrentCultureIgnoreCase).Take(NumberOfSuggestedWords).ToList();
     }
 
-    private static Dictionary<KeyCode, char> BuildCharMap()
+    private void PopWord()
     {
-        return new Dictionary<KeyCode, char>
+        if (Words.Count == 0)
+            return;
+        KeyValuePair<int, string> wordInfo = Words[Words.Count - 1];
+        Words.RemoveAt(Words.Count - 1);
+        WordService.DecreaseWordUsage(wordInfo.Key);
+    }
+
+    private void PushCurrentWord()
+    {
+        if (!string.IsNullOrEmpty(CurrentWord))
         {
-            { KeyCode.A, 'A' }, { KeyCode.B, 'B' }, { KeyCode.C, 'C' }, { KeyCode.D, 'D' },
-            { KeyCode.E, 'E' }, { KeyCode.F, 'F' }, { KeyCode.G, 'G' }, { KeyCode.H, 'H' },
-            { KeyCode.I, 'I' }, { KeyCode.J, 'J' }, { KeyCode.K, 'K' }, { KeyCode.L, 'L' },
-            { KeyCode.M, 'M' }, { KeyCode.N, 'N' }, { KeyCode.O, 'O' }, { KeyCode.P, 'P' },
-            { KeyCode.Q, 'Q' }, { KeyCode.R, 'R' }, { KeyCode.S, 'S' }, { KeyCode.T, 'T' },
-            { KeyCode.U, 'U' }, { KeyCode.V, 'V' }, { KeyCode.W, 'W' }, { KeyCode.X, 'X' },
-            { KeyCode.Y, 'Y' }, { KeyCode.Z, 'Z' },
-            { KeyCode.Number0, '0' }, { KeyCode.Number1, '1' }, { KeyCode.Number2, '2' },
-            { KeyCode.Number3, '3' }, { KeyCode.Number4, '4' }, { KeyCode.Number5, '5' },
-            { KeyCode.Number6, '6' }, { KeyCode.Number7, '7' }, { KeyCode.Number8, '8' },
-            { KeyCode.Number9, '9' },
-            { KeyCode.Comma, ',' }, { KeyCode.Period, '.' }, { KeyCode.Exclaim, '!' },
-            { KeyCode.Question, '?' }
-        };
+            WordService.IncreaseWordUsage(CurrentWord, out int wordId);
+            Words.Add(new KeyValuePair<int, string>(wordId, CurrentWord));
+            CurrentWord = "";
+        }
+        DoViewModelChanged();
     }
 }

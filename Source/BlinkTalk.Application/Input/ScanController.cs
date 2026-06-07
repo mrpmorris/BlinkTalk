@@ -16,28 +16,25 @@ namespace BlinkTalk.Application.Input;
 /// </summary>
 public sealed class ScanController : IScanController, IDisposable
 {
-    private readonly IUiDispatcher Dispatcher;
-    private readonly ISettingsStore Settings;
-    private readonly Func<TimeSpan, CancellationToken, Task>? Delay;
-    private readonly IEnumerable<IIndicator> Indicators;
-    private readonly IClock Clock;
-    private readonly Stack<IInputStrategy> Strategies = new Stack<IInputStrategy>();
-    private bool Started;
+    public HighlightTarget Highlight { get; private set; } = HighlightTarget.None;
+    public KeyboardLayout Keyboard { get; }
+    public SentenceBuilder Sentence { get; }
+    public ITextToSpeechService Speech { get; }
+
+    public event Action? StateChanged;
 
     // The single cycler currently running (exactly one is active at a time — each strategy
     // stops its cycler before a child starts one). Paused while a camera gesture is held.
     private FocusCycler? ActiveCycler;
+    private readonly IClock Clock;
+    private readonly Func<TimeSpan, CancellationToken, Task>? Delay;
+    private readonly IUiDispatcher Dispatcher;
     // Number of in-progress held gestures; while > 0 the active cycle is paused.
     private int DwellDepth;
-
-    public SentenceBuilder Sentence { get; }
-    public KeyboardLayout Keyboard { get; }
-    public ITextToSpeechService Speech { get; }
-
-    public HighlightTarget Highlight { get; private set; } = HighlightTarget.None;
-    public int Depth => Strategies.Count;
-
-    public event Action? StateChanged;
+    private readonly IEnumerable<IIndicator> Indicators;
+    private readonly ISettingsStore Settings;
+    private bool Started;
+    private readonly Stack<IInputStrategy> Strategies = new Stack<IInputStrategy>();
 
     public ScanController(
         SentenceBuilder sentence,
@@ -73,44 +70,15 @@ public sealed class ScanController : IScanController, IDisposable
         set => Settings.SetDouble(SettingsKeys.CycleDelaySeconds, value);
     }
 
-    /// <summary>Begin scanning: load suggestions and enter the top-level section selector.</summary>
-    public void Start()
-    {
-        if (Started)
-            return;
-        Started = true;
-        Sentence.Initialize();
-        Push<SectionSelectorInputStrategy>();
-        RaiseStateChanged();
-    }
+    public int Depth => Strategies.Count;
 
-    /// <summary>
-    /// The single switch input: raised by an <see cref="IIndicator"/> (the helper presses the
-    /// button, or the camera detects the gesture) when the person blinks. Routes to the active
-    /// strategy. Indicators raise this on the UI thread, preserving single-threaded mutation.
-    /// </summary>
-    private void OnIndicated()
+    public void Dispose()
     {
-        if (Strategies.Count > 0)
-            Strategies.Peek().ReceiveIndication();
-    }
-
-    // A held gesture started/ended (camera only). While one or more are in progress the active
-    // cycle is paused, so the highlight stays put and a selection lands on the element the user
-    // was on when the gesture began. DwellEnded always balances DwellStarted — including after
-    // a successful indication — so the counter returns to 0 and scanning resumes.
-    private void OnDwellStarted()
-    {
-        if (Interlocked.Increment(ref DwellDepth) == 1)
-            ActiveCycler?.Pause();
-    }
-
-    private void OnDwellEnded()
-    {
-        if (Interlocked.Decrement(ref DwellDepth) <= 0)
+        foreach (var indicator in Indicators)
         {
-            Interlocked.Exchange(ref DwellDepth, 0); // clamp against any unbalanced end
-            ActiveCycler?.Resume();
+            indicator.Indicated -= OnIndicated;
+            indicator.DwellStarted -= OnDwellStarted;
+            indicator.DwellEnded -= OnDwellEnded;
         }
     }
 
@@ -144,6 +112,17 @@ public sealed class ScanController : IScanController, IDisposable
         return cycler;
     }
 
+    public void Pop()
+    {
+        if (Strategies.Count == 0)
+            return;
+        IInputStrategy terminated = Strategies.Pop();
+        terminated.Terminated();
+        if (Strategies.Count > 0)
+            Strategies.Peek().Initialize(this);
+        RaiseStateChanged();
+    }
+
     public TStrategy Push<TStrategy>() where TStrategy : IInputStrategy, new()
     {
         var strategy = new TStrategy();
@@ -158,32 +137,52 @@ public sealed class ScanController : IScanController, IDisposable
         return strategy;
     }
 
-    public void Pop()
-    {
-        if (Strategies.Count == 0)
-            return;
-        IInputStrategy terminated = Strategies.Pop();
-        terminated.Terminated();
-        if (Strategies.Count > 0)
-            Strategies.Peek().Initialize(this);
-        RaiseStateChanged();
-    }
-
     public void SetHighlight(HighlightTarget target)
     {
         Highlight = target;
         RaiseStateChanged();
     }
 
-    private void RaiseStateChanged() => StateChanged?.Invoke();
-
-    public void Dispose()
+    /// <summary>Begin scanning: load suggestions and enter the top-level section selector.</summary>
+    public void Start()
     {
-        foreach (var indicator in Indicators)
+        if (Started)
+            return;
+        Started = true;
+        Sentence.Initialize();
+        Push<SectionSelectorInputStrategy>();
+        RaiseStateChanged();
+    }
+
+    private void OnDwellEnded()
+    {
+        if (Interlocked.Decrement(ref DwellDepth) <= 0)
         {
-            indicator.Indicated -= OnIndicated;
-            indicator.DwellStarted -= OnDwellStarted;
-            indicator.DwellEnded -= OnDwellEnded;
+            Interlocked.Exchange(ref DwellDepth, 0); // clamp against any unbalanced end
+            ActiveCycler?.Resume();
         }
     }
+
+    // A held gesture started/ended (camera only). While one or more are in progress the active
+    // cycle is paused, so the highlight stays put and a selection lands on the element the user
+    // was on when the gesture began. DwellEnded always balances DwellStarted — including after
+    // a successful indication — so the counter returns to 0 and scanning resumes.
+    private void OnDwellStarted()
+    {
+        if (Interlocked.Increment(ref DwellDepth) == 1)
+            ActiveCycler?.Pause();
+    }
+
+    /// <summary>
+    /// The single switch input: raised by an <see cref="IIndicator"/> (the helper presses the
+    /// button, or the camera detects the gesture) when the person blinks. Routes to the active
+    /// strategy. Indicators raise this on the UI thread, preserving single-threaded mutation.
+    /// </summary>
+    private void OnIndicated()
+    {
+        if (Strategies.Count > 0)
+            Strategies.Peek().ReceiveIndication();
+    }
+
+    private void RaiseStateChanged() => StateChanged?.Invoke();
 }

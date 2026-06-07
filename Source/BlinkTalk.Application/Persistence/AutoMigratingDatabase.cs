@@ -10,6 +10,8 @@ namespace BlinkTalk.Application.Persistence;
 /// </summary>
 public sealed class AutoMigratingDatabase
 {
+    public ISqliteDatabase Database { get; }
+
     private readonly IClock Clock;
 
     public AutoMigratingDatabase(ISqliteDatabase database, IClock clock)
@@ -17,8 +19,6 @@ public sealed class AutoMigratingDatabase
         Database = database;
         Clock = clock;
     }
-
-    public ISqliteDatabase Database { get; }
 
     public void Migrate()
     {

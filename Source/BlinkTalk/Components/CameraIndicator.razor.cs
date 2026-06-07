@@ -5,11 +5,28 @@ namespace BlinkTalk.Components;
 
 public partial class CameraIndicator
 {
-	private ElementReference Video;
-	private IJSObjectReference? Module;
-	private DotNetObjectReference<CameraIndicatorCallbacks>? JSCallbacks;
-	private bool Started;
 	private bool Dwelling; // true between OnDwellStarted and OnDwellEnded, so teardown can balance
+	private DotNetObjectReference<CameraIndicatorCallbacks>? JSCallbacks;
+	private IJSObjectReference? Module;
+	private bool Started;
+	private ElementReference Video;
+
+	async ValueTask IAsyncDisposable.DisposeAsync()
+	{
+		// If a gesture is still held as we tear down, balance the counter so the scan doesn't
+		// stay paused forever. JS stop() deliberately stays silent, so this is the sole balancer.
+		if (Dwelling)
+		{
+			Dwelling = false;
+			try { Indicator.TriggerDwellEnded(); } catch { /* ignore */ }
+		}
+		if (Module is not null)
+		{
+			try { await Module.InvokeVoidAsync("stop"); } catch { /* ignore */ }
+			try { await Module.DisposeAsync(); } catch { /* ignore */ }
+		}
+		JSCallbacks?.Dispose();
+	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
@@ -42,13 +59,6 @@ public partial class CameraIndicator
 		return Task.CompletedTask;
 	}
 
-	private Task OnDwellStarted()
-	{
-		Dwelling = true;
-		Indicator.TriggerDwellStarted();
-		return Task.CompletedTask;
-	}
-
 	private Task OnDwellEnded()
 	{
 		Dwelling = false;
@@ -56,21 +66,11 @@ public partial class CameraIndicator
 		return Task.CompletedTask;
 	}
 
-	async ValueTask IAsyncDisposable.DisposeAsync()
+	private Task OnDwellStarted()
 	{
-		// If a gesture is still held as we tear down, balance the counter so the scan doesn't
-		// stay paused forever. JS stop() deliberately stays silent, so this is the sole balancer.
-		if (Dwelling)
-		{
-			Dwelling = false;
-			try { Indicator.TriggerDwellEnded(); } catch { /* ignore */ }
-		}
-		if (Module is not null)
-		{
-			try { await Module.InvokeVoidAsync("stop"); } catch { /* ignore */ }
-			try { await Module.DisposeAsync(); } catch { /* ignore */ }
-		}
-		JSCallbacks?.Dispose();
+		Dwelling = true;
+		Indicator.TriggerDwellStarted();
+		return Task.CompletedTask;
 	}
 
 	// JS invokes these by name on the DotNetObjectReference. Holding them in a nested class keeps the
@@ -85,9 +85,9 @@ public partial class CameraIndicator
 		public Task OnCameraIndicated() => Owner.OnCameraIndicated();
 
 		[JSInvokable]
-		public Task OnDwellStarted() => Owner.OnDwellStarted();
+		public Task OnDwellEnded() => Owner.OnDwellEnded();
 
 		[JSInvokable]
-		public Task OnDwellEnded() => Owner.OnDwellEnded();
+		public Task OnDwellStarted() => Owner.OnDwellStarted();
 	}
 }

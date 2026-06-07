@@ -16,11 +16,14 @@ public enum HighlightKind
 /// </summary>
 public readonly struct HighlightTarget
 {
-    public HighlightKind Kind { get; }
-    public Section Section { get; }
-    public int RowIndex { get; }
     public int ColumnIndex { get; }
+    public HighlightKind Kind { get; }
+    public int RowIndex { get; }
+    public Section Section { get; }
     public int WordIndex { get; }
+
+    public static readonly HighlightTarget None =
+        new HighlightTarget(HighlightKind.None, default, -1, -1, -1);
 
     private HighlightTarget(HighlightKind kind, Section section, int rowIndex, int columnIndex, int wordIndex)
     {
@@ -31,17 +34,14 @@ public readonly struct HighlightTarget
         WordIndex = wordIndex;
     }
 
-    public static readonly HighlightTarget None =
-        new HighlightTarget(HighlightKind.None, default, -1, -1, -1);
-
-    public static HighlightTarget ForSection(Section section) =>
-        new HighlightTarget(HighlightKind.Section, section, -1, -1, -1);
+    public static HighlightTarget ForKey(int rowIndex, int columnIndex) =>
+        new HighlightTarget(HighlightKind.Key, default, rowIndex, columnIndex, -1);
 
     public static HighlightTarget ForKeyboardRow(int rowIndex) =>
         new HighlightTarget(HighlightKind.KeyboardRow, default, rowIndex, -1, -1);
 
-    public static HighlightTarget ForKey(int rowIndex, int columnIndex) =>
-        new HighlightTarget(HighlightKind.Key, default, rowIndex, columnIndex, -1);
+    public static HighlightTarget ForSection(Section section) =>
+        new HighlightTarget(HighlightKind.Section, section, -1, -1, -1);
 
     public static HighlightTarget ForWord(int wordIndex) =>
         new HighlightTarget(HighlightKind.WordSuggestion, default, -1, -1, wordIndex);

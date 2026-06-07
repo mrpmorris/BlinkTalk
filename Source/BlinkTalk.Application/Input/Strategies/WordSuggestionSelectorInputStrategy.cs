@@ -15,10 +15,12 @@ namespace BlinkTalk.Application.Input.Strategies;
 public sealed class WordSuggestionSelectorInputStrategy : IInputStrategy
 {
     private IScanController Controller = null!;
+    private FocusCycler? Cycler;
+    private int SelectedIndex = -1;
     private SentenceBuilder Sentence = null!;
     private IReadOnlyList<string> Words = Array.Empty<string>();
-    private int SelectedIndex = -1;
-    private FocusCycler? Cycler;
+
+    public void ChildStrategyActivated(IInputStrategy childStrategy) { }
 
     public void Initialize(IScanController controller)
     {
@@ -36,8 +38,6 @@ public sealed class WordSuggestionSelectorInputStrategy : IInputStrategy
         Cycler?.Stop();
         RestartFocusCycler();
     }
-
-    public void ChildStrategyActivated(IInputStrategy childStrategy) { }
 
     public void Terminated() => Cycler?.Stop();
 

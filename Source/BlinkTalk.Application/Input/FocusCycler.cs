@@ -24,25 +24,25 @@ namespace BlinkTalk.Application.Input;
 /// </summary>
 public sealed class FocusCycler
 {
-    private readonly IUiDispatcher Dispatcher;
-    private readonly Func<int, bool> MayFocus;
-    private readonly Action<int> FocusChanged;
-    private readonly Func<TimeSpan> CycleDelay;
-    private readonly double FirstCycleMultiplier;
-    private readonly Func<TimeSpan, CancellationToken, Task> Delay;
-    private readonly Action? OnExhausted;
+    public int FocusChangeCount { get; private set; }
+
     private readonly IClock Clock;
-    private readonly Action<bool>? OnRunningChanged;
     private CancellationTokenSource? Cts;
+    private readonly Func<TimeSpan> CycleDelay;
+    private readonly Func<TimeSpan, CancellationToken, Task> Delay;
+    private readonly IUiDispatcher Dispatcher;
+    private CancellationTokenSource? DwellInterrupt;
+    private readonly double FirstCycleMultiplier;
+    private readonly Action<int> FocusChanged;
+    private readonly Func<int, bool> MayFocus;
+    private readonly Action? OnExhausted;
+    private readonly Action<bool>? OnRunningChanged;
 
     // Pause state. Paused is set/cleared on the UI thread (Pause/Resume run on it), and read
     // by the dwell loop on the same thread; ResumeGate is the gate the loop awaits while paused;
     // DwellInterrupt cancels the in-flight delay so its elapsed portion can be captured.
     private bool Paused;
     private TaskCompletionSource<bool>? ResumeGate;
-    private CancellationTokenSource? DwellInterrupt;
-
-    public int FocusChangeCount { get; private set; }
 
     public FocusCycler(
         IUiDispatcher dispatcher,
@@ -67,6 +67,29 @@ public sealed class FocusCycler
         OnExhausted = onExhausted;
         Clock = clock ?? new SystemClock();
         OnRunningChanged = onRunningChanged;
+    }
+
+    /// <summary>
+    /// Suspend the scan: freezes the current highlight and stops the dwell timer counting.
+    /// Idempotent. Safe to call when not running (the next dwell will start paused).
+    /// </summary>
+    public void Pause()
+    {
+        if (Paused)
+            return;
+        Paused = true;
+        ResumeGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        // Interrupt the in-flight dwell so the loop captures how much of it has elapsed.
+        DwellInterrupt?.Cancel();
+    }
+
+    /// <summary>Resume the scan after <see cref="Pause"/>, continuing the remaining dwell.</summary>
+    public void Resume()
+    {
+        if (!Paused)
+            return;
+        Paused = false;
+        ResumeGate?.TrySetResult(true);
     }
 
     public void Start(int numberOfItems)
@@ -97,81 +120,6 @@ public sealed class FocusCycler
             Cts.Dispose();
             Cts = null;
             OnRunningChanged?.Invoke(false);
-        }
-    }
-
-    /// <summary>
-    /// Suspend the scan: freezes the current highlight and stops the dwell timer counting.
-    /// Idempotent. Safe to call when not running (the next dwell will start paused).
-    /// </summary>
-    public void Pause()
-    {
-        if (Paused)
-            return;
-        Paused = true;
-        ResumeGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        // Interrupt the in-flight dwell so the loop captures how much of it has elapsed.
-        DwellInterrupt?.Cancel();
-    }
-
-    /// <summary>Resume the scan after <see cref="Pause"/>, continuing the remaining dwell.</summary>
-    public void Resume()
-    {
-        if (!Paused)
-            return;
-        Paused = false;
-        ResumeGate?.TrySetResult(true);
-    }
-
-    private async Task RunAsync(int numberOfItems, CancellationToken ct)
-    {
-        int focusIndex = 0;
-        double delayMultiplier = FirstCycleMultiplier;
-        try
-        {
-            while (!ct.IsCancellationRequested)
-            {
-                bool exhausted = false;
-                int firedIndex = -1;
-
-                await Dispatcher.InvokeAsync(() =>
-                {
-                    if (ct.IsCancellationRequested)
-                        return;
-
-                    int skipped = 0;
-                    while (!MayFocus(focusIndex))
-                    {
-                        focusIndex = (focusIndex + 1) % numberOfItems;
-                        if (++skipped >= numberOfItems)
-                        {
-                            exhausted = true;
-                            OnExhausted?.Invoke();
-                            return;
-                        }
-                    }
-
-                    FocusChangeCount++;
-                    firedIndex = focusIndex;
-                    FocusChanged(focusIndex);
-                }).ConfigureAwait(false);
-
-                if (exhausted || ct.IsCancellationRequested)
-                    return;
-
-                await DwellAsync(Scale(CycleDelay(), delayMultiplier), ct).ConfigureAwait(false);
-                delayMultiplier = 1;
-                focusIndex = (firedIndex + 1) % numberOfItems;
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Stop() was called; expected.
-        }
-        finally
-        {
-            if (!ct.IsCancellationRequested)
-                OnRunningChanged?.Invoke(false);
         }
     }
 
@@ -230,6 +178,61 @@ public sealed class FocusCycler
         }
     }
 
+    private async Task RunAsync(int numberOfItems, CancellationToken ct)
+    {
+        int focusIndex = 0;
+        double delayMultiplier = FirstCycleMultiplier;
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                bool exhausted = false;
+                int firedIndex = -1;
+
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    if (ct.IsCancellationRequested)
+                        return;
+
+                    int skipped = 0;
+                    while (!MayFocus(focusIndex))
+                    {
+                        focusIndex = (focusIndex + 1) % numberOfItems;
+                        if (++skipped >= numberOfItems)
+                        {
+                            exhausted = true;
+                            OnExhausted?.Invoke();
+                            return;
+                        }
+                    }
+
+                    FocusChangeCount++;
+                    firedIndex = focusIndex;
+                    FocusChanged(focusIndex);
+                }).ConfigureAwait(false);
+
+                if (exhausted || ct.IsCancellationRequested)
+                    return;
+
+                await DwellAsync(Scale(CycleDelay(), delayMultiplier), ct).ConfigureAwait(false);
+                delayMultiplier = 1;
+                focusIndex = (firedIndex + 1) % numberOfItems;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Stop() was called; expected.
+        }
+        finally
+        {
+            if (!ct.IsCancellationRequested)
+                OnRunningChanged?.Invoke(false);
+        }
+    }
+
+    private static TimeSpan Scale(TimeSpan value, double factor) =>
+        TimeSpan.FromTicks((long)(value.Ticks * factor));
+
     // Await the resume gate, but also wake (and throw) if the cycler is stopped. netstandard2.0
     // has no Task.WaitAsync(CancellationToken), so make cancellation complete the same gate.
     private async Task WaitForResumeAsync(CancellationToken ct)
@@ -243,7 +246,4 @@ public sealed class FocusCycler
 
         ct.ThrowIfCancellationRequested();
     }
-
-    private static TimeSpan Scale(TimeSpan value, double factor) =>
-        TimeSpan.FromTicks((long)(value.Ticks * factor));
 }

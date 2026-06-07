@@ -15,25 +15,13 @@ namespace BlinkTalk.Application.Prediction;
 /// </summary>
 public sealed class PhraseService : IPhraseService
 {
-    private readonly ISqliteDatabase Database;
     private readonly IClock Clock;
+    private readonly ISqliteDatabase Database;
 
     public PhraseService(ISqliteDatabase database, IClock clock)
     {
         Database = database;
         Clock = clock;
-    }
-
-    /// <summary>
-    /// Runs a 4-word sliding window across the sentence and updates the database so we learn
-    /// which word sequences the user uses most often. For a 5 word sentence the entries are
-    /// (null,null,null,w1) (null,null,w1,w2) (null,w1,w2,w3) (w1,w2,w3,w4) (w2,w3,w4,w5).
-    /// </summary>
-    public void IncrementPhraseUsage(IEnumerable<int> wordIds)
-    {
-        IEnumerable<PhraseWindow> phraseWindows = PhraseWindow.CreatePhraseWindows(wordIds);
-        foreach (PhraseWindow phraseWindow in phraseWindows)
-            IncrementPhraseWindow(phraseWindow);
     }
 
     public List<string> GetWordSuggestions(IEnumerable<int> wordIds, string? currentWord, int numberOfWords)
@@ -76,7 +64,17 @@ public sealed class PhraseService : IPhraseService
             .ToList();
     }
 
-    private static string ToStringOrDefault(int? value) => value?.ToString() ?? "-1";
+    /// <summary>
+    /// Runs a 4-word sliding window across the sentence and updates the database so we learn
+    /// which word sequences the user uses most often. For a 5 word sentence the entries are
+    /// (null,null,null,w1) (null,null,w1,w2) (null,w1,w2,w3) (w1,w2,w3,w4) (w2,w3,w4,w5).
+    /// </summary>
+    public void IncrementPhraseUsage(IEnumerable<int> wordIds)
+    {
+        IEnumerable<PhraseWindow> phraseWindows = PhraseWindow.CreatePhraseWindows(wordIds);
+        foreach (PhraseWindow phraseWindow in phraseWindows)
+            IncrementPhraseWindow(phraseWindow);
+    }
 
     private static string ConvertNullableIntsToCommaList(IEnumerable<int?> nullableWordIds)
     {
@@ -132,4 +130,6 @@ public sealed class PhraseService : IPhraseService
                 $"Update WordSequences set UsageCount = UsageCount + 1, LastUsedDate = {today} where {sqlConditions}");
         }
     }
+
+    private static string ToStringOrDefault(int? value) => value?.ToString() ?? "-1";
 }

@@ -11,6 +11,10 @@ public partial class Settings
 		ScanSpeed = Controller.CycleDelaySeconds;
 	}
 
+	private void GoBack() => Navigation.NavigateTo("/type");
+
+	private void GoToCamera() => Navigation.NavigateTo("/camera");
+
 	private void OnScanSpeedChanged(ChangeEventArgs e)
 	{
 		if (double.TryParse(e.Value?.ToString(), out double seconds))
@@ -19,8 +23,4 @@ public partial class Settings
 			Controller.CycleDelaySeconds = seconds;
 		}
 	}
-
-	private void GoBack() => Navigation.NavigateTo("/type");
-
-	private void GoToCamera() => Navigation.NavigateTo("/camera");
 }

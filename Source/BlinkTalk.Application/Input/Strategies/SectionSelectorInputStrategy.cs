@@ -11,11 +11,18 @@ namespace BlinkTalk.Application.Input.Strategies;
 /// </summary>
 public sealed class SectionSelectorInputStrategy : IInputStrategy
 {
-    private bool SkipWordSelection;
-    private Section FocusedSection;
     private IScanController Controller = null!;
-    private SentenceBuilder Sentence = null!;
     private FocusCycler? Cycler;
+    private Section FocusedSection;
+    private SentenceBuilder Sentence = null!;
+    private bool SkipWordSelection;
+
+    public void ChildStrategyActivated(IInputStrategy childStrategy)
+    {
+        if (childStrategy is WordSuggestionSelectorInputStrategy)
+            SkipWordSelection = true;
+        Cycler?.Stop();
+    }
 
     public void Initialize(IScanController controller)
     {
@@ -45,13 +52,6 @@ public sealed class SectionSelectorInputStrategy : IInputStrategy
             default:
                 throw new NotImplementedException(FocusedSection.ToString());
         }
-    }
-
-    public void ChildStrategyActivated(IInputStrategy childStrategy)
-    {
-        if (childStrategy is WordSuggestionSelectorInputStrategy)
-            SkipWordSelection = true;
-        Cycler?.Stop();
     }
 
     public void Terminated() => Cycler?.Stop();

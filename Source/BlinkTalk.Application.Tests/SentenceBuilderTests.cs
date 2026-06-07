@@ -4,33 +4,6 @@ namespace BlinkTalk.Application.Tests;
 
 public class SentenceBuilderTests
 {
-    private static SentenceBuilder Build()
-    {
-        var sb = new SentenceBuilder(new FakeWordService(), new FakePhraseService());
-        sb.Initialize();
-        return sb;
-    }
-
-    [Fact]
-    public void TypesCharactersIntoTheCurrentWord()
-    {
-        var sb = Build();
-        sb.Input(KeyCode.H);
-        sb.Input(KeyCode.I);
-        Assert.Equal("HI", sb.ToString().Trim());
-    }
-
-    [Fact]
-    public void SpacePushesTheCurrentWord()
-    {
-        var sb = Build();
-        sb.Input(KeyCode.H);
-        sb.Input(KeyCode.I);
-        sb.Input(KeyCode.Space);
-        sb.Input(KeyCode.U);
-        Assert.Equal("HI U", sb.ToString().Trim());
-    }
-
     [Fact]
     public void BackspaceDeletesCharThenPopsWord()
     {
@@ -61,6 +34,15 @@ public class SentenceBuilderTests
     }
 
     [Fact]
+    public void IsEmptyReflectsContent()
+    {
+        var sb = Build();
+        Assert.True(sb.IsEmpty);
+        sb.Input(KeyCode.A);
+        Assert.False(sb.IsEmpty);
+    }
+
+    [Fact]
     public void NextInputAfterCommitClearsTheSentence()
     {
         var sb = Build();
@@ -84,15 +66,6 @@ public class SentenceBuilderTests
     }
 
     [Fact]
-    public void IsEmptyReflectsContent()
-    {
-        var sb = Build();
-        Assert.True(sb.IsEmpty);
-        sb.Input(KeyCode.A);
-        Assert.False(sb.IsEmpty);
-    }
-
-    [Fact]
     public void RaisesViewModelChangedOnInput()
     {
         var sb = Build();
@@ -100,5 +73,32 @@ public class SentenceBuilderTests
         sb.ViewModelChanged += (s, e) => changes++;
         sb.Input(KeyCode.A);
         Assert.True(changes > 0);
+    }
+
+    [Fact]
+    public void SpacePushesTheCurrentWord()
+    {
+        var sb = Build();
+        sb.Input(KeyCode.H);
+        sb.Input(KeyCode.I);
+        sb.Input(KeyCode.Space);
+        sb.Input(KeyCode.U);
+        Assert.Equal("HI U", sb.ToString().Trim());
+    }
+
+    [Fact]
+    public void TypesCharactersIntoTheCurrentWord()
+    {
+        var sb = Build();
+        sb.Input(KeyCode.H);
+        sb.Input(KeyCode.I);
+        Assert.Equal("HI", sb.ToString().Trim());
+    }
+
+    private static SentenceBuilder Build()
+    {
+        var sb = new SentenceBuilder(new FakeWordService(), new FakePhraseService());
+        sb.Initialize();
+        return sb;
     }
 }

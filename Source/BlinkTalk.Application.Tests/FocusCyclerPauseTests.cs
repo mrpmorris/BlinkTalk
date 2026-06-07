@@ -15,56 +15,6 @@ namespace BlinkTalk.Application.Tests;
 /// </summary>
 public class FocusCyclerPauseTests
 {
-    private static FocusCycler BuildPausable(double delaySeconds, List<int> fired, GatedDelay gate, IClock clock)
-    {
-        return new FocusCycler(
-            new InlineUiDispatcher(),
-            i => fired.Add(i),
-            () => TimeSpan.FromSeconds(delaySeconds),
-            firstCycleMultiplier: 1,
-            mayFocus: _ => true,
-            delay: gate.Delay,
-            clock: clock);
-    }
-
-    private static async Task WaitUntil(Func<bool> condition, int timeoutMs = 2000)
-    {
-        int start = Environment.TickCount;
-        while (!condition())
-        {
-            if (Environment.TickCount - start > timeoutMs)
-                throw new TimeoutException("Condition was not met within the timeout.");
-            await Task.Delay(5);
-        }
-    }
-
-    [Fact]
-    public async Task PauseBeforeDwellHoldsTheHighlightUntilResume()
-    {
-        var fired = new List<int>();
-        var gate = new GatedDelay();
-        var clock = new FixedClock();
-        var cycler = BuildPausable(1.0, fired, gate, clock);
-
-        cycler.Pause();
-        cycler.Start(2);              // fires 0, then holds before entering any dwell
-
-        await Task.Delay(50);
-        Assert.Equal(new[] { 0 }, fired);
-        Assert.Empty(gate.Requested); // never started a real dwell while paused
-
-        cycler.Resume();
-        await WaitUntil(() => gate.Requested.Count == 1);
-        Assert.Equal(1.0, gate.Requested[0].TotalSeconds, 3); // full dwell once resumed
-        Assert.Equal(new[] { 0 }, fired);                     // still on item 0 (dwell not done)
-
-        gate.Complete();
-        await WaitUntil(() => fired.Count == 2);
-        Assert.Equal(new[] { 0, 1 }, fired);
-
-        cycler.Stop();
-    }
-
     [Fact]
     public async Task ExcludesPausedTimeAndResumesWithTheRemainder()
     {
@@ -99,6 +49,33 @@ public class FocusCyclerPauseTests
     }
 
     [Fact]
+    public async Task PauseBeforeDwellHoldsTheHighlightUntilResume()
+    {
+        var fired = new List<int>();
+        var gate = new GatedDelay();
+        var clock = new FixedClock();
+        var cycler = BuildPausable(1.0, fired, gate, clock);
+
+        cycler.Pause();
+        cycler.Start(2);              // fires 0, then holds before entering any dwell
+
+        await Task.Delay(50);
+        Assert.Equal(new[] { 0 }, fired);
+        Assert.Empty(gate.Requested); // never started a real dwell while paused
+
+        cycler.Resume();
+        await WaitUntil(() => gate.Requested.Count == 1);
+        Assert.Equal(1.0, gate.Requested[0].TotalSeconds, 3); // full dwell once resumed
+        Assert.Equal(new[] { 0 }, fired);                     // still on item 0 (dwell not done)
+
+        gate.Complete();
+        await WaitUntil(() => fired.Count == 2);
+        Assert.Equal(new[] { 0, 1 }, fired);
+
+        cycler.Stop();
+    }
+
+    [Fact]
     public async Task StopWhilePausedExitsCleanlyWithoutAdvancing()
     {
         var fired = new List<int>();
@@ -116,5 +93,28 @@ public class FocusCyclerPauseTests
 
         await Task.Delay(30);
         Assert.Equal(new[] { 0 }, fired);
+    }
+
+    private static FocusCycler BuildPausable(double delaySeconds, List<int> fired, GatedDelay gate, IClock clock)
+    {
+        return new FocusCycler(
+            new InlineUiDispatcher(),
+            i => fired.Add(i),
+            () => TimeSpan.FromSeconds(delaySeconds),
+            firstCycleMultiplier: 1,
+            mayFocus: _ => true,
+            delay: gate.Delay,
+            clock: clock);
+    }
+
+    private static async Task WaitUntil(Func<bool> condition, int timeoutMs = 2000)
+    {
+        int start = Environment.TickCount;
+        while (!condition())
+        {
+            if (Environment.TickCount - start > timeoutMs)
+                throw new TimeoutException("Condition was not met within the timeout.");
+            await Task.Delay(5);
+        }
     }
 }

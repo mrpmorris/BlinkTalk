@@ -11,9 +11,11 @@ namespace BlinkTalk.Application.Input.Strategies;
 public sealed class KeyboardRowSelectorInputStrategy : IInputStrategy
 {
     private IScanController Controller = null!;
+    private FocusCycler? Cycler;
     private int FocusedRow;
     private int RowCount;
-    private FocusCycler? Cycler;
+
+    public void ChildStrategyActivated(IInputStrategy childStrategy) => Cycler?.Stop();
 
     public void Initialize(IScanController controller)
     {
@@ -30,8 +32,6 @@ public sealed class KeyboardRowSelectorInputStrategy : IInputStrategy
         var columnSelector = Controller.Push<KeyboardColumnSelectorInputStrategy>();
         columnSelector.SetActiveRow(FocusedRow);
     }
-
-    public void ChildStrategyActivated(IInputStrategy childStrategy) => Cycler?.Stop();
 
     public void Terminated() => Cycler?.Stop();
 

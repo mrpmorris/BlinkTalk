@@ -11,16 +11,17 @@ namespace BlinkTalk.Services.Indicators;
 /// </summary>
 public abstract class IndicatorBase : IIndicator
 {
-    public event Action? Indicated;
-    public event Action? DwellStarted;
     public event Action? DwellEnded;
+    public event Action? DwellStarted;
+    public event Action? Indicated;
 
     public void Trigger() => Indicated?.Invoke();
+
+    public void TriggerDwellEnded() => DwellEnded?.Invoke();
 
     // Only the camera bridge calls these — pointer/keyboard indications are instantaneous and
     // have no dwell. They must stay balanced (every started is later ended).
     public void TriggerDwellStarted() => DwellStarted?.Invoke();
-    public void TriggerDwellEnded() => DwellEnded?.Invoke();
 }
 
 /// <summary>Tapping/clicking anywhere on the typing surface.</summary>

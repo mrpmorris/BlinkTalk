@@ -18,12 +18,11 @@ namespace BlinkTalk.Services;
 /// </summary>
 public sealed class MauiTtsService : ITextToSpeechService
 {
-    private const float Pitch = 0.6f;
-    private const float Volume = 1.0f;
-
     private CancellationTokenSource? CurrentSpeech;
-    private Locale? ResolvedLocale;
     private bool LocaleResolved;
+    private const float Pitch = 0.6f;
+    private Locale? ResolvedLocale;
+    private const float Volume = 1.0f;
 
     public async Task SpeakAsync(string text)
     {

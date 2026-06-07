@@ -7,37 +7,6 @@ namespace BlinkTalk.Application.Tests;
 
 public class ScanFlowTests
 {
-    private static (ScanController controller, FakeIndicator indicator, StepDelay gate, FakeTextToSpeech tts) Build()
-    {
-        var word = new FakeWordService();
-        var phrase = new FakePhraseService();
-        var sentence = new SentenceBuilder(word, phrase);
-        var keyboard = KeyboardLayout.CreateDefault();
-        var tts = new FakeTextToSpeech();
-        var gate = new StepDelay();
-        var indicator = new FakeIndicator();
-        var controller = new ScanController(
-            sentence, keyboard, tts, new FakeSettingsStore(), new InlineUiDispatcher(),
-            new[] { indicator }, gate.Delay);
-        return (controller, indicator, gate, tts);
-    }
-
-    [Fact]
-    public void StartEntersSectionSelectorAndHighlightsKeyboardWhenNothingElseAvailable()
-    {
-        var (controller, _, _, tts) = Build();
-
-        controller.Start();
-
-        // Depth 1 = section selector. With an empty sentence and no suggestions, only the
-        // Keyboard section is focusable, so it is highlighted first.
-        Assert.Equal(1, controller.Depth);
-        Assert.Equal(HighlightKind.Section, controller.Highlight.Kind);
-        Assert.Equal(Section.Keyboard, controller.Highlight.Section);
-        // Starting is silent — no spoken greeting.
-        Assert.Empty(tts.Spoken);
-    }
-
     [Fact]
     public void DrillingIntoKeyboardTypesALetterAndReturnsToRowScanning()
     {
@@ -96,5 +65,36 @@ public class ScanFlowTests
         _ = controller.Speech.SpeakAsync(committed);
 
         Assert.Contains(committed, tts.Spoken);
+    }
+
+    [Fact]
+    public void StartEntersSectionSelectorAndHighlightsKeyboardWhenNothingElseAvailable()
+    {
+        var (controller, _, _, tts) = Build();
+
+        controller.Start();
+
+        // Depth 1 = section selector. With an empty sentence and no suggestions, only the
+        // Keyboard section is focusable, so it is highlighted first.
+        Assert.Equal(1, controller.Depth);
+        Assert.Equal(HighlightKind.Section, controller.Highlight.Kind);
+        Assert.Equal(Section.Keyboard, controller.Highlight.Section);
+        // Starting is silent — no spoken greeting.
+        Assert.Empty(tts.Spoken);
+    }
+
+    private static (ScanController controller, FakeIndicator indicator, StepDelay gate, FakeTextToSpeech tts) Build()
+    {
+        var word = new FakeWordService();
+        var phrase = new FakePhraseService();
+        var sentence = new SentenceBuilder(word, phrase);
+        var keyboard = KeyboardLayout.CreateDefault();
+        var tts = new FakeTextToSpeech();
+        var gate = new StepDelay();
+        var indicator = new FakeIndicator();
+        var controller = new ScanController(
+            sentence, keyboard, tts, new FakeSettingsStore(), new InlineUiDispatcher(),
+            new[] { indicator }, gate.Delay);
+        return (controller, indicator, gate, tts);
     }
 }

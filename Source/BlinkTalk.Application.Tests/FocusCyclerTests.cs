@@ -8,15 +8,25 @@ namespace BlinkTalk.Application.Tests;
 
 public class FocusCyclerTests
 {
-    private static FocusCycler Build(int items, Func<int, bool> mayFocus, List<int> fired, StepDelay gate)
+    [Fact]
+    public void ExitsViaOnExhaustedWhenNothingIsFocusable()
     {
-        return new FocusCycler(
+        var fired = new List<int>();
+        var gate = new StepDelay();
+        bool exhausted = false;
+        var cycler = new FocusCycler(
             new InlineUiDispatcher(),
             i => fired.Add(i),
             () => TimeSpan.Zero,
-            firstCycleMultiplier: 1,
-            mayFocus: mayFocus,
-            delay: gate.Delay);
+            mayFocus: _ => false,
+            delay: gate.Delay,
+            onExhausted: () => exhausted = true);
+
+        cycler.Start(3);
+
+        Assert.True(exhausted);
+        Assert.Empty(fired);
+        Assert.Equal(0, cycler.FocusChangeCount);
     }
 
     [Fact]
@@ -51,6 +61,19 @@ public class FocusCyclerTests
     }
 
     [Fact]
+    public void StopPreventsFurtherFiring()
+    {
+        var fired = new List<int>();
+        var gate = new StepDelay();
+        var cycler = Build(3, _ => true, fired, gate);
+
+        cycler.Start(3); // fires 0
+        cycler.Stop();
+
+        Assert.Equal(new[] { 0 }, fired);
+    }
+
+    [Fact]
     public async Task WrapsAroundModuloItemCount()
     {
         var fired = new List<int>();
@@ -66,37 +89,14 @@ public class FocusCyclerTests
         cycler.Stop();
     }
 
-    [Fact]
-    public void ExitsViaOnExhaustedWhenNothingIsFocusable()
+    private static FocusCycler Build(int items, Func<int, bool> mayFocus, List<int> fired, StepDelay gate)
     {
-        var fired = new List<int>();
-        var gate = new StepDelay();
-        bool exhausted = false;
-        var cycler = new FocusCycler(
+        return new FocusCycler(
             new InlineUiDispatcher(),
             i => fired.Add(i),
             () => TimeSpan.Zero,
-            mayFocus: _ => false,
-            delay: gate.Delay,
-            onExhausted: () => exhausted = true);
-
-        cycler.Start(3);
-
-        Assert.True(exhausted);
-        Assert.Empty(fired);
-        Assert.Equal(0, cycler.FocusChangeCount);
-    }
-
-    [Fact]
-    public void StopPreventsFurtherFiring()
-    {
-        var fired = new List<int>();
-        var gate = new StepDelay();
-        var cycler = Build(3, _ => true, fired, gate);
-
-        cycler.Start(3); // fires 0
-        cycler.Stop();
-
-        Assert.Equal(new[] { 0 }, fired);
+            firstCycleMultiplier: 1,
+            mayFocus: mayFocus,
+            delay: gate.Delay);
     }
 }

@@ -8,14 +8,40 @@ namespace BlinkTalk.Application.Tests;
 
 public class PredictionTests
 {
-    private static MicrosoftDataSqliteDatabase NewInMemoryDb()
+    [Fact]
+    public void IncrementPhraseUsageInsertsThenIncrementsWindows()
     {
-        var db = new MicrosoftDataSqliteDatabase(":memory:");
+        using var db = NewInMemoryDb();
         db.ExecuteNonQuery(
-            "CREATE TABLE Words(ID INTEGER PRIMARY KEY AUTOINCREMENT, Word TEXT, UserSelectionCount INT, LanguageUsageCount INT)");
+            "INSERT INTO Words(ID,Word,UserSelectionCount,LanguageUsageCount) VALUES (1,'i',0,0),(2,'am',0,0)");
+        var phrase = new PhraseService(db, new FixedClock());
+
+        phrase.IncrementPhraseUsage(new[] { 1, 2 });
+        phrase.IncrementPhraseUsage(new[] { 1, 2 });
+
+        // Window (null,null,1 -> 2) should now have UsageCount 2.
+        var rows = db.ExecuteQuery(
+            "select UsageCount from WordSequences where PrecedingWord1Id = 1 and SuggestedWordId = 2").Rows;
+        Assert.Single(rows);
+        Assert.Equal(2, Convert.ToInt32(rows[0]["UsageCount"]));
+    }
+
+    [Fact]
+    public void PhrasePrefixFiltersSuggestions()
+    {
+        using var db = NewInMemoryDb();
         db.ExecuteNonQuery(
-            "CREATE TABLE WordSequences(ID INTEGER PRIMARY KEY AUTOINCREMENT, PrecedingWord3Id INT, PrecedingWord2Id INT, PrecedingWord1Id INT, SuggestedWordId INT, UsageCount INT, LastUsedDate INT)");
-        return db;
+            "INSERT INTO Words(ID,Word,UserSelectionCount,LanguageUsageCount) VALUES " +
+            "(1,'hello',0,0),(2,'apple',0,0),(3,'ant',0,0)");
+        db.ExecuteNonQuery(
+            "INSERT INTO WordSequences(PrecedingWord3Id,PrecedingWord2Id,PrecedingWord1Id,SuggestedWordId,UsageCount,LastUsedDate) VALUES " +
+            "(-1,-1,1,2,5,20260101)," +   // apple
+            "(-1,-1,1,3,5,20260101)");    // ant
+
+        var phrase = new PhraseService(db, new FixedClock());
+        var result = phrase.GetWordSuggestions(new[] { 1 }, "ap", 6);
+
+        Assert.Equal(new[] { "apple" }, result);
     }
 
     [Fact]
@@ -38,66 +64,6 @@ public class PredictionTests
         // yword and xword share the higher score (context match); yword wins on usage.
         // zword scores lower despite far higher usage, so it ranks last.
         Assert.Equal(new[] { "yword", "xword", "zword" }, result);
-    }
-
-    [Fact]
-    public void PhrasePrefixFiltersSuggestions()
-    {
-        using var db = NewInMemoryDb();
-        db.ExecuteNonQuery(
-            "INSERT INTO Words(ID,Word,UserSelectionCount,LanguageUsageCount) VALUES " +
-            "(1,'hello',0,0),(2,'apple',0,0),(3,'ant',0,0)");
-        db.ExecuteNonQuery(
-            "INSERT INTO WordSequences(PrecedingWord3Id,PrecedingWord2Id,PrecedingWord1Id,SuggestedWordId,UsageCount,LastUsedDate) VALUES " +
-            "(-1,-1,1,2,5,20260101)," +   // apple
-            "(-1,-1,1,3,5,20260101)");    // ant
-
-        var phrase = new PhraseService(db, new FixedClock());
-        var result = phrase.GetWordSuggestions(new[] { 1 }, "ap", 6);
-
-        Assert.Equal(new[] { "apple" }, result);
-    }
-
-    [Fact]
-    public void IncrementPhraseUsageInsertsThenIncrementsWindows()
-    {
-        using var db = NewInMemoryDb();
-        db.ExecuteNonQuery(
-            "INSERT INTO Words(ID,Word,UserSelectionCount,LanguageUsageCount) VALUES (1,'i',0,0),(2,'am',0,0)");
-        var phrase = new PhraseService(db, new FixedClock());
-
-        phrase.IncrementPhraseUsage(new[] { 1, 2 });
-        phrase.IncrementPhraseUsage(new[] { 1, 2 });
-
-        // Window (null,null,1 -> 2) should now have UsageCount 2.
-        var rows = db.ExecuteQuery(
-            "select UsageCount from WordSequences where PrecedingWord1Id = 1 and SuggestedWordId = 2").Rows;
-        Assert.Single(rows);
-        Assert.Equal(2, Convert.ToInt32(rows[0]["UsageCount"]));
-    }
-
-    [Fact]
-    public void WordServiceCreatesAndIncrementsWords()
-    {
-        using var db = NewInMemoryDb();
-        var words = new WordService(db);
-
-        words.IncreaseWordUsage("Hello", out int id1);
-        words.IncreaseWordUsage("hello", out int id2); // same word, case-insensitive
-
-        Assert.Equal(id1, id2);
-        var row = db.ExecuteQuery("select UserSelectionCount from Words where ID = @id", ("@id", id1)).Rows;
-        Assert.Equal(2, Convert.ToInt32(row[0]["UserSelectionCount"]));
-    }
-
-    // --- Parity against the shipped English.db ---
-
-    private static string CopyRealDbToTemp()
-    {
-        string source = Path.Combine(AppContext.BaseDirectory, "English.db");
-        string temp = Path.Combine(Path.GetTempPath(), "blinktalk_test_" + Guid.NewGuid().ToString("N") + ".db");
-        File.Copy(source, temp, overwrite: true);
-        return temp;
     }
 
     [Fact]
@@ -130,5 +96,39 @@ public class PredictionTests
         {
             File.Delete(temp);
         }
+    }
+
+    [Fact]
+    public void WordServiceCreatesAndIncrementsWords()
+    {
+        using var db = NewInMemoryDb();
+        var words = new WordService(db);
+
+        words.IncreaseWordUsage("Hello", out int id1);
+        words.IncreaseWordUsage("hello", out int id2); // same word, case-insensitive
+
+        Assert.Equal(id1, id2);
+        var row = db.ExecuteQuery("select UserSelectionCount from Words where ID = @id", ("@id", id1)).Rows;
+        Assert.Equal(2, Convert.ToInt32(row[0]["UserSelectionCount"]));
+    }
+
+    // --- Parity against the shipped English.db ---
+
+    private static string CopyRealDbToTemp()
+    {
+        string source = Path.Combine(AppContext.BaseDirectory, "English.db");
+        string temp = Path.Combine(Path.GetTempPath(), "blinktalk_test_" + Guid.NewGuid().ToString("N") + ".db");
+        File.Copy(source, temp, overwrite: true);
+        return temp;
+    }
+
+    private static MicrosoftDataSqliteDatabase NewInMemoryDb()
+    {
+        var db = new MicrosoftDataSqliteDatabase(":memory:");
+        db.ExecuteNonQuery(
+            "CREATE TABLE Words(ID INTEGER PRIMARY KEY AUTOINCREMENT, Word TEXT, UserSelectionCount INT, LanguageUsageCount INT)");
+        db.ExecuteNonQuery(
+            "CREATE TABLE WordSequences(ID INTEGER PRIMARY KEY AUTOINCREMENT, PrecedingWord3Id INT, PrecedingWord2Id INT, PrecedingWord1Id INT, SuggestedWordId INT, UsageCount INT, LastUsedDate INT)");
+        return db;
     }
 }
