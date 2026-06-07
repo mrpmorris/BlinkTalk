@@ -10,15 +10,15 @@
 <div class="bt-root"
      style="--bt-hl-color: @DepthColor"
      tabindex="0"
-     @ref="Root"
-     @onpointerdown="OnIndicate"
-     @onkeydown="OnKeyDown"
+     @ref=Root
+     @onpointerdown=OnIndicate
+     @onkeydown=OnKeyDown
      @onkeydown:preventDefault="true">
 
     <button class="bt-settings-button"
             title="Settings"
             @onpointerdown:stopPropagation="true"
-            @onpointerdown="GoToSettings">⚙</button>
+            @onpointerdown=GoToSettings>⚙</button>
 
     <!-- Current sentence -->
     <div class="bt-sentence @(Controller.Sentence.ShouldClearOnNextInput ? "bt-pending" : "")">

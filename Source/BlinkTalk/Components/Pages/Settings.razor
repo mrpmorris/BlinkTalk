@@ -17,29 +17,29 @@
                min="0.3"
                max="4.0"
                step="0.1"
-               value="@ScanSpeed"
-               @oninput="OnScanSpeedChanged" />
+               value=@ScanSpeed
+               @oninput=OnScanSpeedChanged />
         <label for="scanSpeed">Scan speed: @ScanSpeed.ToString("0.0") second(s) per step</label>
     </div>
 
     <div class="bt-setting-row">
         <h2>Indicator method</h2>
         <label class="bt-cam-check">
-            <input type="checkbox" checked="@true" disabled />
+            <input type="checkbox" checked=@true disabled />
             Assistant taps screen or clicks mouse
         </label>
         <label class="bt-cam-check">
-            <input type="checkbox" checked="@true" disabled />
+            <input type="checkbox" checked=@true disabled />
             Assistant presses space-bar on keyboard
         </label>
         <label class="bt-cam-check">
-            <input type="checkbox" checked="@Camera.IsEnabled" disabled />
+            <input type="checkbox" checked=@Camera.IsEnabled disabled />
             Use camera to detect eye gesture
-            <button class="bt-settings-secondary" @onclick="GoToCamera">Set up camera…</button>
+            <button class="bt-settings-secondary" @onclick=GoToCamera>Set up camera…</button>
         </label>
     </div>
 
-    <button class="bt-settings-back" @onclick="GoBack">Done</button>
+    <button class="bt-settings-back" @onclick=GoBack>Done</button>
 </div>
 
 
