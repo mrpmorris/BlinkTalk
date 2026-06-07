@@ -10,15 +10,15 @@ public partial class CameraIndicator
 	private readonly CameraIndicatorConfig Config;
 	private bool Dwelling; // true between OnDwellStarted and OnDwellEnded, so teardown can balance
 	private readonly CameraGestureIndicator Indicator;
-	private readonly IJSRuntime JS;
 	private DotNetObjectReference<CameraIndicatorCallbacks>? JSCallbacks;
+	private readonly IJSRuntime JSRuntime;
 	private IJSObjectReference? Module;
 	private bool Started;
 	private ElementReference Video;
 
-	public CameraIndicator(IJSRuntime js, CameraIndicatorConfig config, CameraGestureIndicator indicator)
+	public CameraIndicator(IJSRuntime jsRuntime, CameraIndicatorConfig config, CameraGestureIndicator indicator)
 	{
-		JS = js;
+		JSRuntime = jsRuntime;
 		Config = config;
 		Indicator = indicator;
 	}
@@ -54,7 +54,7 @@ public partial class CameraIndicator
 					return; // helper button still works
 			}
 
-			Module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/blinktalk-camera.js");
+			Module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/blinktalk-camera.js");
 			JSCallbacks = DotNetObjectReference.Create(new CameraIndicatorCallbacks(this));
 			await Module.InvokeAsync<bool>("start", Video, JSCallbacks);
 			await Module.InvokeVoidAsync("setDetect", Config.Signal, Config.Threshold, Config.DwellSeconds * 1000, 800);

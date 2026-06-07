@@ -13,8 +13,8 @@ public partial class Camera
 	private string? Error;
 	private bool Flash;
 	private double HoldFraction; // 0..1 = current hold time scaled to the 2s slider max
-	private readonly IJSRuntime JS;
 	private DotNetObjectReference<CameraCallbacks>? JSCallbacks;
+	private readonly IJSRuntime JSRuntime;
 	private CancellationTokenSource? MeterCts;
 	private IJSObjectReference? Module;
 	private readonly NavigationManager Navigation;
@@ -24,9 +24,9 @@ public partial class Camera
 	private string Status = "Starting camera…";
 	private ElementReference Video;
 
-	public Camera(IJSRuntime js, CameraIndicatorConfig config, ITextToSpeechService speech, NavigationManager navigation)
+	public Camera(IJSRuntime jsRuntime, CameraIndicatorConfig config, ITextToSpeechService speech, NavigationManager navigation)
 	{
-		JS = js;
+		JSRuntime = jsRuntime;
 		Config = config;
 		Speech = speech;
 		Navigation = navigation;
@@ -56,7 +56,7 @@ public partial class Camera
 				return;
 			}
 
-			Module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/blinktalk-camera.js");
+			Module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/blinktalk-camera.js");
 			JSCallbacks = DotNetObjectReference.Create(new CameraCallbacks(this));
 			await Module.InvokeAsync<bool>("start", Video, JSCallbacks);
 			Started = true;
