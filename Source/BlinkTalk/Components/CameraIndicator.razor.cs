@@ -1,3 +1,5 @@
+using BlinkTalk.Services;
+using BlinkTalk.Services.Indicators;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -5,11 +7,21 @@ namespace BlinkTalk.Components;
 
 public partial class CameraIndicator
 {
+	private readonly CameraIndicatorConfig Config;
 	private bool Dwelling; // true between OnDwellStarted and OnDwellEnded, so teardown can balance
+	private readonly CameraGestureIndicator Indicator;
+	private readonly IJSRuntime JS;
 	private DotNetObjectReference<CameraIndicatorCallbacks>? JSCallbacks;
 	private IJSObjectReference? Module;
 	private bool Started;
 	private ElementReference Video;
+
+	public CameraIndicator(IJSRuntime js, CameraIndicatorConfig config, CameraGestureIndicator indicator)
+	{
+		JS = js;
+		Config = config;
+		Indicator = indicator;
+	}
 
 	async ValueTask IAsyncDisposable.DisposeAsync()
 	{

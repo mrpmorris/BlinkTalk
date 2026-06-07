@@ -1,3 +1,5 @@
+using BlinkTalk.Application.Abstractions;
+using BlinkTalk.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -5,19 +7,30 @@ namespace BlinkTalk.Components.Pages;
 
 public partial class Camera
 {
-	private ElementReference Video;
-	private IJSObjectReference? Module;
-	private DotNetObjectReference<CameraCallbacks>? JSCallbacks;
-
-	private string Status = "Starting camera…";
-	private string? Error;
-	private string? SignalDescription;
-	private double HoldFraction; // 0..1 = current hold time scaled to the 2s slider max
 	private bool Busy;
-	private bool Flash;
-	private bool Started;
+	private readonly CameraIndicatorConfig Config;
 	private double DwellSeconds;
+	private string? Error;
+	private bool Flash;
+	private double HoldFraction; // 0..1 = current hold time scaled to the 2s slider max
+	private readonly IJSRuntime JS;
+	private DotNetObjectReference<CameraCallbacks>? JSCallbacks;
 	private CancellationTokenSource? MeterCts;
+	private IJSObjectReference? Module;
+	private readonly NavigationManager Navigation;
+	private string? SignalDescription;
+	private readonly ITextToSpeechService Speech;
+	private bool Started;
+	private string Status = "Starting camera…";
+	private ElementReference Video;
+
+	public Camera(IJSRuntime js, CameraIndicatorConfig config, ITextToSpeechService speech, NavigationManager navigation)
+	{
+		JS = js;
+		Config = config;
+		Speech = speech;
+		Navigation = navigation;
+	}
 
 	async ValueTask IAsyncDisposable.DisposeAsync()
 	{

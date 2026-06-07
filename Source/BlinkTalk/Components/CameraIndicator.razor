@@ -1,9 +1,6 @@
 @using BlinkTalk.Services
 @using BlinkTalk.Services.Indicators
 @implements IAsyncDisposable
-@inject IJSRuntime JS
-@inject CameraIndicatorConfig Config
-@inject CameraGestureIndicator Indicator
 
 @* Hidden detector: when the camera indicator is enabled, runs face detection off-screen and
    raises OnIndicated each time the user's trained gesture fires — the same effect as the helper

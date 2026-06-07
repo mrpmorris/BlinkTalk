@@ -1,5 +1,6 @@
 using BlinkTalk.Application.Input;
 using BlinkTalk.Application.Text;
+using BlinkTalk.Services.Indicators;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 
@@ -7,7 +8,19 @@ namespace BlinkTalk.Components.Pages;
 
 public partial class Type
 {
+	private readonly ScanController Controller;
+	private readonly KeyboardIndicator Keyboard;
+	private readonly NavigationManager Navigation;
+	private readonly PointerIndicator Pointer;
 	private ElementReference Root;
+
+	public Type(ScanController controller, PointerIndicator pointer, KeyboardIndicator keyboard, NavigationManager navigation)
+	{
+		Controller = controller;
+		Pointer = pointer;
+		Keyboard = keyboard;
+		Navigation = navigation;
+	}
 
 	// The already-committed words, rendered as a normal sentence. SentenceText is the committed
 	// words plus (when typing) " " + CurrentWord, so strip that suffix to get the committed part.

@@ -2,10 +2,6 @@
 @using BlinkTalk.Services
 @using BlinkTalk.Application.Abstractions
 @implements IAsyncDisposable
-@inject IJSRuntime JS
-@inject CameraIndicatorConfig Config
-@inject ITextToSpeechService Speech
-@inject NavigationManager Navigation
 
 <div class="bt-settings bt-cam-page @(Flash ? "bt-cam-flash" : "")">
     <div class="bt-cam-top">
