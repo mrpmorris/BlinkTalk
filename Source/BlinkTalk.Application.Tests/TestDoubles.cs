@@ -5,137 +5,136 @@ using System.Threading.Tasks;
 using BlinkTalk.Application.Abstractions;
 using BlinkTalk.Application.Prediction;
 
-namespace BlinkTalk.Application.Tests
+namespace BlinkTalk.Application.Tests;
+
+/// <summary>
+/// A controllable replacement for the scan dwell. The cycler "parks" in <see cref="Delay"/>;
+/// each <see cref="StepAsync"/> releases the current park so exactly one scan tick advances.
+/// This makes the otherwise time-based scanner fully deterministic in tests.
+/// </summary>
+public sealed class StepDelay
 {
-    /// <summary>
-    /// A controllable replacement for the scan dwell. The cycler "parks" in <see cref="Delay"/>;
-    /// each <see cref="StepAsync"/> releases the current park so exactly one scan tick advances.
-    /// This makes the otherwise time-based scanner fully deterministic in tests.
-    /// </summary>
-    public sealed class StepDelay
+    // _parked is released by the cycler once it has fired a tick and parked in Delay.
+    // _go is released by the test to allow exactly one more tick. The semaphores make the
+    // handshake robust regardless of whether continuations resume sync or async.
+    private readonly SemaphoreSlim _parked = new SemaphoreSlim(0);
+    private readonly SemaphoreSlim _go = new SemaphoreSlim(0);
+
+    public async Task Delay(TimeSpan _, CancellationToken ct)
     {
-        // _parked is released by the cycler once it has fired a tick and parked in Delay.
-        // _go is released by the test to allow exactly one more tick. The semaphores make the
-        // handshake robust regardless of whether continuations resume sync or async.
-        private readonly SemaphoreSlim _parked = new SemaphoreSlim(0);
-        private readonly SemaphoreSlim _go = new SemaphoreSlim(0);
-
-        public async Task Delay(TimeSpan _, CancellationToken ct)
-        {
-            _parked.Release();
-            await _go.WaitAsync(ct).ConfigureAwait(false);
-        }
-
-        public async Task StepAsync()
-        {
-            // Drain any stale 'parked' signals left by cyclers that started/stopped between steps
-            // (e.g. a Pop that re-initialises the parent's cycler).
-            while (_parked.Wait(0)) { }
-            _go.Release();             // allow exactly one tick
-            await _parked.WaitAsync(); // the cycler releases this only after the tick's fire completes
-        }
+        _parked.Release();
+        await _go.WaitAsync(ct).ConfigureAwait(false);
     }
 
-    public sealed class FakeWordService : IWordService
+    public async Task StepAsync()
     {
-        private int _nextId;
-        public IReadOnlyList<string> Suggestions { get; set; } = Array.Empty<string>();
+        // Drain any stale 'parked' signals left by cyclers that started/stopped between steps
+        // (e.g. a Pop that re-initialises the parent's cycler).
+        while (_parked.Wait(0)) { }
+        _go.Release();             // allow exactly one tick
+        await _parked.WaitAsync(); // the cycler releases this only after the tick's fire completes
+    }
+}
 
-        public void IncreaseWordUsage(string word, out int wordId) => wordId = ++_nextId;
-        public void DecreaseWordUsage(int wordId) { }
-        public List<string> GetWordSuggestions(string? currentWord, int numberOfWords) => new List<string>(Suggestions);
+public sealed class FakeWordService : IWordService
+{
+    private int _nextId;
+    public IReadOnlyList<string> Suggestions { get; set; } = Array.Empty<string>();
+
+    public void IncreaseWordUsage(string word, out int wordId) => wordId = ++_nextId;
+    public void DecreaseWordUsage(int wordId) { }
+    public List<string> GetWordSuggestions(string? currentWord, int numberOfWords) => new List<string>(Suggestions);
+}
+
+public sealed class FakePhraseService : IPhraseService
+{
+    public IReadOnlyList<string> Suggestions { get; set; } = Array.Empty<string>();
+
+    public void IncrementPhraseUsage(IEnumerable<int> wordIds) { }
+    public List<string> GetWordSuggestions(IEnumerable<int> wordIds, string? currentWord, int numberOfWords) =>
+        new List<string>(Suggestions);
+}
+
+public sealed class FakeTextToSpeech : ITextToSpeechService
+{
+    public List<string> Spoken { get; } = new List<string>();
+    public Task SpeakAsync(string text)
+    {
+        Spoken.Add(text);
+        return Task.CompletedTask;
+    }
+}
+
+public sealed class FakeSettingsStore : ISettingsStore
+{
+    private readonly Dictionary<string, double> _doubles = new Dictionary<string, double>();
+    private readonly Dictionary<string, bool> _bools = new Dictionary<string, bool>();
+    private readonly Dictionary<string, string> _strings = new Dictionary<string, string>();
+
+    public double GetDouble(string key, double defaultValue) =>
+        _doubles.TryGetValue(key, out var v) ? v : defaultValue;
+    public void SetDouble(string key, double value) => _doubles[key] = value;
+
+    public bool GetBool(string key, bool defaultValue) =>
+        _bools.TryGetValue(key, out var v) ? v : defaultValue;
+    public void SetBool(string key, bool value) => _bools[key] = value;
+
+    public string GetString(string key, string defaultValue) =>
+        _strings.TryGetValue(key, out var v) ? v : defaultValue;
+    public void SetString(string key, string value) => _strings[key] = value;
+}
+
+/// <summary>A controllable indicator: <see cref="Fire"/> raises <see cref="Indicated"/>, standing
+/// in for the pointer/keyboard/camera sources the controller subscribes to in the app. The dwell
+/// events stand in for the camera's held-gesture edges.</summary>
+public sealed class FakeIndicator : IIndicator
+{
+    public event Action? Indicated;
+    public event Action? DwellStarted;
+    public event Action? DwellEnded;
+
+    public void Fire() => Indicated?.Invoke();
+    public void FireDwellStarted() => DwellStarted?.Invoke();
+    public void FireDwellEnded() => DwellEnded?.Invoke();
+}
+
+/// <summary>
+/// A delay the test completes by hand, recording every requested duration. Unlike
+/// <see cref="StepDelay"/> it lets a test inspect the duration asked for (to verify a paused
+/// dwell resumes with only the remaining time) and signals when the cycler has entered a delay.
+/// </summary>
+public sealed class GatedDelay
+{
+    private readonly SemaphoreSlim _entered = new SemaphoreSlim(0);
+    private TaskCompletionSource<bool>? _current;
+
+    /// <summary>Every duration passed to <see cref="Delay"/>, in order.</summary>
+    public List<TimeSpan> Requested { get; } = new List<TimeSpan>();
+
+    public Task Delay(TimeSpan duration, CancellationToken ct)
+    {
+        Requested.Add(duration);
+        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _current = tcs;
+        var registration = ct.Register(() => tcs.TrySetCanceled(ct));
+        _entered.Release();
+        return AwaitThenUnregister(tcs.Task, registration);
     }
 
-    public sealed class FakePhraseService : IPhraseService
+    private static async Task AwaitThenUnregister(Task task, CancellationTokenRegistration registration)
     {
-        public IReadOnlyList<string> Suggestions { get; set; } = Array.Empty<string>();
-
-        public void IncrementPhraseUsage(IEnumerable<int> wordIds) { }
-        public List<string> GetWordSuggestions(IEnumerable<int> wordIds, string? currentWord, int numberOfWords) =>
-            new List<string>(Suggestions);
+        try { await task.ConfigureAwait(false); }
+        finally { registration.Dispose(); }
     }
 
-    public sealed class FakeTextToSpeech : ITextToSpeechService
-    {
-        public List<string> Spoken { get; } = new List<string>();
-        public Task SpeakAsync(string text)
-        {
-            Spoken.Add(text);
-            return Task.CompletedTask;
-        }
-    }
+    /// <summary>Wait until the cycler has entered (parked in) its next delay.</summary>
+    public Task WaitEnteredAsync() => _entered.WaitAsync();
 
-    public sealed class FakeSettingsStore : ISettingsStore
-    {
-        private readonly Dictionary<string, double> _doubles = new Dictionary<string, double>();
-        private readonly Dictionary<string, bool> _bools = new Dictionary<string, bool>();
-        private readonly Dictionary<string, string> _strings = new Dictionary<string, string>();
+    /// <summary>Complete the current delay so the cycler advances.</summary>
+    public void Complete() => _current?.TrySetResult(true);
+}
 
-        public double GetDouble(string key, double defaultValue) =>
-            _doubles.TryGetValue(key, out var v) ? v : defaultValue;
-        public void SetDouble(string key, double value) => _doubles[key] = value;
-
-        public bool GetBool(string key, bool defaultValue) =>
-            _bools.TryGetValue(key, out var v) ? v : defaultValue;
-        public void SetBool(string key, bool value) => _bools[key] = value;
-
-        public string GetString(string key, string defaultValue) =>
-            _strings.TryGetValue(key, out var v) ? v : defaultValue;
-        public void SetString(string key, string value) => _strings[key] = value;
-    }
-
-    /// <summary>A controllable indicator: <see cref="Fire"/> raises <see cref="Indicated"/>, standing
-    /// in for the pointer/keyboard/camera sources the controller subscribes to in the app. The dwell
-    /// events stand in for the camera's held-gesture edges.</summary>
-    public sealed class FakeIndicator : IIndicator
-    {
-        public event Action? Indicated;
-        public event Action? DwellStarted;
-        public event Action? DwellEnded;
-
-        public void Fire() => Indicated?.Invoke();
-        public void FireDwellStarted() => DwellStarted?.Invoke();
-        public void FireDwellEnded() => DwellEnded?.Invoke();
-    }
-
-    /// <summary>
-    /// A delay the test completes by hand, recording every requested duration. Unlike
-    /// <see cref="StepDelay"/> it lets a test inspect the duration asked for (to verify a paused
-    /// dwell resumes with only the remaining time) and signals when the cycler has entered a delay.
-    /// </summary>
-    public sealed class GatedDelay
-    {
-        private readonly SemaphoreSlim _entered = new SemaphoreSlim(0);
-        private TaskCompletionSource<bool>? _current;
-
-        /// <summary>Every duration passed to <see cref="Delay"/>, in order.</summary>
-        public List<TimeSpan> Requested { get; } = new List<TimeSpan>();
-
-        public Task Delay(TimeSpan duration, CancellationToken ct)
-        {
-            Requested.Add(duration);
-            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            _current = tcs;
-            var registration = ct.Register(() => tcs.TrySetCanceled(ct));
-            _entered.Release();
-            return AwaitThenUnregister(tcs.Task, registration);
-        }
-
-        private static async Task AwaitThenUnregister(Task task, CancellationTokenRegistration registration)
-        {
-            try { await task.ConfigureAwait(false); }
-            finally { registration.Dispose(); }
-        }
-
-        /// <summary>Wait until the cycler has entered (parked in) its next delay.</summary>
-        public Task WaitEnteredAsync() => _entered.WaitAsync();
-
-        /// <summary>Complete the current delay so the cycler advances.</summary>
-        public void Complete() => _current?.TrySetResult(true);
-    }
-
-    public sealed class FixedClock : IClock
-    {
-        public DateTime UtcNow { get; set; } = new DateTime(2026, 6, 3, 0, 0, 0, DateTimeKind.Utc);
-    }
+public sealed class FixedClock : IClock
+{
+    public DateTime UtcNow { get; set; } = new DateTime(2026, 6, 3, 0, 0, 0, DateTimeKind.Utc);
 }
