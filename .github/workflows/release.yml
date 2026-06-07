@@ -157,7 +157,13 @@ jobs:
 
       - name: Rename APK
         run: |
-          APK=$(find publish/android -name "*.apk" | head -1)
+          # MAUI emits both an unsigned "*.apk" and the installable "*-Signed.apk".
+          # Android rejects the unsigned one as an invalid package, so pick the signed APK.
+          APK=$(find publish/android -name "*-Signed.apk" | head -1)
+          if [ -z "$APK" ]; then
+            echo "::error::No signed APK found under publish/android."
+            exit 1
+          fi
           cp "$APK" "BlinkTalk-android-$VERSION.apk"
 
       - uses: actions/upload-artifact@v4
