@@ -7,7 +7,7 @@ public partial class Camera
 {
 	private ElementReference Video;
 	private IJSObjectReference? Module;
-	private DotNetObjectReference<Camera>? SelfRef;
+	private DotNetObjectReference<CameraCallbacks>? JSCallbacks;
 
 	private string Status = "Starting camera…";
 	private string? Error;
@@ -56,8 +56,8 @@ public partial class Camera
 			}
 
 			Module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/blinktalk-camera.js");
-			SelfRef = DotNetObjectReference.Create(this);
-			await Module.InvokeAsync<bool>("start", Video, SelfRef);
+			JSCallbacks = DotNetObjectReference.Create(new CameraCallbacks(this));
+			await Module.InvokeAsync<bool>("start", Video, JSCallbacks);
 			Started = true;
 
 			if (Config.IsTrained)
@@ -191,8 +191,7 @@ public partial class Camera
 	// Called from JS when the trained gesture fires (held past the dwell) — visual confirmation to
 	// accompany the JS beep. The dwell-edge callbacks are no-ops here: only the live Type page acts
 	// on them, but detect mode raises them so we must accept them without erroring.
-	[JSInvokable]
-	public async Task OnCameraIndicated()
+	private async Task OnCameraIndicated()
 	{
 		Flash = true;
 		await InvokeAsync(StateHasChanged);
@@ -201,8 +200,8 @@ public partial class Camera
 		await InvokeAsync(StateHasChanged);
 	}
 
-	[JSInvokable] public Task OnDwellStarted() => Task.CompletedTask;
-	[JSInvokable] public Task OnDwellEnded() => Task.CompletedTask;
+	private Task OnDwellStarted() => Task.CompletedTask;
+	private Task OnDwellEnded() => Task.CompletedTask;
 
 	private void OnUseCameraChanged(ChangeEventArgs e)
 	{
@@ -232,7 +231,7 @@ public partial class Camera
 
 	private void GoBack() => Navigation.NavigateTo("/settings");
 
-	public async ValueTask DisposeAsync()
+	async ValueTask IAsyncDisposable.DisposeAsync()
 	{
 		MeterCts?.Cancel();
 		if (Module is not null)
@@ -240,6 +239,24 @@ public partial class Camera
 			try { await Module.InvokeVoidAsync("stop"); } catch { /* ignore */ }
 			try { await Module.DisposeAsync(); } catch { /* ignore */ }
 		}
-		SelfRef?.Dispose();
+		JSCallbacks?.Dispose();
+	}
+
+	// JS invokes these by name on the DotNetObjectReference. Holding them in a nested class keeps the
+	// [JSInvokable] surface off the component; each call just forwards to the component's handler.
+	private sealed class CameraCallbacks
+	{
+		private readonly Camera Owner;
+
+		public CameraCallbacks(Camera owner) => Owner = owner;
+
+		[JSInvokable]
+		public Task OnCameraIndicated() => Owner.OnCameraIndicated();
+
+		[JSInvokable]
+		public Task OnDwellStarted() => Owner.OnDwellStarted();
+
+		[JSInvokable]
+		public Task OnDwellEnded() => Owner.OnDwellEnded();
 	}
 }

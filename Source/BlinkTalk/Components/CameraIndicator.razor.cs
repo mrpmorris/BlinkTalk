@@ -7,7 +7,7 @@ public partial class CameraIndicator
 {
 	private ElementReference Video;
 	private IJSObjectReference? Module;
-	private DotNetObjectReference<CameraIndicator>? SelfRef;
+	private DotNetObjectReference<CameraIndicatorCallbacks>? JSCallbacks;
 	private bool Started;
 	private bool Dwelling; // true between OnDwellStarted and OnDwellEnded, so teardown can balance
 
@@ -26,8 +26,8 @@ public partial class CameraIndicator
 			}
 
 			Module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/blinktalk-camera.js");
-			SelfRef = DotNetObjectReference.Create(this);
-			await Module.InvokeAsync<bool>("start", Video, SelfRef);
+			JSCallbacks = DotNetObjectReference.Create(new CameraIndicatorCallbacks(this));
+			await Module.InvokeAsync<bool>("start", Video, JSCallbacks);
 			await Module.InvokeVoidAsync("setDetect", Config.Signal, Config.Threshold, Config.DwellSeconds * 1000, 800);
 		}
 		catch
@@ -36,30 +36,27 @@ public partial class CameraIndicator
 		}
 	}
 
-	[JSInvokable]
-	public Task OnCameraIndicated()
+	private Task OnCameraIndicated()
 	{
 		Indicator.Trigger();
 		return Task.CompletedTask;
 	}
 
-	[JSInvokable]
-	public Task OnDwellStarted()
+	private Task OnDwellStarted()
 	{
 		Dwelling = true;
 		Indicator.TriggerDwellStarted();
 		return Task.CompletedTask;
 	}
 
-	[JSInvokable]
-	public Task OnDwellEnded()
+	private Task OnDwellEnded()
 	{
 		Dwelling = false;
 		Indicator.TriggerDwellEnded();
 		return Task.CompletedTask;
 	}
 
-	public async ValueTask DisposeAsync()
+	async ValueTask IAsyncDisposable.DisposeAsync()
 	{
 		// If a gesture is still held as we tear down, balance the counter so the scan doesn't
 		// stay paused forever. JS stop() deliberately stays silent, so this is the sole balancer.
@@ -73,6 +70,24 @@ public partial class CameraIndicator
 			try { await Module.InvokeVoidAsync("stop"); } catch { /* ignore */ }
 			try { await Module.DisposeAsync(); } catch { /* ignore */ }
 		}
-		SelfRef?.Dispose();
+		JSCallbacks?.Dispose();
+	}
+
+	// JS invokes these by name on the DotNetObjectReference. Holding them in a nested class keeps the
+	// [JSInvokable] surface off the component; each call just forwards to the component's handler.
+	private sealed class CameraIndicatorCallbacks
+	{
+		private readonly CameraIndicator Owner;
+
+		public CameraIndicatorCallbacks(CameraIndicator owner) => Owner = owner;
+
+		[JSInvokable]
+		public Task OnCameraIndicated() => Owner.OnCameraIndicated();
+
+		[JSInvokable]
+		public Task OnDwellStarted() => Owner.OnDwellStarted();
+
+		[JSInvokable]
+		public Task OnDwellEnded() => Owner.OnDwellEnded();
 	}
 }
