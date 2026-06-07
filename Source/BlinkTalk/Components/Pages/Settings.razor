@@ -42,24 +42,4 @@
     <button class="bt-settings-back" @onclick="GoBack">Done</button>
 </div>
 
-@code {
-    private double ScanSpeed { get; set; }
 
-    protected override void OnInitialized()
-    {
-        ScanSpeed = Controller.CycleDelaySeconds;
-    }
-
-    private void OnScanSpeedChanged(ChangeEventArgs e)
-    {
-        if (double.TryParse(e.Value?.ToString(), out double seconds))
-        {
-            ScanSpeed = seconds;
-            Controller.CycleDelaySeconds = seconds;
-        }
-    }
-
-    private void GoBack() => Navigation.NavigateTo("/type");
-
-    private void GoToCamera() => Navigation.NavigateTo("/camera");
-}
