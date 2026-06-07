@@ -7,10 +7,11 @@
     <OutputType>Package</OutputType>
     <InstallerPlatform>x64</InstallerPlatform>
 
-    <!-- Some harvested third-party native DLLs carry a non-standard language id in their
-         version resource, which trips ICE03 ("Invalid Language Id"). It is harmless, so
-         suppress just that one validation check. -->
-    <SuppressIces>ICE03</SuppressIces>
+    <!-- Some harvested third-party native DLLs carry version resources that don't follow
+         Windows Installer conventions: a non-standard language id (trips ICE03, "Invalid
+         Language Id") or a version with no language at all (trips ICE60). Both are harmless
+         for these payload files, so suppress just those two validation checks. -->
+    <SuppressIces>ICE03;ICE60</SuppressIces>
 
     <!-- These are supplied by CI (see .github/workflows/release.yml). The defaults let
          you build locally after `dotnet publish`-ing the Windows app first.
