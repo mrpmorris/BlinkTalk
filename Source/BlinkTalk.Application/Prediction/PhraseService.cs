@@ -15,13 +15,13 @@ namespace BlinkTalk.Application.Prediction;
 /// </summary>
 public sealed class PhraseService : IPhraseService
 {
-    private readonly ISqliteDatabase _database;
-    private readonly IClock _clock;
+    private readonly ISqliteDatabase Database;
+    private readonly IClock Clock;
 
     public PhraseService(ISqliteDatabase database, IClock clock)
     {
-        _database = database;
-        _clock = clock;
+        Database = database;
+        Clock = clock;
     }
 
     /// <summary>
@@ -66,8 +66,8 @@ public sealed class PhraseService : IPhraseService
             $" order by (Score1 + Score2 + Score3) desc, WordSequences.UsageCount desc, LastUsedDate desc, Words.UserSelectionCount desc";
 
         DataTable data = hasPrefix
-            ? _database.ExecuteQuery(sql, ("@prefix", currentWord + "%"))
-            : _database.ExecuteQuery(sql);
+            ? Database.ExecuteQuery(sql, ("@prefix", currentWord + "%"))
+            : Database.ExecuteQuery(sql);
 
         return data.Rows
             .Select(x => (string)x["Word"]!)
@@ -115,11 +115,11 @@ public sealed class PhraseService : IPhraseService
             $" and PrecedingWord1Id = {ToStringOrDefault(phraseWindow.PrecedingWord1Id)}" +
             $" and SuggestedWordId = {phraseWindow.SuggestedWordId}";
 
-        int today = DateInt.Today(_clock);
-        DataTable data = _database.ExecuteQuery($"Select ID from WordSequences where {sqlConditions} limit 1");
+        int today = DateInt.Today(Clock);
+        DataTable data = Database.ExecuteQuery($"Select ID from WordSequences where {sqlConditions} limit 1");
         if (data.Rows.Count == 0)
         {
-            _database.ExecuteNonQuery(
+            Database.ExecuteNonQuery(
                 "Insert into WordSequences(PrecedingWord3Id, PrecedingWord2Id, PrecedingWord1Id, SuggestedWordId, UsageCount, LastUsedDate)" +
                 $" values ({ToStringOrDefault(phraseWindow.PrecedingWord3Id)}," +
                 $" {ToStringOrDefault(phraseWindow.PrecedingWord2Id)}," +
@@ -128,7 +128,7 @@ public sealed class PhraseService : IPhraseService
         }
         else
         {
-            _database.ExecuteNonQuery(
+            Database.ExecuteNonQuery(
                 $"Update WordSequences set UsageCount = UsageCount + 1, LastUsedDate = {today} where {sqlConditions}");
         }
     }

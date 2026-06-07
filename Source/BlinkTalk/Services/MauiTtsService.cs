@@ -21,9 +21,9 @@ public sealed class MauiTtsService : ITextToSpeechService
     private const float Pitch = 0.6f;
     private const float Volume = 1.0f;
 
-    private CancellationTokenSource? _currentSpeech;
+    private CancellationTokenSource? CurrentSpeech;
     private Locale? _locale;
-    private bool _localeResolved;
+    private bool LocaleResolved;
 
     public async Task SpeakAsync(string text)
     {
@@ -31,9 +31,9 @@ public sealed class MauiTtsService : ITextToSpeechService
             return;
 
         // Flush any current utterance, mirroring the original SpeechFlush.
-        _currentSpeech?.Cancel();
+        CurrentSpeech?.Cancel();
         var cts = new CancellationTokenSource();
-        _currentSpeech = cts;
+        CurrentSpeech = cts;
 
         var options = new SpeechOptions
         {
@@ -54,7 +54,7 @@ public sealed class MauiTtsService : ITextToSpeechService
 
     private async Task<Locale?> ResolveLocaleAsync()
     {
-        if (_localeResolved)
+        if (LocaleResolved)
             return _locale;
 
         try
@@ -68,7 +68,7 @@ public sealed class MauiTtsService : ITextToSpeechService
             _locale = null; // Fall back to the system default voice.
         }
 
-        _localeResolved = true;
+        LocaleResolved = true;
         return _locale;
     }
 }

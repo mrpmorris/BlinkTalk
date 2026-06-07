@@ -14,51 +14,51 @@ namespace BlinkTalk.Application.Input.Strategies;
 /// </summary>
 public sealed class WordSuggestionSelectorInputStrategy : IInputStrategy
 {
-    private IScanController _controller = null!;
-    private SentenceBuilder _sentence = null!;
-    private IReadOnlyList<string> _words = Array.Empty<string>();
-    private int _selectedIndex = -1;
-    private FocusCycler? _cycler;
+    private IScanController Controller = null!;
+    private SentenceBuilder Sentence = null!;
+    private IReadOnlyList<string> Words = Array.Empty<string>();
+    private int SelectedIndex = -1;
+    private FocusCycler? Cycler;
 
     public void Initialize(IScanController controller)
     {
-        _controller = controller;
-        _sentence = controller.Sentence;
+        Controller = controller;
+        Sentence = controller.Sentence;
         RestartFocusCycler();
     }
 
     public void ReceiveIndication()
     {
-        if (_selectedIndex >= 0 && _selectedIndex < _words.Count)
+        if (SelectedIndex >= 0 && SelectedIndex < Words.Count)
             // Suggestions are stored lowercase in the DB and only displayed uppercase via CSS;
             // insert the uppercase form so it matches letters typed on the keyboard.
-            _sentence.PushWord(_words[_selectedIndex].ToUpperInvariant());
-        _cycler?.Stop();
+            Sentence.PushWord(Words[SelectedIndex].ToUpperInvariant());
+        Cycler?.Stop();
         RestartFocusCycler();
     }
 
     public void ChildStrategyActivated(IInputStrategy childStrategy) { }
 
-    public void Terminated() => _cycler?.Stop();
+    public void Terminated() => Cycler?.Stop();
 
     private void FocusIndexChanged(int focusIndex)
     {
-        _selectedIndex = focusIndex;
-        _controller.SetHighlight(HighlightTarget.ForWord(focusIndex));
-        if (_cycler!.FocusChangeCount > _words.Count + 1)
-            _controller.Pop();
+        SelectedIndex = focusIndex;
+        Controller.SetHighlight(HighlightTarget.ForWord(focusIndex));
+        if (Cycler!.FocusChangeCount > Words.Count + 1)
+            Controller.Pop();
     }
 
     private void RestartFocusCycler()
     {
-        _selectedIndex = -1;
-        _words = _sentence.SuggestedWords;
-        if (_words.Count == 0)
+        SelectedIndex = -1;
+        Words = Sentence.SuggestedWords;
+        if (Words.Count == 0)
         {
-            _controller.Pop();
+            Controller.Pop();
             return;
         }
-        _cycler ??= _controller.NewCycler(FocusIndexChanged, firstCycleMultiplier: Consts.FirstCycleDelayMultiplier);
-        _cycler.Start(_words.Count);
+        Cycler ??= Controller.NewCycler(FocusIndexChanged, firstCycleMultiplier: Consts.FirstCycleDelayMultiplier);
+        Cycler.Start(Words.Count);
     }
 }

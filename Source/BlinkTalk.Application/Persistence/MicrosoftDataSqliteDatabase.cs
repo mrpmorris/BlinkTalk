@@ -11,11 +11,11 @@ namespace BlinkTalk.Application.Persistence;
 /// </summary>
 public sealed class MicrosoftDataSqliteDatabase : ISqliteDatabase, IDisposable
 {
-    private readonly SqliteConnection _connection;
+    private readonly SqliteConnection Connection;
 
     public MicrosoftDataSqliteDatabase(string databaseFilePath)
     {
-        _connection = new SqliteConnection(new SqliteConnectionStringBuilder
+        Connection = new SqliteConnection(new SqliteConnectionStringBuilder
         {
             DataSource = databaseFilePath,
             Mode = SqliteOpenMode.ReadWriteCreate,
@@ -23,7 +23,7 @@ public sealed class MicrosoftDataSqliteDatabase : ISqliteDatabase, IDisposable
             // the file handle open after Dispose (which breaks file cleanup, e.g. in tests).
             Pooling = false
         }.ToString());
-        _connection.Open();
+        Connection.Open();
     }
 
     public DataTable ExecuteQuery(string sql, params (string name, object? value)[] parameters)
@@ -50,7 +50,7 @@ public sealed class MicrosoftDataSqliteDatabase : ISqliteDatabase, IDisposable
 
     private SqliteCommand CreateCommand(string sql, (string name, object? value)[] parameters)
     {
-        var command = _connection.CreateCommand();
+        var command = Connection.CreateCommand();
         command.CommandText = sql;
         if (parameters != null)
         {
@@ -60,5 +60,5 @@ public sealed class MicrosoftDataSqliteDatabase : ISqliteDatabase, IDisposable
         return command;
     }
 
-    public void Dispose() => _connection.Dispose();
+    public void Dispose() => Connection.Dispose();
 }

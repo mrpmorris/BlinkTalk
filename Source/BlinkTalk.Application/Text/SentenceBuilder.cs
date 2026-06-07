@@ -19,17 +19,16 @@ public sealed class SentenceBuilder
     public IReadOnlyList<string> SuggestedWords { get; private set; } = Array.Empty<string>();
 
     private const int NumberOfSuggestedWords = 6;
-    private string _currentWord = "";
-    private readonly List<KeyValuePair<int, string>> _words = new List<KeyValuePair<int, string>>();
-    private readonly Dictionary<KeyCode, char> _charsByKeyCode;
-    private readonly IWordService _wordService;
-    private readonly IPhraseService _phraseService;
+    private readonly List<KeyValuePair<int, string>> Words = new List<KeyValuePair<int, string>>();
+    private readonly Dictionary<KeyCode, char> CharsByKeyCode;
+    private readonly IWordService WordService;
+    private readonly IPhraseService PhraseService;
 
     public SentenceBuilder(IWordService wordService, IPhraseService phraseService)
     {
-        _wordService = wordService;
-        _phraseService = phraseService;
-        _charsByKeyCode = BuildCharMap();
+        WordService = wordService;
+        PhraseService = phraseService;
+        CharsByKeyCode = BuildCharMap();
     }
 
     /// <summary>Must be called once the database is available (loads the initial suggestions).</summary>
@@ -42,7 +41,7 @@ public sealed class SentenceBuilder
 
     /// <summary>The word currently being typed (empty at a committed word boundary). Exposed as
     /// raw state because <see cref="ToString"/> can't distinguish it from a trailing space.</summary>
-    public string CurrentWord => _currentWord;
+    public string CurrentWord { get; private set; } = "";
 
     public void Input(KeyCode keyCode)
     {
@@ -56,7 +55,7 @@ public sealed class SentenceBuilder
                 Backspace();
                 break;
             default:
-                _currentWord += _charsByKeyCode[keyCode];
+                CurrentWord += CharsByKeyCode[keyCode];
                 break;
         }
         DoViewModelChanged();
@@ -64,9 +63,9 @@ public sealed class SentenceBuilder
 
     public string Commit()
     {
-        if (!string.IsNullOrEmpty(_currentWord))
+        if (!string.IsNullOrEmpty(CurrentWord))
             PushCurrentWord();
-        _phraseService.IncrementPhraseUsage(_words.Select(x => x.Key));
+        PhraseService.IncrementPhraseUsage(Words.Select(x => x.Key));
         ShouldClearOnNextInput = true;
         DoViewModelChanged();
         return ToString();
@@ -75,22 +74,22 @@ public sealed class SentenceBuilder
     public void PushWord(string word)
     {
         CheckForClearOnInput();
-        _currentWord = word;
+        CurrentWord = word;
         PushCurrentWord();
     }
 
     public override string ToString()
     {
-        string result = string.Join(" ", _words.Select(x => x.Value));
-        if (!string.IsNullOrEmpty(_currentWord))
-            result += " " + _currentWord;
+        string result = string.Join(" ", Words.Select(x => x.Value));
+        if (!string.IsNullOrEmpty(CurrentWord))
+            result += " " + CurrentWord;
         return result;
     }
 
     private void Clear()
     {
-        _words.Clear();
-        _currentWord = "";
+        Words.Clear();
+        CurrentWord = "";
         DoViewModelChanged();
     }
 
@@ -103,19 +102,19 @@ public sealed class SentenceBuilder
 
     private void PushCurrentWord()
     {
-        if (!string.IsNullOrEmpty(_currentWord))
+        if (!string.IsNullOrEmpty(CurrentWord))
         {
-            _wordService.IncreaseWordUsage(_currentWord, out int wordId);
-            _words.Add(new KeyValuePair<int, string>(wordId, _currentWord));
-            _currentWord = "";
+            WordService.IncreaseWordUsage(CurrentWord, out int wordId);
+            Words.Add(new KeyValuePair<int, string>(wordId, CurrentWord));
+            CurrentWord = "";
         }
         DoViewModelChanged();
     }
 
     private void Backspace()
     {
-        if (_currentWord.Length > 0)
-            _currentWord = _currentWord.Substring(0, _currentWord.Length - 1);
+        if (CurrentWord.Length > 0)
+            CurrentWord = CurrentWord.Substring(0, CurrentWord.Length - 1);
         else
             PopWord();
         DoViewModelChanged();
@@ -123,11 +122,11 @@ public sealed class SentenceBuilder
 
     private void PopWord()
     {
-        if (_words.Count == 0)
+        if (Words.Count == 0)
             return;
-        KeyValuePair<int, string> wordInfo = _words[_words.Count - 1];
-        _words.RemoveAt(_words.Count - 1);
-        _wordService.DecreaseWordUsage(wordInfo.Key);
+        KeyValuePair<int, string> wordInfo = Words[Words.Count - 1];
+        Words.RemoveAt(Words.Count - 1);
+        WordService.DecreaseWordUsage(wordInfo.Key);
     }
 
     private void DoViewModelChanged()
@@ -138,12 +137,12 @@ public sealed class SentenceBuilder
 
     private void GetWordSuggestions()
     {
-        List<string> result = _phraseService.GetWordSuggestions(_words.Select(x => x.Key), _currentWord, NumberOfSuggestedWords);
+        List<string> result = PhraseService.GetWordSuggestions(Words.Select(x => x.Key), CurrentWord, NumberOfSuggestedWords);
         if (result.Count < NumberOfSuggestedWords)
         {
             // Request twice as many words as we need. That way when we add to phrase words and
             // call Distinct we won't end up with fewer than the total number of words required.
-            List<string> suggestionsFromDictionary = _wordService.GetWordSuggestions(_currentWord, NumberOfSuggestedWords * 2);
+            List<string> suggestionsFromDictionary = WordService.GetWordSuggestions(CurrentWord, NumberOfSuggestedWords * 2);
             result.AddRange(suggestionsFromDictionary);
         }
         SuggestedWords = result.Distinct(StringComparer.CurrentCultureIgnoreCase).Take(NumberOfSuggestedWords).ToList();

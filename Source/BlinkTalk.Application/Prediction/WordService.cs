@@ -13,11 +13,11 @@ namespace BlinkTalk.Application.Prediction;
 /// </summary>
 public sealed class WordService : IWordService
 {
-    private readonly ISqliteDatabase _database;
+    private readonly ISqliteDatabase Database;
 
     public WordService(ISqliteDatabase database)
     {
-        _database = database;
+        Database = database;
     }
 
     public void IncreaseWordUsage(string word, out int wordId)
@@ -28,14 +28,14 @@ public sealed class WordService : IWordService
         if (wordId == -1)
             wordId = CreateWord(word);
 
-        _database.ExecuteNonQuery(
+        Database.ExecuteNonQuery(
             "Update Words set UserSelectionCount = UserSelectionCount + 1 where Id = @id",
             ("@id", wordId));
     }
 
     public void DecreaseWordUsage(int wordId)
     {
-        _database.ExecuteNonQuery(
+        Database.ExecuteNonQuery(
             "Update Words set UserSelectionCount = UserSelectionCount - 1 where ID = @id",
             ("@id", wordId));
     }
@@ -50,15 +50,15 @@ public sealed class WordService : IWordService
             $"order by UserSelectionCount desc, LanguageUsageCount desc limit {numberOfWords}";
 
         DataTable data = string.IsNullOrEmpty(currentWord)
-            ? _database.ExecuteQuery(sql)
-            : _database.ExecuteQuery(sql, ("@prefix", currentWord + "%"));
+            ? Database.ExecuteQuery(sql)
+            : Database.ExecuteQuery(sql, ("@prefix", currentWord + "%"));
 
         return data.Rows.Select(x => (string)x["Word"]!).ToList();
     }
 
     private int GetWordId(string word)
     {
-        DataTable data = _database.ExecuteQuery(
+        DataTable data = Database.ExecuteQuery(
             "Select ID from Words where Word = @word",
             ("@word", word));
         int result = -1;
@@ -69,7 +69,7 @@ public sealed class WordService : IWordService
 
     private int CreateWord(string word)
     {
-        _database.ExecuteNonQuery(
+        Database.ExecuteNonQuery(
             "Insert into Words (Word, LanguageUsageCount, UserSelectionCount) values (@word, 0, 0)",
             ("@word", word));
         return GetWordId(word);

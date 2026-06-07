@@ -18,12 +18,12 @@ public sealed class DataTable
 
 public sealed class DataRow
 {
-    private readonly IReadOnlyDictionary<string, object?> _values;
+    private readonly IReadOnlyDictionary<string, object?> Values;
 
     public DataRow(IReadOnlyDictionary<string, object?> values)
     {
-        _values = values;
+        Values = values;
     }
 
-    public object? this[string column] => _values.TryGetValue(column, out var v) ? v : null;
+    public object? this[string column] => Values.TryGetValue(column, out var v) ? v : null;
 }

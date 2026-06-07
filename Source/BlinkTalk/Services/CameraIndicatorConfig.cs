@@ -13,19 +13,19 @@ namespace BlinkTalk.Services;
 /// </summary>
 public sealed class CameraIndicatorConfig
 {
-    private readonly ISettingsStore _settings;
-    private bool _enabledThisSession; // never persisted — false on every app start
+    private readonly ISettingsStore Settings;
+    private bool EnabledThisSession; // never persisted — false on every app start
 
     public CameraIndicatorConfig(ISettingsStore settings)
     {
-        _settings = settings;
+        Settings = settings;
     }
 
     /// <summary>True once the user has completed a training run that found a usable gesture.</summary>
     public bool IsTrained
     {
-        get => _settings.GetBool(SettingsKeys.CameraTrained, false);
-        set => _settings.SetBool(SettingsKeys.CameraTrained, value);
+        get => Settings.GetBool(SettingsKeys.CameraTrained, false);
+        set => Settings.SetBool(SettingsKeys.CameraTrained, value);
     }
 
     /// <summary>
@@ -34,20 +34,20 @@ public sealed class CameraIndicatorConfig
     /// </summary>
     public bool IsEnabled
     {
-        get => _enabledThisSession && IsTrained;
-        set => _enabledThisSession = value;
+        get => EnabledThisSession && IsTrained;
+        set => EnabledThisSession = value;
     }
 
     public string Signal
     {
-        get => _settings.GetString(SettingsKeys.CameraSignal, "");
-        set => _settings.SetString(SettingsKeys.CameraSignal, value);
+        get => Settings.GetString(SettingsKeys.CameraSignal, "");
+        set => Settings.SetString(SettingsKeys.CameraSignal, value);
     }
 
     public double Threshold
     {
-        get => _settings.GetDouble(SettingsKeys.CameraThreshold, 0.5);
-        set => _settings.SetDouble(SettingsKeys.CameraThreshold, value);
+        get => Settings.GetDouble(SettingsKeys.CameraThreshold, 0.5);
+        set => Settings.SetDouble(SettingsKeys.CameraThreshold, value);
     }
 
     /// <summary>
@@ -56,8 +56,8 @@ public sealed class CameraIndicatorConfig
     /// </summary>
     public double DwellSeconds
     {
-        get => _settings.GetDouble(SettingsKeys.CameraDwellSeconds, 0.3);
-        set => _settings.SetDouble(SettingsKeys.CameraDwellSeconds, value);
+        get => Settings.GetDouble(SettingsKeys.CameraDwellSeconds, 0.3);
+        set => Settings.SetDouble(SettingsKeys.CameraDwellSeconds, value);
     }
 
     public void SaveTraining(string signal, double threshold)

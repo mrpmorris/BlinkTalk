@@ -16,27 +16,26 @@ namespace BlinkTalk.Application.Input;
 /// </summary>
 public sealed class ScanController : IScanController, IDisposable
 {
-    private readonly IUiDispatcher _dispatcher;
-    private readonly ISettingsStore _settings;
-    private readonly Func<TimeSpan, CancellationToken, Task>? _delay;
-    private readonly IEnumerable<IIndicator> _indicators;
-    private readonly IClock _clock;
-    private readonly Stack<IInputStrategy> _strategies = new Stack<IInputStrategy>();
-    private HighlightTarget _highlight = HighlightTarget.None;
-    private bool _started;
+    private readonly IUiDispatcher Dispatcher;
+    private readonly ISettingsStore Settings;
+    private readonly Func<TimeSpan, CancellationToken, Task>? Delay;
+    private readonly IEnumerable<IIndicator> Indicators;
+    private readonly IClock Clock;
+    private readonly Stack<IInputStrategy> Strategies = new Stack<IInputStrategy>();
+    private bool Started;
 
     // The single cycler currently running (exactly one is active at a time — each strategy
     // stops its cycler before a child starts one). Paused while a camera gesture is held.
-    private FocusCycler? _activeCycler;
+    private FocusCycler? ActiveCycler;
     // Number of in-progress held gestures; while > 0 the active cycle is paused.
-    private int _dwellDepth;
+    private int DwellDepth;
 
     public SentenceBuilder Sentence { get; }
     public KeyboardLayout Keyboard { get; }
     public ITextToSpeechService Speech { get; }
 
-    public HighlightTarget Highlight => _highlight;
-    public int Depth => _strategies.Count;
+    public HighlightTarget Highlight { get; private set; } = HighlightTarget.None;
+    public int Depth => Strategies.Count;
 
     public event Action? StateChanged;
 
@@ -53,13 +52,13 @@ public sealed class ScanController : IScanController, IDisposable
         Sentence = sentence;
         Keyboard = keyboard;
         Speech = speech;
-        _settings = settings;
-        _dispatcher = dispatcher;
-        _indicators = indicators;
-        _delay = delay;
-        _clock = clock ?? new SystemClock();
+        Settings = settings;
+        Dispatcher = dispatcher;
+        Indicators = indicators;
+        Delay = delay;
+        Clock = clock ?? new SystemClock();
         Sentence.ViewModelChanged += (s, e) => RaiseStateChanged();
-        foreach (var indicator in _indicators)
+        foreach (var indicator in Indicators)
         {
             indicator.Indicated += OnIndicated;
             indicator.DwellStarted += OnDwellStarted;
@@ -70,16 +69,16 @@ public sealed class ScanController : IScanController, IDisposable
     /// <summary>Scan speed in seconds, persisted in settings. Affects the next dwell.</summary>
     public double CycleDelaySeconds
     {
-        get => _settings.GetDouble(SettingsKeys.CycleDelaySeconds, Consts.DefaultCycleDelaySeconds);
-        set => _settings.SetDouble(SettingsKeys.CycleDelaySeconds, value);
+        get => Settings.GetDouble(SettingsKeys.CycleDelaySeconds, Consts.DefaultCycleDelaySeconds);
+        set => Settings.SetDouble(SettingsKeys.CycleDelaySeconds, value);
     }
 
     /// <summary>Begin scanning: load suggestions and enter the top-level section selector.</summary>
     public void Start()
     {
-        if (_started)
+        if (Started)
             return;
-        _started = true;
+        Started = true;
         Sentence.Initialize();
         Push<SectionSelectorInputStrategy>();
         RaiseStateChanged();
@@ -92,8 +91,8 @@ public sealed class ScanController : IScanController, IDisposable
     /// </summary>
     private void OnIndicated()
     {
-        if (_strategies.Count > 0)
-            _strategies.Peek().ReceiveIndication();
+        if (Strategies.Count > 0)
+            Strategies.Peek().ReceiveIndication();
     }
 
     // A held gesture started/ended (camera only). While one or more are in progress the active
@@ -102,16 +101,16 @@ public sealed class ScanController : IScanController, IDisposable
     // a successful indication — so the counter returns to 0 and scanning resumes.
     private void OnDwellStarted()
     {
-        if (Interlocked.Increment(ref _dwellDepth) == 1)
-            _activeCycler?.Pause();
+        if (Interlocked.Increment(ref DwellDepth) == 1)
+            ActiveCycler?.Pause();
     }
 
     private void OnDwellEnded()
     {
-        if (Interlocked.Decrement(ref _dwellDepth) <= 0)
+        if (Interlocked.Decrement(ref DwellDepth) <= 0)
         {
-            Interlocked.Exchange(ref _dwellDepth, 0); // clamp against any unbalanced end
-            _activeCycler?.Resume();
+            Interlocked.Exchange(ref DwellDepth, 0); // clamp against any unbalanced end
+            ActiveCycler?.Resume();
         }
     }
 
@@ -120,26 +119,26 @@ public sealed class ScanController : IScanController, IDisposable
     {
         FocusCycler cycler = null!;
         cycler = new FocusCycler(
-            _dispatcher,
+            Dispatcher,
             focusChanged,
             () => TimeSpan.FromSeconds(CycleDelaySeconds),
             firstCycleMultiplier,
             mayFocus,
-            _delay,
+            Delay,
             onExhausted,
-            _clock,
+            Clock,
             onRunningChanged: running =>
             {
                 if (running)
                 {
-                    _activeCycler = cycler;
+                    ActiveCycler = cycler;
                     // A gesture already in progress when this cycle starts → start it paused.
-                    if (Volatile.Read(ref _dwellDepth) > 0)
+                    if (Volatile.Read(ref DwellDepth) > 0)
                         cycler.Pause();
                 }
-                else if (ReferenceEquals(_activeCycler, cycler))
+                else if (ReferenceEquals(ActiveCycler, cycler))
                 {
-                    _activeCycler = null;
+                    ActiveCycler = null;
                 }
             });
         return cycler;
@@ -148,12 +147,12 @@ public sealed class ScanController : IScanController, IDisposable
     public TStrategy Push<TStrategy>() where TStrategy : IInputStrategy, new()
     {
         var strategy = new TStrategy();
-        if (_strategies.Count > 0)
-            _strategies.Peek().ChildStrategyActivated(strategy);
+        if (Strategies.Count > 0)
+            Strategies.Peek().ChildStrategyActivated(strategy);
         // Push before Initialize: a strategy may pop itself during Initialize (e.g. the word
         // selector when no suggestions remain), and Pop must target this strategy. In the
         // original this was implicit because Initialize deferred its work by a frame.
-        _strategies.Push(strategy);
+        Strategies.Push(strategy);
         strategy.Initialize(this);
         RaiseStateChanged();
         return strategy;
@@ -161,18 +160,18 @@ public sealed class ScanController : IScanController, IDisposable
 
     public void Pop()
     {
-        if (_strategies.Count == 0)
+        if (Strategies.Count == 0)
             return;
-        IInputStrategy terminated = _strategies.Pop();
+        IInputStrategy terminated = Strategies.Pop();
         terminated.Terminated();
-        if (_strategies.Count > 0)
-            _strategies.Peek().Initialize(this);
+        if (Strategies.Count > 0)
+            Strategies.Peek().Initialize(this);
         RaiseStateChanged();
     }
 
     public void SetHighlight(HighlightTarget target)
     {
-        _highlight = target;
+        Highlight = target;
         RaiseStateChanged();
     }
 
@@ -180,7 +179,7 @@ public sealed class ScanController : IScanController, IDisposable
 
     public void Dispose()
     {
-        foreach (var indicator in _indicators)
+        foreach (var indicator in Indicators)
         {
             indicator.Indicated -= OnIndicated;
             indicator.DwellStarted -= OnDwellStarted;

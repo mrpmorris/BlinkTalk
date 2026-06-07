@@ -10,45 +10,45 @@ namespace BlinkTalk.Application.Input.Strategies;
 /// </summary>
 public sealed class KeyboardColumnSelectorInputStrategy : IInputStrategy
 {
-    private IScanController _controller = null!;
-    private SentenceBuilder _sentence = null!;
-    private int _activeRow;
-    private int _keyCount;
-    private int _focusedColumn;
-    private FocusCycler? _cycler;
+    private IScanController Controller = null!;
+    private SentenceBuilder Sentence = null!;
+    private int ActiveRow;
+    private int KeyCount;
+    private int FocusedColumn;
+    private FocusCycler? Cycler;
 
     public void Initialize(IScanController controller)
     {
-        _controller = controller;
-        _sentence = controller.Sentence;
+        Controller = controller;
+        Sentence = controller.Sentence;
     }
 
     public void SetActiveRow(int rowIndex)
     {
-        _activeRow = rowIndex;
-        _keyCount = _controller.Keyboard.Rows[rowIndex].Count;
-        _cycler?.Stop();
-        _cycler = _controller.NewCycler(FocusIndexChanged, firstCycleMultiplier: Consts.FirstCycleDelayMultiplier);
-        _cycler.Start(_keyCount);
+        ActiveRow = rowIndex;
+        KeyCount = Controller.Keyboard.Rows[rowIndex].Count;
+        Cycler?.Stop();
+        Cycler = Controller.NewCycler(FocusIndexChanged, firstCycleMultiplier: Consts.FirstCycleDelayMultiplier);
+        Cycler.Start(KeyCount);
     }
 
     public void ReceiveIndication()
     {
-        _cycler?.Stop();
-        KeyCode key = _controller.Keyboard.Rows[_activeRow][_focusedColumn];
-        _sentence.Input(key);
-        _controller.Pop();
+        Cycler?.Stop();
+        KeyCode key = Controller.Keyboard.Rows[ActiveRow][FocusedColumn];
+        Sentence.Input(key);
+        Controller.Pop();
     }
 
     public void ChildStrategyActivated(IInputStrategy childStrategy) { }
 
-    public void Terminated() => _cycler?.Stop();
+    public void Terminated() => Cycler?.Stop();
 
     private void FocusIndexChanged(int focusIndex)
     {
-        _focusedColumn = focusIndex;
-        _controller.SetHighlight(HighlightTarget.ForKey(_activeRow, focusIndex));
-        if (_cycler!.FocusChangeCount > _keyCount + 2)
-            _controller.Pop();
+        FocusedColumn = focusIndex;
+        Controller.SetHighlight(HighlightTarget.ForKey(ActiveRow, focusIndex));
+        if (Cycler!.FocusChangeCount > KeyCount + 2)
+            Controller.Pop();
     }
 }

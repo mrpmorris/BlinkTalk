@@ -10,36 +10,36 @@ namespace BlinkTalk.Application.Input.Strategies;
 /// </summary>
 public sealed class KeyboardRowSelectorInputStrategy : IInputStrategy
 {
-    private IScanController _controller = null!;
-    private int _focusedRow;
-    private int _rowCount;
-    private FocusCycler? _cycler;
+    private IScanController Controller = null!;
+    private int FocusedRow;
+    private int RowCount;
+    private FocusCycler? Cycler;
 
     public void Initialize(IScanController controller)
     {
-        _controller = controller;
-        _rowCount = controller.Keyboard.Rows.Count;
-        _cycler?.Stop();
-        _cycler = controller.NewCycler(FocusIndexChanged, firstCycleMultiplier: Consts.FirstCycleDelayMultiplier);
-        _cycler.Start(_rowCount);
+        Controller = controller;
+        RowCount = controller.Keyboard.Rows.Count;
+        Cycler?.Stop();
+        Cycler = controller.NewCycler(FocusIndexChanged, firstCycleMultiplier: Consts.FirstCycleDelayMultiplier);
+        Cycler.Start(RowCount);
     }
 
     public void ReceiveIndication()
     {
-        _cycler?.Stop();
-        var columnSelector = _controller.Push<KeyboardColumnSelectorInputStrategy>();
-        columnSelector.SetActiveRow(_focusedRow);
+        Cycler?.Stop();
+        var columnSelector = Controller.Push<KeyboardColumnSelectorInputStrategy>();
+        columnSelector.SetActiveRow(FocusedRow);
     }
 
-    public void ChildStrategyActivated(IInputStrategy childStrategy) => _cycler?.Stop();
+    public void ChildStrategyActivated(IInputStrategy childStrategy) => Cycler?.Stop();
 
-    public void Terminated() => _cycler?.Stop();
+    public void Terminated() => Cycler?.Stop();
 
     private void FocusIndexChanged(int focusIndex)
     {
-        _focusedRow = focusIndex;
-        _controller.SetHighlight(HighlightTarget.ForKeyboardRow(focusIndex));
-        if (_cycler!.FocusChangeCount > _rowCount + 1)
-            _controller.Pop();
+        FocusedRow = focusIndex;
+        Controller.SetHighlight(HighlightTarget.ForKeyboardRow(focusIndex));
+        if (Cycler!.FocusChangeCount > RowCount + 1)
+            Controller.Pop();
     }
 }

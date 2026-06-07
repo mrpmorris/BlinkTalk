@@ -10,16 +10,15 @@ namespace BlinkTalk.Application.Persistence;
 /// </summary>
 public sealed class AutoMigratingDatabase
 {
-    private readonly ISqliteDatabase _database;
-    private readonly IClock _clock;
+    private readonly IClock Clock;
 
     public AutoMigratingDatabase(ISqliteDatabase database, IClock clock)
     {
-        _database = database;
-        _clock = clock;
+        Database = database;
+        Clock = clock;
     }
 
-    public ISqliteDatabase Database => _database;
+    public ISqliteDatabase Database { get; }
 
     public void Migrate()
     {
@@ -28,8 +27,8 @@ public sealed class AutoMigratingDatabase
 
     private void PerformDbMaintenance()
     {
-        int cutoff = DateInt.FromDate(_clock.UtcNow.Date.AddDays(-30));
-        _database.ExecuteNonQuery(
+        int cutoff = DateInt.FromDate(Clock.UtcNow.Date.AddDays(-30));
+        Database.ExecuteNonQuery(
             "delete from WordSequences where LastUsedDate <= @cutoff",
             ("@cutoff", cutoff));
     }

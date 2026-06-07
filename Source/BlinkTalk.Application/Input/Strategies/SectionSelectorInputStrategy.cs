@@ -11,56 +11,56 @@ namespace BlinkTalk.Application.Input.Strategies;
 /// </summary>
 public sealed class SectionSelectorInputStrategy : IInputStrategy
 {
-    private bool _skipWordSelection;
-    private Section _focusedSection;
-    private IScanController _controller = null!;
-    private SentenceBuilder _sentence = null!;
-    private FocusCycler? _cycler;
+    private bool SkipWordSelection;
+    private Section FocusedSection;
+    private IScanController Controller = null!;
+    private SentenceBuilder Sentence = null!;
+    private FocusCycler? Cycler;
 
     public void Initialize(IScanController controller)
     {
-        _controller = controller;
-        _sentence = controller.Sentence;
-        _cycler?.Stop();
-        _cycler = controller.NewCycler(FocusIndexChanged, mayFocus: MayFocusOnSection);
-        _cycler.Start(3);
+        Controller = controller;
+        Sentence = controller.Sentence;
+        Cycler?.Stop();
+        Cycler = controller.NewCycler(FocusIndexChanged, mayFocus: MayFocusOnSection);
+        Cycler.Start(3);
     }
 
     public void ReceiveIndication()
     {
-        switch (_focusedSection)
+        switch (FocusedSection)
         {
             case Section.WordSelector:
-                _cycler?.Stop();
-                _controller.Push<WordSuggestionSelectorInputStrategy>();
+                Cycler?.Stop();
+                Controller.Push<WordSuggestionSelectorInputStrategy>();
                 break;
             case Section.Keyboard:
-                _cycler?.Stop();
-                _controller.Push<KeyboardRowSelectorInputStrategy>();
+                Cycler?.Stop();
+                Controller.Push<KeyboardRowSelectorInputStrategy>();
                 break;
             case Section.Speak:
-                string sentence = _sentence.Commit();
-                _ = _controller.Speech.SpeakAsync(sentence);
+                string sentence = Sentence.Commit();
+                _ = Controller.Speech.SpeakAsync(sentence);
                 break;
             default:
-                throw new NotImplementedException(_focusedSection.ToString());
+                throw new NotImplementedException(FocusedSection.ToString());
         }
     }
 
     public void ChildStrategyActivated(IInputStrategy childStrategy)
     {
         if (childStrategy is WordSuggestionSelectorInputStrategy)
-            _skipWordSelection = true;
-        _cycler?.Stop();
+            SkipWordSelection = true;
+        Cycler?.Stop();
     }
 
-    public void Terminated() => _cycler?.Stop();
+    public void Terminated() => Cycler?.Stop();
 
     private void FocusIndexChanged(int focusIndex)
     {
-        _skipWordSelection = false;
-        _focusedSection = (Section)focusIndex;
-        _controller.SetHighlight(HighlightTarget.ForSection(_focusedSection));
+        SkipWordSelection = false;
+        FocusedSection = (Section)focusIndex;
+        Controller.SetHighlight(HighlightTarget.ForSection(FocusedSection));
     }
 
     private bool MayFocusOnSection(int focusIndex)
@@ -68,8 +68,8 @@ public sealed class SectionSelectorInputStrategy : IInputStrategy
         switch ((Section)focusIndex)
         {
             case Section.Keyboard: return true;
-            case Section.Speak: return !_sentence.IsEmpty;
-            case Section.WordSelector: return !_skipWordSelection && _sentence.SuggestedWords.Count > 0;
+            case Section.Speak: return !Sentence.IsEmpty;
+            case Section.WordSelector: return !SkipWordSelection && Sentence.SuggestedWords.Count > 0;
             default: throw new NotImplementedException(((Section)focusIndex).ToString());
         }
     }
