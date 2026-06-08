@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using BlinkTalk.Application.Persistence;
 using Microsoft.Maui.Storage;
@@ -18,7 +19,9 @@ public sealed class MauiDatabaseProvisioner : IDatabaseProvisioner
     public string EnsureDatabase(string languageName)
     {
         string sourceFileName = languageName + ".db";
-        string targetPath = Path.Combine(FileSystem.Current.AppDataDirectory, WritableFileName);
+        string targetDirectory = GetWritableDirectory();
+        Directory.CreateDirectory(targetDirectory);
+        string targetPath = Path.Combine(targetDirectory, WritableFileName);
 
         if (!File.Exists(targetPath))
         {
@@ -28,5 +31,25 @@ public sealed class MauiDatabaseProvisioner : IDatabaseProvisioner
         }
 
         return targetPath;
+    }
+
+    /// <summary>
+    /// The directory the writable database lives in. On Windows the MAUI default
+    /// (<see cref="FileSystem.AppDataDirectory"/>) nests the file under a publisher folder taken
+    /// from the package manifest and the application id (e.g. ...\Local\User Name\com.airsoftware...\Data).
+    /// We instead use a clean per-user "BlinkTalk" folder under LocalApplicationData — Windows
+    /// resolves LocalApplicationData per signed-in user, so each Windows account still gets its own
+    /// database. This matches the WebView2 folder created in App.xaml.cs. Other platforms keep the
+    /// platform default app-data directory.
+    /// </summary>
+    private static string GetWritableDirectory()
+    {
+#if WINDOWS
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "BlinkTalk");
+#else
+        return FileSystem.Current.AppDataDirectory;
+#endif
     }
 }
