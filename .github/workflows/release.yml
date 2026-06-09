@@ -153,7 +153,7 @@ jobs:
             -p:AndroidSigningKeyAlias="${{ secrets.ANDROID_KEY_ALIAS }}" \
             -p:AndroidSigningKeyPass="${{ secrets.ANDROID_KEY_PASSWORD }}" \
             -p:AndroidSigningStorePass="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
-            -p:AndroidPackageFormats="apk;aab" \
+            -p:AndroidPackageFormats=apk%3Baab \
             -o publish/android
 
       - name: Rename Android packages
