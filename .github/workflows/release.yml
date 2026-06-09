@@ -110,6 +110,7 @@ jobs:
   # ── 4. Build – Android ────────────────────────────────────────────────────
   # Produces:
   #   • BlinkTalk-android-{version}.apk — release-signed APK
+  #   • BlinkTalk-GooglePlayStore-{version}.aab — release-signed App Bundle
   #
   # Required secrets:
   #   ANDROID_KEYSTORE          – Base64-encoded JKS/PKCS12 keystore.
@@ -141,7 +142,7 @@ jobs:
           ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
         run: echo "$ANDROID_KEYSTORE" | base64 --decode > "$RUNNER_TEMP/keystore.jks"
 
-      - name: Build signed APK
+      - name: Build signed Android packages
         run: |
           dotnet publish Source/BlinkTalk/BlinkTalk.csproj \
             -f net10.0-android \
@@ -152,10 +153,10 @@ jobs:
             -p:AndroidSigningKeyAlias="${{ secrets.ANDROID_KEY_ALIAS }}" \
             -p:AndroidSigningKeyPass="${{ secrets.ANDROID_KEY_PASSWORD }}" \
             -p:AndroidSigningStorePass="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
-            -p:AndroidPackageFormats=apk \
+            -p:AndroidPackageFormats="apk;aab" \
             -o publish/android
 
-      - name: Rename APK
+      - name: Rename Android packages
         run: |
           # MAUI emits both an unsigned "*.apk" and the installable "*-Signed.apk".
           # Android rejects the unsigned one as an invalid package, so pick the signed APK.
@@ -166,10 +167,22 @@ jobs:
           fi
           cp "$APK" "BlinkTalk-android-$VERSION.apk"
 
+          AAB=$(find publish/android -name "*-Signed.aab" | head -1)
+          if [ -z "$AAB" ]; then
+            AAB=$(find publish/android -name "*.aab" | head -1)
+          fi
+          if [ -z "$AAB" ]; then
+            echo "::error::No AAB found under publish/android."
+            exit 1
+          fi
+          cp "$AAB" "BlinkTalk-GooglePlayStore-$VERSION.aab"
+
       - uses: actions/upload-artifact@v4
         with:
           name: android-artifacts
-          path: BlinkTalk-android-${{ env.VERSION }}.apk
+          path: |
+            BlinkTalk-android-${{ env.VERSION }}.apk
+            BlinkTalk-GooglePlayStore-${{ env.VERSION }}.aab
 
   # ── 5. Release ────────────────────────────────────────────────────────────
   # Creates a GitHub Release and attaches all build artifacts.
@@ -198,3 +211,4 @@ jobs:
           files: |
             BlinkTalk-windows-${{ env.VERSION }}.msi
             BlinkTalk-android-${{ env.VERSION }}.apk
+            BlinkTalk-GooglePlayStore-${{ env.VERSION }}.aab
