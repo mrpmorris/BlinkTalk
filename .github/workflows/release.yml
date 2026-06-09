@@ -158,18 +158,21 @@ jobs:
 
       - name: Rename Android packages
         run: |
-          # MAUI emits both an unsigned "*.apk" and the installable "*-Signed.apk".
-          # Android rejects the unsigned one as an invalid package, so pick the signed APK.
-          APK=$(find publish/android -name "*-Signed.apk" | head -1)
+          # MAUI emits both an unsigned "*.apk" and the installable signed APK.
+          # Prefer a signed package regardless of filename casing or exact suffix.
+          APK=$(find publish/android -type f \( -iname "*-signed.apk" -o -iname "*signed*.apk" \) | head -1)
           if [ -z "$APK" ]; then
-            echo "::error::No signed APK found under publish/android."
+            APK=$(find publish/android -type f -name "*.apk" | head -1)
+          fi
+          if [ -z "$APK" ]; then
+            echo "::error::No APK found under publish/android."
             exit 1
           fi
           cp "$APK" "BlinkTalk-android-$VERSION.apk"
 
-          AAB=$(find publish/android -name "*-Signed.aab" | head -1)
+          AAB=$(find publish/android -type f -iname "*-signed.aab" | head -1)
           if [ -z "$AAB" ]; then
-            AAB=$(find publish/android -name "*.aab" | head -1)
+            AAB=$(find publish/android -type f -name "*.aab" | head -1)
           fi
           if [ -z "$AAB" ]; then
             echo "::error::No AAB found under publish/android."
