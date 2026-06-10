@@ -158,24 +158,26 @@ jobs:
 
       - name: Rename Android packages
         run: |
+          PACKAGE_DIRS="publish/android Source/BlinkTalk/bin/Release/net10.0-android"
+
           # MAUI emits both an unsigned "*.apk" and the installable signed APK.
           # Prefer a signed package regardless of filename casing or exact suffix.
-          APK=$(find publish/android -type f \( -iname "*-signed.apk" -o -iname "*signed*.apk" \) | head -1)
+          APK=$(find $PACKAGE_DIRS -type f \( -iname "*-signed.apk" -o -iname "*signed*.apk" \) | head -1)
           if [ -z "$APK" ]; then
-            APK=$(find publish/android -type f -name "*.apk" | head -1)
+            APK=$(find $PACKAGE_DIRS -type f -name "*.apk" | head -1)
           fi
           if [ -z "$APK" ]; then
-            echo "::error::No APK found under publish/android."
+            echo "::error::No APK found in $PACKAGE_DIRS."
             exit 1
           fi
           cp "$APK" "BlinkTalk-android-$VERSION.apk"
 
-          AAB=$(find publish/android -type f -iname "*-signed.aab" | head -1)
+          AAB=$(find $PACKAGE_DIRS -type f -iname "*-signed.aab" | head -1)
           if [ -z "$AAB" ]; then
-            AAB=$(find publish/android -type f -name "*.aab" | head -1)
+            AAB=$(find $PACKAGE_DIRS -type f -name "*.aab" | head -1)
           fi
           if [ -z "$AAB" ]; then
-            echo "::error::No AAB found under publish/android."
+            echo "::error::No AAB found in $PACKAGE_DIRS."
             exit 1
           fi
           cp "$AAB" "BlinkTalk-GooglePlayStore-$VERSION.aab"
