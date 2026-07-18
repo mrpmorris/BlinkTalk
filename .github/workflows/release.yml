@@ -149,6 +149,7 @@ jobs:
             -c Release \
             -p:ApplicationDisplayVersion="$VERSION" \
             -p:ApplicationVersion="$VERSION_CODE" \
+            -p:AndroidKeyStore=true \
             -p:AndroidSigningKeyStore="$RUNNER_TEMP/keystore.jks" \
             -p:AndroidSigningKeyAlias="${{ secrets.ANDROID_KEY_ALIAS }}" \
             -p:AndroidSigningKeyPass="${{ secrets.ANDROID_KEY_PASSWORD }}" \
