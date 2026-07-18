@@ -155,7 +155,8 @@ jobs:
             "-c" "Release"
             "-p:ApplicationDisplayVersion=$VERSION"
             "-p:ApplicationVersion=$VERSION_CODE"
-            "-p:AndroidPackageFormats=apk;aab"
+            # MSBuild treats a raw ';' here as a switch separator on Unix, so encode it.
+            "-p:AndroidPackageFormats=apk%3Baab"
             "-o" "publish/android"
           )
           if [ -n "$KEY_ALIAS" ] && [ -f "$RUNNER_TEMP/keystore.jks" ]; then
