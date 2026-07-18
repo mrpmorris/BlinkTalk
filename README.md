@@ -55,26 +55,3 @@ The solution (`BlinkTalk.sln`) has three projects under `Source/`:
   Razor UI, the platform implementations of those interfaces, and the bundled `English.db` dictionary.
 - **`BlinkTalk.Application.Tests`** — xUnit tests for the logic library.
 
-## Build & run
-
-Requires the [.NET SDK](https://dotnet.microsoft.com/download) with the MAUI workload installed
-(`dotnet workload install maui`). iOS and Mac Catalyst builds need a Mac host.
-
-```bash
-# Run the tests (the primary fast feedback loop)
-dotnet test Source/BlinkTalk.Application.Tests/BlinkTalk.Application.Tests.csproj
-
-# Build / run the app on Windows
-dotnet run --project Source/BlinkTalk/BlinkTalk.csproj -f net10.0-windows10.0.19041.0
-
-# Deploy + run on a connected Android device or emulator
-dotnet build Source/BlinkTalk/BlinkTalk.csproj -t:Run -f net10.0-android
-```
-
-> Always pass `-f <target-framework>` when building the `BlinkTalk` app. Building the whole solution on
-> Windows fails because the iOS / Mac Catalyst targets require a Mac.
-
-## Settings
-
-The scan speed (how long each option stays highlighted) is adjustable in-app on the Settings screen, so it
-can be tuned to the user's ability.
