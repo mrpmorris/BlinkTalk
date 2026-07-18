@@ -112,7 +112,8 @@ jobs:
   #   • BlinkTalk-android-{version}.apk — APK (signed when secrets are set)
   #   • BlinkTalk-GooglePlayStore-{version}.aab — App Bundle (signed when secrets are set)
   #
-  # Optional secrets (signing is skipped when any of these are absent):
+  # Required secrets (the job fails if any are absent — otherwise MAUI silently
+  # signs with a debug key, which Google Play rejects):
   #   ANDROID_KEYSTORE          – Base64-encoded JKS/PKCS12 keystore.
   #   ANDROID_KEYSTORE_PASSWORD – Keystore password.
   #   ANDROID_KEY_ALIAS         – Key alias inside the keystore.
@@ -141,10 +142,24 @@ jobs:
           IFS='.' read -ra P <<< "$VERSION"
           echo "VERSION_CODE=$((${P[0]} * 10000 + ${P[1]} * 100 + ${P[2]}))" >> "$GITHUB_ENV"
 
+      - name: Verify signing secrets
+        run: |
+          MISSING=""
+          [ -z "$KEYSTORE_B64" ]    && MISSING="$MISSING ANDROID_KEYSTORE"
+          [ -z "$STORE_PASSWORD" ]  && MISSING="$MISSING ANDROID_KEYSTORE_PASSWORD"
+          [ -z "$KEY_ALIAS" ]       && MISSING="$MISSING ANDROID_KEY_ALIAS"
+          [ -z "$KEY_PASSWORD" ]    && MISSING="$MISSING ANDROID_KEY_PASSWORD"
+          if [ -n "$MISSING" ]; then
+            echo "::error::Missing repository secret(s):$MISSING. Without them the packages are signed with a debug key, which Google Play rejects. Add them under Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
       - name: Decode keystore
         run: |
-          if [ -n "$KEYSTORE_B64" ]; then
-            echo "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/keystore.jks"
+          echo "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/keystore.jks"
+          if [ ! -s "$RUNNER_TEMP/keystore.jks" ]; then
+            echo "::error::Decoded keystore is empty – check the ANDROID_KEYSTORE secret is valid base64."
+            exit 1
           fi
 
       - name: Build Android packages
@@ -157,20 +172,13 @@ jobs:
             "-p:ApplicationVersion=$VERSION_CODE"
             # MSBuild treats a raw ';' here as a switch separator on Unix, so encode it.
             "-p:AndroidPackageFormats=apk%3Baab"
+            "-p:AndroidKeyStore=true"
+            "-p:AndroidSigningKeyStore=$RUNNER_TEMP/keystore.jks"
+            "-p:AndroidSigningKeyAlias=$KEY_ALIAS"
+            "-p:AndroidSigningKeyPass=$KEY_PASSWORD"
+            "-p:AndroidSigningStorePass=$STORE_PASSWORD"
             "-o" "publish/android"
           )
-          if [ -n "$KEY_ALIAS" ] && [ -f "$RUNNER_TEMP/keystore.jks" ]; then
-            echo "Signing secrets are present – building signed packages."
-            PUBLISH_ARGS+=(
-              "-p:AndroidKeyStore=true"
-              "-p:AndroidSigningKeyStore=$RUNNER_TEMP/keystore.jks"
-              "-p:AndroidSigningKeyAlias=$KEY_ALIAS"
-              "-p:AndroidSigningKeyPass=$KEY_PASSWORD"
-              "-p:AndroidSigningStorePass=$STORE_PASSWORD"
-            )
-          else
-            echo "::warning::Signing secrets not configured – producing unsigned packages."
-          fi
           dotnet publish "${PUBLISH_ARGS[@]}"
 
       - name: Rename Android packages
