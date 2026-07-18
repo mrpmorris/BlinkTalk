@@ -109,10 +109,10 @@ jobs:
 
   # ── 4. Build – Android ────────────────────────────────────────────────────
   # Produces:
-  #   • BlinkTalk-android-{version}.apk — release-signed APK
-  #   • BlinkTalk-GooglePlayStore-{version}.aab — release-signed App Bundle
+  #   • BlinkTalk-android-{version}.apk — APK (signed when secrets are set)
+  #   • BlinkTalk-GooglePlayStore-{version}.aab — App Bundle (signed when secrets are set)
   #
-  # Required secrets:
+  # Optional secrets (signing is skipped when any of these are absent):
   #   ANDROID_KEYSTORE          – Base64-encoded JKS/PKCS12 keystore.
   #   ANDROID_KEYSTORE_PASSWORD – Keystore password.
   #   ANDROID_KEY_ALIAS         – Key alias inside the keystore.
@@ -122,6 +122,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       VERSION: ${{ github.ref_name }}
+      KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE }}
+      KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
     steps:
       - uses: actions/checkout@v5
 
@@ -138,24 +142,35 @@ jobs:
           echo "VERSION_CODE=$((${P[0]} * 10000 + ${P[1]} * 100 + ${P[2]}))" >> "$GITHUB_ENV"
 
       - name: Decode keystore
-        env:
-          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
-        run: echo "$ANDROID_KEYSTORE" | base64 --decode > "$RUNNER_TEMP/keystore.jks"
-
-      - name: Build signed Android packages
         run: |
-          dotnet publish Source/BlinkTalk/BlinkTalk.csproj \
-            -f net10.0-android \
-            -c Release \
-            -p:ApplicationDisplayVersion="$VERSION" \
-            -p:ApplicationVersion="$VERSION_CODE" \
-            -p:AndroidKeyStore=true \
-            -p:AndroidSigningKeyStore="$RUNNER_TEMP/keystore.jks" \
-            -p:AndroidSigningKeyAlias="${{ secrets.ANDROID_KEY_ALIAS }}" \
-            -p:AndroidSigningKeyPass="${{ secrets.ANDROID_KEY_PASSWORD }}" \
-            -p:AndroidSigningStorePass="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
-            -p:AndroidPackageFormats=apk%3Baab \
-            -o publish/android
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/keystore.jks"
+          fi
+
+      - name: Build Android packages
+        run: |
+          PUBLISH_ARGS=(
+            "Source/BlinkTalk/BlinkTalk.csproj"
+            "-f" "net10.0-android"
+            "-c" "Release"
+            "-p:ApplicationDisplayVersion=$VERSION"
+            "-p:ApplicationVersion=$VERSION_CODE"
+            "-p:AndroidPackageFormats=apk;aab"
+            "-o" "publish/android"
+          )
+          if [ -n "$KEY_ALIAS" ] && [ -f "$RUNNER_TEMP/keystore.jks" ]; then
+            echo "Signing secrets are present – building signed packages."
+            PUBLISH_ARGS+=(
+              "-p:AndroidKeyStore=true"
+              "-p:AndroidSigningKeyStore=$RUNNER_TEMP/keystore.jks"
+              "-p:AndroidSigningKeyAlias=$KEY_ALIAS"
+              "-p:AndroidSigningKeyPass=$KEY_PASSWORD"
+              "-p:AndroidSigningStorePass=$STORE_PASSWORD"
+            )
+          else
+            echo "::warning::Signing secrets not configured – producing unsigned packages."
+          fi
+          dotnet publish "${PUBLISH_ARGS[@]}"
 
       - name: Rename Android packages
         run: |
