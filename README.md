@@ -43,15 +43,3 @@ Selecting moves through a hierarchy of scanners:
 To keep typing fast, BlinkTalk predicts what the person is most likely to say next. A bundled dictionary
 plus a word-sequence (n-gram) model learns the person's vocabulary and phrasing over time, so frequently
 used words and natural word combinations are offered first.
-
-## Projects
-
-The solution (`BlinkTalk.sln`) has three projects under `Source/`:
-
-- **`BlinkTalk.Application` — all the scanning, prediction, and persistence logic.
-  Contains no MAUI or Blazor types, so it can be unit-tested on plain .NET. Platform concerns enter only
-  through interfaces (text-to-speech, settings, clock, UI dispatch, the database).
-- **`BlinkTalk`** — the .NET MAUI Blazor Hybrid host (Android, iOS, Mac Catalyst, Windows). Holds the
-  Razor UI, the platform implementations of those interfaces, and the bundled `English.db` dictionary.
-- **`BlinkTalk.Application.Tests`** — xUnit tests for the logic library.
-
