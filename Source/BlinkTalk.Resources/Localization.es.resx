@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Camera_CameraPermissionWasDenied" xml:space="preserve">
+    <value>Se negó el permiso de la cámara. Active la cámara para BlinkTalk en la configuración de su dispositivo, luego abra esta página nuevamente.</value>
+  </data>
+  <data name="Camera_CameraReady" xml:space="preserve">
+    <value>Cámara lista. Presione Entrenar y siga las instrucciones.</value>
+  </data>
+  <data name="Camera_CouldNotStartTheCameraX0Format" xml:space="preserve">
+    <value>No se pudo iniciar la cámara: {0}</value>
+  </data>
+  <data name="Camera_DetectedX0GestureFormat" xml:space="preserve">
+    <value>¡Entrenamiento exitoso! Detecté su gesto " {0}". Asegúrese de que 'Usar cámara' esté marcado para poder usarlo.</value>
+  </data>
+  <data name="Camera_EyeGesture" xml:space="preserve">
+    <value>Gesto ocular</value>
+  </data>
+  <data name="Camera_HoldTimeX0SecondsFormat" xml:space="preserve">
+    <value>Tiempo de retención: {0:0.0} segundos</value>
+  </data>
+  <data name="Camera_Instructions_CouldNotDetectGesture" xml:space="preserve">
+    <value>No pude detectar un gesto claro y repetible - volvamos a intentarlo.</value>
+  </data>
+  <data name="Camera_Instructions_LookAtCamera" xml:space="preserve">
+    <value>Mire a la pantalla y relaje su rostro. No mire a la cámara.</value>
+  </data>
+  <data name="Camera_Instructions_MakeIndicatingGesture" xml:space="preserve">
+    <value>Ahora haga su gesto indicador y mainténgalo hasta que le diga que se relaje. Recomiendo que mire hacia arriba.</value>
+  </data>
+  <data name="Camera_Instructions_NowRelax" xml:space="preserve">
+    <value>Ahora relájese.</value>
+  </data>
+  <data name="Camera_LearntGesture" xml:space="preserve">
+    <value>Gesto aprendido</value>
+  </data>
+  <data name="Camera_StartingCamera" xml:space="preserve">
+    <value>Iniciando cámara</value>
+  </data>
+  <data name="Camera_TestingInstructions" xml:space="preserve">
+    <value>Mantenga su gesto y la barra se llenará con el tiempo. Ajuste el control deslizante donde le gustaría que se active. Escuchará un bip cuando la barra lo alcance.</value>
+  </data>
+  <data name="Camera_Train" xml:space="preserve">
+    <value>Entrenar</value>
+  </data>
+  <data name="Camera_TrainFirst" xml:space="preserve">
+    <value>Entrenar primero</value>
+  </data>
+  <data name="Camera_Training" xml:space="preserve">
+    <value>Entrenamiento</value>
+  </data>
+  <data name="Camera_TrainingFailedX0Format" xml:space="preserve">
+    <value>Entrenamiento fallido: {0}</value>
+  </data>
+  <data name="Camera_UseCamera" xml:space="preserve">
+    <value>Usar cámara</value>
+  </data>
+  <data name="Gesture_Blink" xml:space="preserve">
+    <value>parpadear</value>
+  </data>
+  <data name="Gesture_LookSideways" xml:space="preserve">
+    <value>mirar hacia los lados</value>
+  </data>
+  <data name="Gesture_LookUp" xml:space="preserve">
+    <value>mirar hacia arriba</value>
+  </data>
+  <data name="Gesture_RaiseEyebrows" xml:space="preserve">
+    <value>levantar las cejas</value>
+  </data>
+  <data name="Gesture_Smile" xml:space="preserve">
+    <value>sonreír</value>
+  </data>
+  <data name="NotFound_ErrorDescription" xml:space="preserve">
+    <value>La aplicación intentó acceder a una página que no existe. Informe este problema.</value>
+  </data>
+  <data name="NotFound_NotFound" xml:space="preserve">
+    <value>No encontrado</value>
+  </data>
+  <data name="Settings_AssistantPressesSpaceBarOnKeyboard" xml:space="preserve">
+    <value>El asistente presiona la barra espaciadora en el teclado</value>
+  </data>
+  <data name="Settings_AssistantTapsScreenOrClicksMouse" xml:space="preserve">
+    <value>El asistente toca la pantalla o hace clic con el mouse</value>
+  </data>
+  <data name="Settings_IndicatorMethod" xml:space="preserve">
+    <value>Método indicador</value>
+  </data>
+  <data name="Settings_ScanSpeed" xml:space="preserve">
+    <value>Velocidad de escaneo</value>
+  </data>
+  <data name="Settings_ScanSpeed_Description" xml:space="preserve">
+    <value>Cuántos segundos esperar antes de que la selección pase al siguiente elemento. Menor es más rápido.</value>
+  </data>
+  <data name="Settings_ScanSpeed_ScanSpeedX0SecondsPerStepFormat" xml:space="preserve">
+    <value>Velocidad de escaneo: {0:0.0} segundos por paso</value>
+  </data>
+  <data name="Settings_SetUpCamera" xml:space="preserve">
+    <value>Configurar cámara</value>
+  </data>
+  <data name="Settings_Title" xml:space="preserve">
+    <value>Configuración</value>
+  </data>
+  <data name="Settings_UseCameraToDetectEyeGesture" xml:space="preserve">
+    <value>Usar cámara para detectar gesto ocular</value>
+  </data>
+  <data name="Shared_Done" xml:space="preserve">
+    <value>Hecho</value>
+  </data>
+</root>
