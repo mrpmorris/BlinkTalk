@@ -221,7 +221,7 @@ public partial class Camera
 				await SayAsync("Look at the screen and relax your face. Do not look at the camera.");
 				var neutral = await Module.InvokeAsync<BlendStat[]>("captureWindow", 3000);
 
-				await SayAsync("Now make your indicating gesture and hold it until I tell you to relax.");
+				await SayAsync("Now make your indicating gesture and hold it until I tell you to relax. I recommend you look up.");
 				var active = await Module.InvokeAsync<BlendStat[]>("captureWindow", 3000);
 
 				await SayAsync("Now relax.");
