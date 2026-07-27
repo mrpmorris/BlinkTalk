@@ -186,6 +186,12 @@
   <data name="Gesture_Smile" xml:space="preserve">
     <value>smile</value>
   </data>
+  <data name="NotFound_ErrorDescription" xml:space="preserve">
+    <value>The application tried to access a page that does not exist. Please report this issue.</value>
+  </data>
+  <data name="NotFound_NotFound" xml:space="preserve">
+    <value>Not found</value>
+  </data>
   <data name="Settings_AssistantPressesSpaceBarOnKeyboard" xml:space="preserve">
     <value>Assistant presses space-bar on keyboard</value>
   </data>

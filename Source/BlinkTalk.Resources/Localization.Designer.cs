@@ -268,6 +268,24 @@ namespace BlinkTalk.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The application tried to access a page that does not exist. Please report this issue..
+        /// </summary>
+        public static string NotFound_ErrorDescription {
+            get {
+                return ResourceManager.GetString("NotFound_ErrorDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Not found.
+        /// </summary>
+        public static string NotFound_NotFound {
+            get {
+                return ResourceManager.GetString("NotFound_NotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Assistant presses space-bar on keyboard.
         /// </summary>
         public static string Settings_AssistantPressesSpaceBarOnKeyboard {
