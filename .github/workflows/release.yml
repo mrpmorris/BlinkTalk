@@ -55,7 +55,7 @@ jobs:
 
   # ── 3. Build – Windows ────────────────────────────────────────────────────
   # Produces:
-  #   • BlinkTalk-windows-{version}.msi — WiX installer wrapping the self-contained
+  #   • BlinkTalk-windows.msi — WiX installer wrapping the self-contained
   #     (unpackaged) build. No code-signing certificate required.
   build-windows:
     needs: test
@@ -100,17 +100,17 @@ jobs:
             -p:ProductVersion="$VERSION" \
             -p:AppPublishDir="$PWD/publish/portable" \
             -o publish/installer
-          cp publish/installer/BlinkTalk-Setup.msi "BlinkTalk-windows-$VERSION.msi"
+          cp publish/installer/BlinkTalk-Setup.msi "BlinkTalk-windows.msi"
 
       - uses: actions/upload-artifact@v4
         with:
           name: windows-artifacts
-          path: BlinkTalk-windows-${{ env.VERSION }}.msi
+          path: BlinkTalk-windows.msi
 
   # ── 4. Build – Android ────────────────────────────────────────────────────
   # Produces:
-  #   • BlinkTalk-android-{version}.apk — APK (signed when secrets are set)
-  #   • BlinkTalk-GooglePlayStore-{version}.aab — App Bundle (signed when secrets are set)
+  #   • BlinkTalk-android.apk — APK (signed when secrets are set)
+  #   • BlinkTalk-GooglePlayStore.aab — App Bundle (signed when secrets are set)
   #
   # Required secrets (the job fails if any are absent — otherwise MAUI silently
   # signs with a debug key, which Google Play rejects):
@@ -195,7 +195,7 @@ jobs:
             echo "::error::No APK found in $PACKAGE_DIRS."
             exit 1
           fi
-          cp "$APK" "BlinkTalk-android-$VERSION.apk"
+          cp "$APK" "BlinkTalk-android.apk"
 
           AAB=$(find $PACKAGE_DIRS -type f -iname "*-signed.aab" | head -1)
           if [ -z "$AAB" ]; then
@@ -205,14 +205,14 @@ jobs:
             echo "::error::No AAB found in $PACKAGE_DIRS."
             exit 1
           fi
-          cp "$AAB" "BlinkTalk-GooglePlayStore-$VERSION.aab"
+          cp "$AAB" "BlinkTalk-GooglePlayStore.aab"
 
       - uses: actions/upload-artifact@v4
         with:
           name: android-artifacts
           path: |
-            BlinkTalk-android-${{ env.VERSION }}.apk
-            BlinkTalk-GooglePlayStore-${{ env.VERSION }}.aab
+            BlinkTalk-android.apk
+            BlinkTalk-GooglePlayStore.aab
 
   # ── 5. Release ────────────────────────────────────────────────────────────
   # Creates a GitHub Release and attaches all build artifacts.
@@ -239,6 +239,6 @@ jobs:
           name: BlinkTalk ${{ env.VERSION }}
           generate_release_notes: true
           files: |
-            BlinkTalk-windows-${{ env.VERSION }}.msi
-            BlinkTalk-android-${{ env.VERSION }}.apk
-            BlinkTalk-GooglePlayStore-${{ env.VERSION }}.aab
+            BlinkTalk-windows.msi
+            BlinkTalk-android.apk
+            BlinkTalk-GooglePlayStore.aab
