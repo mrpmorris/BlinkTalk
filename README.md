@@ -3,7 +3,7 @@
 Written for a friend with locked-in syndrome.
 
 Get the latest releases here
-* [Windows](https://github.com/mrpmorris/BlinkTalk/releases#:~:text=BlinkTalk%2Dwindows%2D)
+* [Windows](https://github.com/mrpmorris/BlinkTalk/releases#:~:text=BlinkTalk%2Dwindows)
 * [Android](https://play.google.com/store/apps/details?id=com.airsoftwarelimited.blinktalk.app)
 
 BlinkTalk is a single-switch [AAC](https://en.wikipedia.org/wiki/Augmentative_and_alternative_communication)
