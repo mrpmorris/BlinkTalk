@@ -1,7 +1,9 @@
 using BlinkTalk.Application.Abstractions;
+using BlinkTalk.Resources;
 using BlinkTalk.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using Microsoft.Maui.Platform;
 
 namespace BlinkTalk.Components.Pages;
 
@@ -21,7 +23,7 @@ public partial class Camera
 	private string? SignalDescription;
 	private readonly ITextToSpeechService Speech;
 	private bool Started;
-	private string Status = "Starting camera…";
+	private string Status = Localization.Camera_StartingCamera;
 	private ElementReference Video;
 
 	public Camera(IJSRuntime jsRuntime, CameraIndicatorConfig config, ITextToSpeechService speech, NavigationManager navigation)
@@ -50,7 +52,7 @@ public partial class Camera
 		{
 			if (!await EnsureCameraPermissionAsync())
 			{
-				Error = "Camera permission was denied. Enable the camera for BlinkTalk in your device settings, then reopen this page.";
+				Error = Localization.Camera_CameraPermissionWasDenied;
 				Status = "";
 				await InvokeAsync(StateHasChanged);
 				return;
@@ -67,11 +69,11 @@ public partial class Camera
 				await ArmDetectAsync();
 				StartMeterLoop();
 			}
-			Status = "Camera ready. Press Train and follow the prompts.";
+			Status = Localization.Camera_CameraReady;
 		}
 		catch (Exception ex)
 		{
-			Error = "Could not start the camera: " + ex.Message;
+			Error = string.Format(Localization.Camera_CouldNotStartTheCameraX0Format, ex.Message);
 			Status = "";
 		}
 		await InvokeAsync(StateHasChanged);
@@ -118,11 +120,11 @@ public partial class Camera
 	}
 
 	private static string Describe(string signal) => signal switch {
-		"eyeLookUpLeft" or "eyeLookUpRight" => "look up",
-		"eyeLookDownLeft" or "eyeLookDownRight" or "eyeBlinkLeft" or "eyeBlinkRight" => "blink",
-		"eyeLookInLeft" or "eyeLookInRight" or "eyeLookOutLeft" or "eyeLookOutRight" => "look sideways",
-		"browInnerUp" or "browOuterUpLeft" or "browOuterUpRight" => "raise eyebrows",
-		"mouthSmileLeft" or "mouthSmileRight" => "smile",
+		"eyeLookUpLeft" or "eyeLookUpRight" => Localization.Gesture_LookUp,
+		"eyeLookDownLeft" or "eyeLookDownRight" or "eyeBlinkLeft" or "eyeBlinkRight" => Localization.Gesture_Blink,
+		"eyeLookInLeft" or "eyeLookInRight" or "eyeLookOutLeft" or "eyeLookOutRight" => Localization.Gesture_LookSideways,
+		"browInnerUp" or "browOuterUpLeft" or "browOuterUpRight" => Localization.Gesture_RaiseEyebrows,
+		"mouthSmileLeft" or "mouthSmileRight" => Localization.Gesture_Smile,
 		"jawOpen" => "open mouth",
 		_ => signal
 	};
@@ -218,25 +220,25 @@ public partial class Camera
 			// brackets each capture window — capturing happens during the pause after each prompt.
 			while (true)
 			{
-				await SayAsync("Look at the screen and relax your face. Do not look at the camera.");
+				await SayAsync(Localization.Camera_Instructions_LookAtCamera);
 				var neutral = await Module.InvokeAsync<BlendStat[]>("captureWindow", 3000);
 
-				await SayAsync("Now make your indicating gesture and hold it until I tell you to relax. I recommend you look up.");
+				await SayAsync(Localization.Camera_Instructions_MakeIndicatingGesture);
 				var active = await Module.InvokeAsync<BlendStat[]>("captureWindow", 3000);
 
-				await SayAsync("Now relax.");
+				await SayAsync(Localization.Camera_Instructions_NowRelax);
 
 				var (signal, threshold, separation) = ChooseSignal(neutral, active);
 				if (signal is null)
 				{
-					Status = "I couldn't detect a clear, repeatable gesture — let's try again.";
+					Status = Localization.Camera_Instructions_CouldNotDetectGesture;
 					await SayAsync(Status);
 					continue; // restart the training run
 				}
 
 				Config.SaveTraining(signal, threshold);
 				SignalDescription = Describe(signal);
-				Status = $"Training successful! I detected your “{SignalDescription}” gesture. Ensure ‘Use camera’ is ticked so you can use it.";
+				Status = string.Format(Localization.Camera_DetectedX0GestureFormat, SignalDescription);
 				await SayAsync(Status);
 				await ArmDetectAsync();
 				StartMeterLoop();
@@ -245,7 +247,7 @@ public partial class Camera
 		}
 		catch (Exception ex)
 		{
-			Error = "Training failed: " + ex.Message;
+			Error = string.Format(Localization.Camera_TrainingFailedX0Format, ex.Message);
 		}
 		finally
 		{

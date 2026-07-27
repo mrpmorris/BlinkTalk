@@ -82,6 +82,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\BlinkTalk.Application\BlinkTalk.Application.csproj" />
+      <ProjectReference Include="..\BlinkTalk.Resources\BlinkTalk.Resources.csproj" />
     </ItemGroup>
 
 </Project>
