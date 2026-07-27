@@ -101,11 +101,14 @@ jobs:
             -p:AppPublishDir="$PWD/publish/portable" \
             -o publish/installer
           cp publish/installer/BlinkTalk-Setup.msi "BlinkTalk-windows-$VERSION.msi"
+          cp publish/installer/BlinkTalk-Setup.msi "BlinkTalk-windows.msi"
 
       - uses: actions/upload-artifact@v4
         with:
           name: windows-artifacts
-          path: BlinkTalk-windows-${{ env.VERSION }}.msi
+          path: |
+            BlinkTalk-windows-${{ env.VERSION }}.msi
+            BlinkTalk-windows.msi
 
   # ── 4. Build – Android ────────────────────────────────────────────────────
   # Produces:
@@ -240,5 +243,6 @@ jobs:
           generate_release_notes: true
           files: |
             BlinkTalk-windows-${{ env.VERSION }}.msi
+            BlinkTalk-windows.msi
             BlinkTalk-android-${{ env.VERSION }}.apk
             BlinkTalk-GooglePlayStore-${{ env.VERSION }}.aab
