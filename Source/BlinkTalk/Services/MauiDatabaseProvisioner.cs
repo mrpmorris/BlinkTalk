@@ -6,31 +6,18 @@ using Microsoft.Maui.Storage;
 namespace BlinkTalk.Services;
 
 /// <summary>
-/// Copies the bundled, read-only database asset out to the writable app-data directory on
-/// first run, then hands back that path. The shipped DB lives inside the app package (and is
-/// read-only on Android), but the learned word-sequence tables must be writable. The bundled
-/// asset is named after the language (e.g. "English.db"); the writable copy is always
-/// "BlinkTalk.db".
+/// Resolves the writable path for the database and ensures the directory exists. The file itself
+/// is created and seeded by AutoMigratingDatabase. The name carries the language
+/// (e.g. "BlinkTalk-English.db") so each language keeps its own dictionary and learned n-grams,
+/// matching the word list it was seeded from.
 /// </summary>
 public sealed class MauiDatabaseProvisioner : IDatabaseProvisioner
 {
-    private const string WritableFileName = "BlinkTalk.db";
-
-    public string EnsureDatabase(string languageName)
+    public string GetDatabasePath()
     {
-        string sourceFileName = languageName + ".db";
         string targetDirectory = GetWritableDirectory();
         Directory.CreateDirectory(targetDirectory);
-        string targetPath = Path.Combine(targetDirectory, WritableFileName);
-
-        if (!File.Exists(targetPath))
-        {
-            using Stream source = FileSystem.Current.OpenAppPackageFileAsync(sourceFileName).GetAwaiter().GetResult();
-            using FileStream destination = File.Create(targetPath);
-            source.CopyTo(destination);
-        }
-
-        return targetPath;
+        return Path.Combine(targetDirectory, $"BlinkTalk-{AppLanguage.Name}.db");
     }
 
     /// <summary>

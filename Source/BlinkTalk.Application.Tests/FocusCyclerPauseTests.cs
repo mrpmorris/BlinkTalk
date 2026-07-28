@@ -98,7 +98,7 @@ public class FocusCyclerPauseTests
     private static FocusCycler BuildPausable(double delaySeconds, List<int> fired, GatedDelay gate, IClock clock)
     {
         return new FocusCycler(
-            new InlineUiDispatcher(),
+            new InlineUIDispatcher(),
             i => fired.Add(i),
             () => TimeSpan.FromSeconds(delaySeconds),
             firstCycleMultiplier: 1,

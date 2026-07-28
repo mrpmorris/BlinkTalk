@@ -66,12 +66,9 @@ public sealed class WordService : IWordService
 
     private int GetWordId(string word)
     {
-        DataTable data = Database.ExecuteQuery(
+        object? id = Database.ExecuteScalar(
             "Select ID from Words where Word = @word",
             ("@word", word));
-        int result = -1;
-        if (data.Rows.Count == 1)
-            result = Convert.ToInt32(data.Rows[0]["ID"]);
-        return result;
+        return id == null ? -1 : Convert.ToInt32(id);
     }
 }

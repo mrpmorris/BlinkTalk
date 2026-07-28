@@ -9,13 +9,13 @@ namespace BlinkTalk.Application.Abstractions;
 /// highlight) is funnelled through here so all mutation happens single-threaded on the
 /// UI thread — the same guarantee Unity gave for free by running everything on the main thread.
 /// </summary>
-public interface IUiDispatcher
+public interface IUIDispatcher
 {
     Task InvokeAsync(Action action);
 }
 
 /// <summary>An inline dispatcher that runs actions synchronously. Used by unit tests.</summary>
-public sealed class InlineUiDispatcher : IUiDispatcher
+public sealed class InlineUIDispatcher : IUIDispatcher
 {
     public Task InvokeAsync(Action action)
     {

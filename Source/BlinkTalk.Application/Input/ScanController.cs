@@ -28,7 +28,7 @@ public sealed class ScanController : IScanController, IDisposable
     private FocusCycler? ActiveCycler;
     private readonly IClock Clock;
     private readonly Func<TimeSpan, CancellationToken, Task>? Delay;
-    private readonly IUiDispatcher Dispatcher;
+    private readonly IUIDispatcher Dispatcher;
     // Number of in-progress held gestures; while > 0 the active cycle is paused.
     private int DwellDepth;
     private readonly IEnumerable<IIndicator> Indicators;
@@ -41,7 +41,7 @@ public sealed class ScanController : IScanController, IDisposable
         KeyboardLayout keyboard,
         ITextToSpeechService speech,
         ISettingsStore settings,
-        IUiDispatcher dispatcher,
+        IUIDispatcher dispatcher,
         IEnumerable<IIndicator> indicators,
         Func<TimeSpan, CancellationToken, Task>? delay = null,
         IClock? clock = null)

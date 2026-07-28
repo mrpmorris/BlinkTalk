@@ -114,8 +114,8 @@ public sealed class PhraseService : IPhraseService
             $" and SuggestedWordId = {phraseWindow.SuggestedWordId}";
 
         int today = DateInt.Today(Clock);
-        DataTable data = Database.ExecuteQuery($"Select ID from WordSequences where {sqlConditions} limit 1");
-        if (data.Rows.Count == 0)
+        object? existingId = Database.ExecuteScalar($"Select ID from WordSequences where {sqlConditions} limit 1");
+        if (existingId == null)
         {
             Database.ExecuteNonQuery(
                 "Insert into WordSequences(PrecedingWord3Id, PrecedingWord2Id, PrecedingWord1Id, SuggestedWordId, UsageCount, LastUsedDate)" +

@@ -48,6 +48,13 @@ public sealed class MicrosoftDataSqliteDatabase : ISqliteDatabase, IDisposable
         return command.ExecuteNonQuery();
     }
 
+    public object? ExecuteScalar(string sql, params (string name, object? value)[] parameters)
+    {
+        using var command = CreateCommand(sql, parameters);
+        object? value = command.ExecuteScalar();
+        return value == DBNull.Value ? null : value;
+    }
+
     private SqliteCommand CreateCommand(string sql, (string name, object? value)[] parameters)
     {
         var command = Connection.CreateCommand();

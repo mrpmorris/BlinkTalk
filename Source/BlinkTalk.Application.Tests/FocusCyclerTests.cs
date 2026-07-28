@@ -15,7 +15,7 @@ public class FocusCyclerTests
         var gate = new StepDelay();
         bool exhausted = false;
         var cycler = new FocusCycler(
-            new InlineUiDispatcher(),
+            new InlineUIDispatcher(),
             i => fired.Add(i),
             () => TimeSpan.Zero,
             mayFocus: _ => false,
@@ -92,7 +92,7 @@ public class FocusCyclerTests
     private static FocusCycler Build(int items, Func<int, bool> mayFocus, List<int> fired, StepDelay gate)
     {
         return new FocusCycler(
-            new InlineUiDispatcher(),
+            new InlineUIDispatcher(),
             i => fired.Add(i),
             () => TimeSpan.Zero,
             firstCycleMultiplier: 1,

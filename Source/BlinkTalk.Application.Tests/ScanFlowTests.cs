@@ -93,7 +93,7 @@ public class ScanFlowTests
         var gate = new StepDelay();
         var indicator = new FakeIndicator();
         var controller = new ScanController(
-            sentence, keyboard, tts, new FakeSettingsStore(), new InlineUiDispatcher(),
+            sentence, keyboard, tts, new FakeSettingsStore(), new InlineUIDispatcher(),
             new[] { indicator }, gate.Delay);
         return (controller, indicator, gate, tts);
     }

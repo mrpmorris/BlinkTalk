@@ -31,7 +31,7 @@
 
   <ItemGroup>
     <!-- The shipped dictionary/phrase DB, for parity tests against real data. -->
-    <None Include="..\BlinkTalk\Resources\Raw\English.db" Link="English.db" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\BlinkTalk\Resources\Raw\English.zip" Link="English.zip" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

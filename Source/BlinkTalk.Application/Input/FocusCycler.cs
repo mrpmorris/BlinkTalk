@@ -12,7 +12,7 @@ namespace BlinkTalk.Application.Input;
 /// without consuming a dwell — exactly as the original Unity coroutine behaved.
 ///
 /// The Unity <c>WaitForSeconds</c> coroutine is replaced by an async loop. Every callback is
-/// marshalled through the <see cref="IUiDispatcher"/> so it runs on the UI thread, matching
+/// marshalled through the <see cref="IUIDispatcher"/> so it runs on the UI thread, matching
 /// the single-threaded guarantee Unity provided. The delay is injectable so tests can step
 /// the cycle deterministically. If a full sweep finds nothing focusable the loop exits via
 /// <c>onExhausted</c> rather than spinning.
@@ -30,7 +30,7 @@ public sealed class FocusCycler
     private CancellationTokenSource? Cts;
     private readonly Func<TimeSpan> CycleDelay;
     private readonly Func<TimeSpan, CancellationToken, Task> Delay;
-    private readonly IUiDispatcher Dispatcher;
+    private readonly IUIDispatcher Dispatcher;
     private CancellationTokenSource? DwellInterrupt;
     private readonly double FirstCycleMultiplier;
     private readonly Action<int> FocusChanged;
@@ -45,7 +45,7 @@ public sealed class FocusCycler
     private TaskCompletionSource<bool>? ResumeGate;
 
     public FocusCycler(
-        IUiDispatcher dispatcher,
+        IUIDispatcher dispatcher,
         Action<int> focusChanged,
         Func<TimeSpan> cycleDelay,
         double firstCycleMultiplier = 1,

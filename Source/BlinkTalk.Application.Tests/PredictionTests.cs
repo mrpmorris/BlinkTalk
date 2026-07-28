@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using BlinkTalk.Application.Persistence;
@@ -69,14 +70,15 @@ public class PredictionTests
     [Fact]
     public void RealDatabaseSchemaSupportsDictionaryAndPhraseQueries()
     {
-        string temp = CopyRealDbToTemp();
+        string temp = Path.Combine(Path.GetTempPath(), "blinktalk_test_" + Guid.NewGuid().ToString("N") + ".db");
         try
         {
             using var db = new MicrosoftDataSqliteDatabase(temp);
+            new AutoMigratingDatabase(db, new FixedClock(), new ZipSeedWordSource()).Migrate();
             var words = new WordService(db);
 
             // Dictionary prefix lookup returns real suggestions (schema/columns match the ported SQL).
-            // WordService normalises the query to upper case, and the shipped DB stores words
+            // WordService normalises the query to upper case, and the bundled word list stores words
             // upper case, so results come back upper case and prefixed with "TH".
             var dictionary = words.GetWordSuggestions("th", 6);
             Assert.NotEmpty(dictionary);
@@ -112,23 +114,22 @@ public class PredictionTests
         Assert.Equal(2, Convert.ToInt32(row[0]["UserSelectionCount"]));
     }
 
-    // --- Parity against the shipped English.db ---
+    // --- Parity against the bundled word list (English.zip, linked into the test output) ---
 
-    private static string CopyRealDbToTemp()
+    private sealed class ZipSeedWordSource : ISeedWordSource
     {
-        string source = Path.Combine(AppContext.BaseDirectory, "English.db");
-        string temp = Path.Combine(Path.GetTempPath(), "blinktalk_test_" + Guid.NewGuid().ToString("N") + ".db");
-        File.Copy(source, temp, overwrite: true);
-        return temp;
+        public IEnumerable<(string Word, int LanguageUsageCount)> GetWords()
+        {
+            using var zip = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "English.zip"));
+            foreach (var word in WordListZipReader.Read(zip))
+                yield return word;
+        }
     }
 
     private static MicrosoftDataSqliteDatabase NewInMemoryDb()
     {
         var db = new MicrosoftDataSqliteDatabase(":memory:");
-        db.ExecuteNonQuery(
-            "CREATE TABLE Words(ID INTEGER PRIMARY KEY AUTOINCREMENT, Word TEXT, UserSelectionCount INT, LanguageUsageCount INT)");
-        db.ExecuteNonQuery(
-            "CREATE TABLE WordSequences(ID INTEGER PRIMARY KEY AUTOINCREMENT, PrecedingWord3Id INT, PrecedingWord2Id INT, PrecedingWord1Id INT, SuggestedWordId INT, UsageCount INT, LastUsedDate INT)");
+        new AutoMigratingDatabase(db, new FixedClock()).Migrate();
         return db;
     }
 }

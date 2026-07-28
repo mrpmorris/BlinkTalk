@@ -18,11 +18,11 @@ public static class MauiProgram
 		// well as the current thread's: FocusCycler's delay continuations (and therefore
 		// SpeakAsync) run on thread-pool threads, which otherwise keep the system culture and
 		// would resolve the wrong voice.
-		var culture = new CultureInfo("fr-FR");
-		CultureInfo.DefaultThreadCurrentCulture = culture;
-		CultureInfo.DefaultThreadCurrentUICulture = culture;
-		CultureInfo.CurrentCulture = culture;
-		CultureInfo.CurrentUICulture = culture;
+		//var culture = new CultureInfo("fr-FR");
+		//CultureInfo.DefaultThreadCurrentCulture = culture;
+		//CultureInfo.DefaultThreadCurrentUICulture = culture;
+		//CultureInfo.CurrentCulture = culture;
+		//CultureInfo.CurrentUICulture = culture;
 
 		var builder = MauiApp.CreateBuilder();
 		builder
@@ -59,18 +59,19 @@ public static class MauiProgram
 	{
 		// Platform abstractions
 		services.AddSingleton<IClock, SystemClock>();
-		services.AddSingleton<IUiDispatcher, MauiUiDispatcher>();
+		services.AddSingleton<IUIDispatcher, MauiUIDispatcher>();
 		services.AddSingleton<ISettingsStore, MauiPreferencesSettings>();
 		services.AddSingleton<ITextToSpeechService, MauiTtsService>();
 
-		// Database: copy the bundled English.db to writable storage, open it, run maintenance.
+		// Database: create/seed the writable database from SQL + the bundled word list, run maintenance.
 		services.AddSingleton<IDatabaseProvisioner, MauiDatabaseProvisioner>();
+		services.AddSingleton<ISeedWordSource, MauiSeedWordSource>();
 		services.AddSingleton<ISqliteDatabase>(sp =>
 		{
 			var provisioner = sp.GetRequiredService<IDatabaseProvisioner>();
-			string path = provisioner.EnsureDatabase("English");
+			string path = provisioner.GetDatabasePath();
 			var database = new MicrosoftDataSqliteDatabase(path);
-			new AutoMigratingDatabase(database, sp.GetRequiredService<IClock>()).Migrate();
+			new AutoMigratingDatabase(database, sp.GetRequiredService<IClock>(), sp.GetRequiredService<ISeedWordSource>()).Migrate();
 			return database;
 		});
 
