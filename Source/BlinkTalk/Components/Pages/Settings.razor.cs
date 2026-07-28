@@ -1,6 +1,7 @@
 using BlinkTalk.Application.Input;
 using BlinkTalk.Services;
 using Microsoft.AspNetCore.Components;
+using System.Globalization;
 
 namespace BlinkTalk.Components.Pages;
 
@@ -30,7 +31,7 @@ public partial class Settings
 
 	private void OnScanSpeedChanged(ChangeEventArgs e)
 	{
-		if (double.TryParse(e.Value?.ToString(), out double seconds))
+		if (double.TryParse(e.Value?.ToString(), CultureInfo.InvariantCulture, out double seconds))
 		{
 			ScanSpeed = seconds;
 			Controller.CycleDelaySeconds = seconds;

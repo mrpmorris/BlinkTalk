@@ -18,11 +18,11 @@ public static class MauiProgram
 		// well as the current thread's: FocusCycler's delay continuations (and therefore
 		// SpeakAsync) run on thread-pool threads, which otherwise keep the system culture and
 		// would resolve the wrong voice.
-		//var culture = new CultureInfo("fr-FR");
-		//CultureInfo.DefaultThreadCurrentCulture = culture;
-		//CultureInfo.DefaultThreadCurrentUICulture = culture;
-		//CultureInfo.CurrentCulture = culture;
-		//CultureInfo.CurrentUICulture = culture;
+		var culture = new CultureInfo("fr-FR");
+		CultureInfo.DefaultThreadCurrentCulture = culture;
+		CultureInfo.DefaultThreadCurrentUICulture = culture;
+		CultureInfo.CurrentCulture = culture;
+		CultureInfo.CurrentUICulture = culture;
 
 		var builder = MauiApp.CreateBuilder();
 		builder
