@@ -14,15 +14,9 @@ public static class MauiProgram
 {
 	public static MauiApp CreateMauiApp()
 	{
-		// To test another language, uncomment and change the tag. Set the DefaultThread* pair as
-		// well as the current thread's: FocusCycler's delay continuations (and therefore
-		// SpeakAsync) run on thread-pool threads, which otherwise keep the system culture and
-		// would resolve the wrong voice.
-		var culture = new CultureInfo("fr-FR");
-		CultureInfo.DefaultThreadCurrentCulture = culture;
-		CultureInfo.DefaultThreadCurrentUICulture = culture;
-		CultureInfo.CurrentCulture = culture;
-		CultureInfo.CurrentUICulture = culture;
+		// To test another language, uncomment and change the tag. The language can also be picked
+		// on the settings page, which calls the same method.
+		AppLanguage.SetCurrent(new CultureInfo("fr-FR"));
 
 		var builder = MauiApp.CreateBuilder();
 		builder
@@ -63,17 +57,12 @@ public static class MauiProgram
 		services.AddSingleton<ISettingsStore, MauiPreferencesSettings>();
 		services.AddSingleton<ITextToSpeechService, MauiTtsService>();
 
-		// Database: create/seed the writable database from SQL + the bundled word list, run maintenance.
+		// Database: create/seed the writable database from SQL + the bundled word list, run
+		// maintenance. AppDatabase does that for the current language, the first time it is asked.
 		services.AddSingleton<IDatabaseProvisioner, MauiDatabaseProvisioner>();
 		services.AddSingleton<ISeedWordSource, MauiSeedWordSource>();
-		services.AddSingleton<ISqliteDatabase>(sp =>
-		{
-			var provisioner = sp.GetRequiredService<IDatabaseProvisioner>();
-			string path = provisioner.GetDatabasePath();
-			var database = new MicrosoftDataSqliteDatabase(path);
-			new AutoMigratingDatabase(database, sp.GetRequiredService<IClock>(), sp.GetRequiredService<ISeedWordSource>()).Migrate();
-			return database;
-		});
+		services.AddSingleton<AppDatabase>();
+		services.AddSingleton<ISqliteDatabase>(sp => sp.GetRequiredService<AppDatabase>());
 
 		// Prediction + sentence building
 		services.AddSingleton<IWordService, WordService>();

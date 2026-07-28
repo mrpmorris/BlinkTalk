@@ -201,6 +201,9 @@
   <data name="Settings_IndicatorMethod" xml:space="preserve">
     <value>Indicator method</value>
   </data>
+  <data name="Settings_Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
   <data name="Settings_ScanSpeed" xml:space="preserve">
     <value>Scan speed</value>
   </data>

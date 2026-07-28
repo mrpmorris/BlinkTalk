@@ -142,6 +142,9 @@
   <data name="Settings_IndicatorMethod" xml:space="preserve">
     <value>Método indicador</value>
   </data>
+  <data name="Settings_Language" xml:space="preserve">
+    <value>Idioma</value>
+  </data>
   <data name="Settings_ScanSpeed" xml:space="preserve">
     <value>Velocidad de escaneo</value>
   </data>

@@ -281,6 +281,16 @@ html, body {
     height: 4vh;
 }
 
+.bt-setting-row select {
+    align-self: flex-start;
+    background: var(--bt-panel-active);
+    color: var(--bt-text);
+    border: 0.3vh solid var(--bt-hl-color);
+    border-radius: 1vh;
+    padding: 1vh 2vw;
+    font-size: 2.6vh;
+}
+
 .bt-settings-back {
     align-self: flex-start;
     background: var(--bt-hl-color);

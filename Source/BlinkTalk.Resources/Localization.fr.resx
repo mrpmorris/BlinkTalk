@@ -142,6 +142,9 @@
   <data name="Settings_IndicatorMethod" xml:space="preserve">
     <value>Méthode indicatrice</value>
   </data>
+  <data name="Settings_Language" xml:space="preserve">
+    <value>Langue</value>
+  </data>
   <data name="Settings_ScanSpeed" xml:space="preserve">
     <value>Vitesse de balayage</value>
   </data>

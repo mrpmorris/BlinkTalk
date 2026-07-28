@@ -1,9 +1,19 @@
 @page "/"
 @page "/settings"
+@using System.Globalization
 
 <div class="bt-settings">
     <h1>@Localization.Settings_Title</h1>
 
+    <div class="bt-setting-row">
+        <label for="language">@Localization.Settings_Language</label>
+        <select id="language" value=@SelectedLanguage @onchange=OnLanguageChanged>
+            @foreach (CultureInfo language in Languages)
+            {
+                <option value=@language.Name>@language.NativeName</option>
+            }
+        </select>
+    </div>
 
     <div class="bt-setting-row">
         <h2>@Localization.Settings_ScanSpeed</h2>

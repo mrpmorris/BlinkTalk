@@ -313,6 +313,15 @@ namespace BlinkTalk.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Language.
+        /// </summary>
+        public static string Settings_Language {
+            get {
+                return ResourceManager.GetString("Settings_Language", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Scan speed.
         /// </summary>
         public static string Settings_ScanSpeed {
