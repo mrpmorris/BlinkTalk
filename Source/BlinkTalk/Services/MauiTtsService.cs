@@ -1,3 +1,5 @@
+using System;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,8 +10,10 @@ namespace BlinkTalk.Services;
 
 /// <summary>
 /// Text-to-speech via MAUI's cross-platform TextToSpeech. Reproduces the original
-/// TextToSpeech.Speak: UK English voice, low pitch and full volume, a trailing period, and
-/// flushing any in-progress utterance by cancelling it.
+/// TextToSpeech.Speak: low pitch and full volume, a trailing period, and flushing any in-progress
+/// utterance by cancelling it. The voice follows <see cref="CultureInfo.CurrentCulture"/> so the
+/// spoken language matches the localised UI; the document's &lt;html lang&gt; has no bearing on it,
+/// because this is the native platform engine rather than the WebView's speechSynthesis.
 ///
 /// Note: MAUI's SpeechOptions exposes Volume, Pitch and Locale but no cross-platform speaking
 /// rate, so the original's slow rate (0.4) is not yet applied. Applying it requires a
@@ -19,9 +23,9 @@ namespace BlinkTalk.Services;
 public sealed class MauiTtsService : ITextToSpeechService
 {
     private CancellationTokenSource? CurrentSpeech;
-    private bool LocaleResolved;
     private const float Pitch = 0.6f;
     private Locale? ResolvedLocale;
+    private string? ResolvedForCulture;
     private const float Volume = 1.0f;
 
     public async Task SpeakAsync(string text)
@@ -43,7 +47,7 @@ public sealed class MauiTtsService : ITextToSpeechService
 
         try
         {
-            await TextToSpeech.Default.SpeakAsync(text + ".", options, cts.Token);
+            await TextToSpeech.Default.SpeakAsync(ToSpokenText(text) + ".", options, cts.Token);
         }
         catch (System.OperationCanceledException)
         {
@@ -51,23 +55,101 @@ public sealed class MauiTtsService : ITextToSpeechService
         }
     }
 
+    /// <summary>
+    /// Lower-cases words that are entirely upper case. The keyboard, the dictionary and the CSS all
+    /// work in upper case, but engines read a short all-caps token as an initialism — the French
+    /// voice says "QUE" as "Q.U.E." — so the display convention has to be undone before speaking.
+    /// Mixed-case text (the localised prompts spoken from the camera page) is left untouched, which
+    /// also leaves genuine acronyms spelled out. Scripts without case (Arabic, Hebrew, CJK, Thai)
+    /// have no upper-case letters, so they never match and are passed through unchanged.
+    /// </summary>
+    private static string ToSpokenText(string text)
+    {
+        var culture = CultureInfo.CurrentCulture;
+        string[] words = text.Split(' ');
+
+        for (int index = 0; index < words.Length; index++)
+        {
+            if (IsAllUpperCase(words[index]))
+                words[index] = ToLowerIfReversible(words[index], culture);
+        }
+
+        return string.Join(" ", words);
+    }
+
+    /// <summary>
+    /// True when a word contains at least one letter and none of its letters are lower case.
+    /// Non-letters (digits, punctuation) neither qualify nor disqualify a word.
+    /// </summary>
+    private static bool IsAllUpperCase(string word)
+    {
+        bool hasLetter = false;
+
+        foreach (char character in word)
+        {
+            if (!char.IsLetter(character))
+                continue;
+            if (!char.IsUpper(character))
+                return false;
+            hasLetter = true;
+        }
+
+        return hasLetter;
+    }
+
+    /// <summary>
+    /// Lower-cases using the culture's own rules (Turkish maps I to a dotless i, and İ to i), but
+    /// only when doing so is reversible: not every upper-case letter has a lower-case counterpart
+    /// that maps back, and where the round trip loses a letter the word is better spoken as typed
+    /// than respelled.
+    /// </summary>
+    private static string ToLowerIfReversible(string word, CultureInfo culture)
+    {
+        string lowered = word.ToLower(culture);
+        return lowered.ToUpper(culture) == word ? lowered : word;
+    }
+
+    /// <summary>
+    /// Picks the installed voice that best matches the current culture: the exact tag first
+    /// (en-GB), then any voice for the same language (fr-CA for fr-FR), then a language-only
+    /// voice. Cached per culture name, so switching language re-resolves rather than reusing a
+    /// stale voice.
+    /// </summary>
     private async Task<Locale?> ResolveLocaleAsync()
     {
-        if (LocaleResolved)
+        var culture = CultureInfo.CurrentCulture;
+        if (ResolvedForCulture == culture.Name)
             return ResolvedLocale;
 
         try
         {
             var locales = (await TextToSpeech.Default.GetLocalesAsync()).ToList();
-            ResolvedLocale = locales.FirstOrDefault(l => l.Language == "en" && l.Country == "GB")
-                      ?? locales.FirstOrDefault(l => l.Language == "en");
+            string language = culture.TwoLetterISOLanguageName;
+            ResolvedLocale =
+                locales.FirstOrDefault(l => ToTag(l).Equals(culture.Name, StringComparison.OrdinalIgnoreCase))
+                ?? locales.FirstOrDefault(l => ToTag(l).StartsWith(language + "-", StringComparison.OrdinalIgnoreCase))
+                ?? locales.FirstOrDefault(l => ToTag(l).Equals(language, StringComparison.OrdinalIgnoreCase));
         }
         catch
         {
             ResolvedLocale = null; // Fall back to the system default voice.
         }
 
-        LocaleResolved = true;
+        ResolvedForCulture = culture.Name;
         return ResolvedLocale;
+    }
+
+    /// <summary>
+    /// Normalises a platform Locale to a BCP-47 tag. Android reports Language "en" with Country
+    /// "GB", whereas Windows reports Language "en-GB" and leaves Country empty, so the two need
+    /// flattening before they can be compared against a culture name.
+    /// </summary>
+    private static string ToTag(Locale locale)
+    {
+        string language = (locale.Language ?? string.Empty).Replace('_', '-');
+        string country = (locale.Country ?? string.Empty).Replace('_', '-');
+        return country.Length == 0 || language.Contains("-")
+            ? language
+            : language + "-" + country;
     }
 }

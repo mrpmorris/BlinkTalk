@@ -1,3 +1,4 @@
+using System.Globalization;
 using BlinkTalk.Services;
 using BlinkTalk.Services.Indicators;
 using BlinkTalk.Application.Abstractions;
@@ -13,6 +14,16 @@ public static class MauiProgram
 {
 	public static MauiApp CreateMauiApp()
 	{
+		// To test another language, uncomment and change the tag. Set the DefaultThread* pair as
+		// well as the current thread's: FocusCycler's delay continuations (and therefore
+		// SpeakAsync) run on thread-pool threads, which otherwise keep the system culture and
+		// would resolve the wrong voice.
+		var culture = new CultureInfo("fr-FR");
+		CultureInfo.DefaultThreadCurrentCulture = culture;
+		CultureInfo.DefaultThreadCurrentUICulture = culture;
+		CultureInfo.CurrentCulture = culture;
+		CultureInfo.CurrentUICulture = culture;
+
 		var builder = MauiApp.CreateBuilder();
 		builder
 			.UseMauiApp<App>()
@@ -30,13 +41,13 @@ public static class MauiProgram
 
 #if ANDROID
 		// Allow the in-page camera feed: grant WebView getUserMedia requests and let media autoplay.
-		Microsoft.AspNetCore.Components.WebView.Maui.BlazorWebViewHandler.BlazorWebViewMapper.AppendToMapping(
-			"BlinkTalkCameraPermissions",
-			(handler, view) =>
-			{
-				handler.PlatformView.Settings.MediaPlaybackRequiresUserGesture = false;
-				handler.PlatformView.SetWebChromeClient(new BlinkTalkWebChromeClient());
-			});
+			Microsoft.AspNetCore.Components.WebView.Maui.BlazorWebViewHandler.BlazorWebViewMapper.AppendToMapping(
+				"BlinkTalkCameraPermissions",
+				(handler, view) =>
+				{
+					handler.PlatformView.Settings.MediaPlaybackRequiresUserGesture = false;
+					handler.PlatformView.SetWebChromeClient(new BlinkTalkWebChromeClient());
+				});
 #endif
 
 		RegisterBlinkTalkServices(builder.Services);
