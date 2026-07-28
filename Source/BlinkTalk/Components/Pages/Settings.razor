@@ -7,7 +7,9 @@
 
     <div class="bt-setting-row">
         <label for="language">@Localization.Settings_Language</label>
-        <select id="language" value=@SelectedLanguage @onchange=OnLanguageChanged>
+        @* @bind rather than value/@onchange: it is what makes Blazor select the matching <option> on
+           first render, so the dropdown opens showing the language the app is actually running in. *@
+        <select id="language" @bind=SelectedLanguage @bind:after=OnLanguageChanged>
             @foreach (CultureInfo language in Languages)
             {
                 <option value=@language.Name>@language.NativeName</option>

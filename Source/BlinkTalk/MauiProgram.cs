@@ -1,4 +1,3 @@
-using System.Globalization;
 using BlinkTalk.Services;
 using BlinkTalk.Services.Indicators;
 using BlinkTalk.Application.Abstractions;
@@ -14,9 +13,11 @@ public static class MauiProgram
 {
 	public static MauiApp CreateMauiApp()
 	{
-		// To test another language, uncomment and change the tag. The language can also be picked
-		// on the settings page, which calls the same method.
-		AppLanguage.SetCurrent(new CultureInfo("fr-FR"));
+		// The language has to be set before anything reads a resource string or a database path, which
+		// is earlier than the service provider exists — hence the hand-built settings store. The same
+		// instance is registered below so the app has one view of the preferences.
+		var settings = new MauiPreferencesSettings();
+		AppLanguage.RestorePersisted(settings);
 
 		var builder = MauiApp.CreateBuilder();
 		builder
@@ -44,17 +45,17 @@ public static class MauiProgram
 				});
 #endif
 
-		RegisterBlinkTalkServices(builder.Services);
+		RegisterBlinkTalkServices(builder.Services, settings);
 
 		return builder.Build();
 	}
 
-	private static void RegisterBlinkTalkServices(IServiceCollection services)
+	private static void RegisterBlinkTalkServices(IServiceCollection services, ISettingsStore settings)
 	{
 		// Platform abstractions
 		services.AddSingleton<IClock, SystemClock>();
 		services.AddSingleton<IUIDispatcher, MauiUIDispatcher>();
-		services.AddSingleton<ISettingsStore, MauiPreferencesSettings>();
+		services.AddSingleton(settings);
 		services.AddSingleton<ITextToSpeechService, MauiTtsService>();
 
 		// Database: create/seed the writable database from SQL + the bundled word list, run

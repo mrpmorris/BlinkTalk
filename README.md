@@ -37,7 +37,6 @@ Selecting moves through a hierarchy of scanners:
 
 ![Illustration](Docs/Images/Demo-02-SelectWord.gif)
 
-
 3. **Keyboard** — scan to a row of keys, then to a column, to land on a single letter.
 
 ![Illustration](Docs/Images/Demo-03-TypeWord.gif)
@@ -45,3 +44,7 @@ Selecting moves through a hierarchy of scanners:
 To keep typing fast, BlinkTalk predicts what the person is most likely to say next. A bundled dictionary
 plus a word-sequence (n-gram) model learns the person's vocabulary and phrasing over time, so frequently
 used words and natural word combinations are offered first.
+
+## Credits
+* [wortschatz-leipzig](https://wortschatz-leipzig.de/en/download/): Data for words + usage frequencies.
+* [Google](https://github.com/google-ai-edge/mediapipe): Media Pipe face landmarks.

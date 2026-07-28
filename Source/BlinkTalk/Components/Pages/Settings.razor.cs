@@ -1,3 +1,4 @@
+using BlinkTalk.Application.Abstractions;
 using BlinkTalk.Application.Input;
 using BlinkTalk.Services;
 using Microsoft.AspNetCore.Components;
@@ -29,31 +30,35 @@ public partial class Settings
 	private readonly ScanController Controller;
 	private readonly AppDatabase Database;
 	private readonly NavigationManager Navigation;
+	private readonly ISettingsStore SettingsStore;
 
-	public Settings(ScanController controller, CameraIndicatorConfig camera, AppDatabase database, NavigationManager navigation)
+	public Settings(ScanController controller, CameraIndicatorConfig camera, AppDatabase database, NavigationManager navigation, ISettingsStore settingsStore)
 	{
 		Controller = controller;
 		Camera = camera;
 		Database = database;
 		Navigation = navigation;
+		SettingsStore = settingsStore;
 	}
 
 	protected override void OnInitialized()
 	{
 		ScanSpeed = Controller.CycleDelaySeconds;
 		SelectedLanguage = Languages
-			.FirstOrDefault(culture => culture.TwoLetterISOLanguageName == CultureInfo.CurrentUICulture.TwoLetterISOLanguageName)
+			.FirstOrDefault(culture => culture.TwoLetterISOLanguageName == AppLanguage.Current.TwoLetterISOLanguageName)
 			?.Name ?? string.Empty;
 	}
 
 	/// <summary>
-	/// Leaving settings is where the database for the chosen language is opened and migrated — not
-	/// when the language changes, because each change would seed a dictionary the person may be
-	/// about to change their mind about. Landing on the typing page needs word suggestions, so this
-	/// is the last moment it can happen, and the person is already expecting the page to change.
+	/// Leaving settings is where the language choice is persisted, and where the database for it is
+	/// opened and migrated — not when the language changes, because each change would seed a
+	/// dictionary the person may be about to change their mind about. Landing on the typing page
+	/// needs word suggestions, so this is the last moment it can happen, and the person is already
+	/// expecting the page to change.
 	/// </summary>
 	private void GoBack()
 	{
+		AppLanguage.Persist(SettingsStore);
 		Database.OpenForCurrentLanguage();
 		Navigation.NavigateTo("/type");
 	}
@@ -62,17 +67,14 @@ public partial class Settings
 
 	/// <summary>
 	/// Switches language as soon as the dropdown changes, so the person sees this page in the
-	/// language they just picked and can tell they picked the right one.
+	/// language they just picked and can tell they picked the right one. The choice is only written
+	/// to settings when they leave — see <see cref="GoBack"/>.
 	/// </summary>
-	private void OnLanguageChanged(ChangeEventArgs e)
+	private void OnLanguageChanged()
 	{
-		string? name = e.Value?.ToString();
-		CultureInfo? culture = Languages.FirstOrDefault(language => language.Name == name);
-		if (culture is null)
-			return;
-
-		SelectedLanguage = culture.Name;
-		AppLanguage.SetCurrent(culture);
+		CultureInfo? culture = Languages.FirstOrDefault(language => language.Name == SelectedLanguage);
+		if (culture is not null)
+			AppLanguage.SetCurrent(culture);
 	}
 
 	private void OnScanSpeedChanged(ChangeEventArgs e)

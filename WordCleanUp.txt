@@ -1,0 +1,14 @@
+Get rid of leading word numbers
+^\d+\t
+
+Replace words ending with . with just the word
+\., => ,
+
+Get rid of words that have numbers
+^[^,\r\n]*\d+[^,\r\n]*,\d+\n
+
+Get rid of anything that has a non-word
+^[^,\r\n]*\W[^,\r\n]*,\d+\n
+
+Get rid of single char words
+^\w,\d+\n
