@@ -1,6 +1,7 @@
 @page "/"
 @page "/settings"
 @using System.Globalization
+@using BlinkTalk.Services
 
 <div class="bt-settings">
     <h1>@Localization.Settings_Title</h1>
@@ -47,7 +48,34 @@
         </label>
     </div>
 
-    <button class="bt-settings-back" @onclick=GoBack>@Localization.Shared_Done</button>
+    <button class="bt-settings-back" @onclick=GoBackAsync>@Localization.Shared_Done</button>
 </div>
+
+@if (IsDownloading)
+{
+    <div class="bt-modal-backdrop">
+        <div class="bt-modal">
+            <h2>@string.Format(Localization.Settings_DownloadingLanguagePackX0Format, AppLanguage.Name)</h2>
+            @if (DownloadError is not null)
+            {
+                <p class="bt-modal-error">@DownloadError</p>
+                <button class="bt-settings-secondary" @onclick=CloseDownloadModal>@Localization.Shared_Done</button>
+            }
+            else
+            {
+                @* No value attribute while the total size is unknown → the bar is indeterminate. *@
+                @if (DownloadProgress is double progress)
+                {
+                    <progress max="1" value=@progress.ToString("0.###", CultureInfo.InvariantCulture)></progress>
+                }
+                else
+                {
+                    <progress></progress>
+                }
+                <button class="bt-settings-secondary" @onclick=CancelDownload>@Localization.Shared_Cancel</button>
+            }
+        </div>
+    </div>
+}
 
 

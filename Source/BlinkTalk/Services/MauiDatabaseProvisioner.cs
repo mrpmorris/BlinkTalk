@@ -13,6 +13,9 @@ namespace BlinkTalk.Services;
 /// </summary>
 public sealed class MauiDatabaseProvisioner : IDatabaseProvisioner
 {
+    public bool DatabaseExists() =>
+        File.Exists(Path.Combine(GetWritableDirectory(), $"BlinkTalk-{AppLanguage.Name}.db"));
+
     public string GetDatabasePath()
     {
         string targetDirectory = GetWritableDirectory();

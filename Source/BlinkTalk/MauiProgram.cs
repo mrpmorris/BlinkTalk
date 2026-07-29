@@ -58,10 +58,14 @@ public static class MauiProgram
 		services.AddSingleton(settings);
 		services.AddSingleton<ITextToSpeechService, MauiTtsService>();
 
-		// Database: create/seed the writable database from SQL + the bundled word list, run
-		// maintenance. AppDatabase does that for the current language, the first time it is asked.
+		// Database: create the writable database from SQL, run maintenance. AppDatabase does that
+		// for the current language, the first time it is asked. Word lists are no longer bundled:
+		// the settings page downloads the language pack and seeds via a one-shot override, so the
+		// default seed source is empty.
 		services.AddSingleton<IDatabaseProvisioner, MauiDatabaseProvisioner>();
-		services.AddSingleton<ISeedWordSource, MauiSeedWordSource>();
+		services.AddSingleton<ISeedWordSource, EmptySeedWordSource>();
+		services.AddSingleton<HttpClient>();
+		services.AddSingleton<LanguagePackDownloader>();
 		services.AddSingleton<AppDatabase>();
 		services.AddSingleton<ISqliteDatabase>(sp => sp.GetRequiredService<AppDatabase>());
 

@@ -21,9 +21,10 @@ The solution (`BlinkTalk.sln`) has three projects under `Source/`:
   `IClock`) and `Persistence/IDatabaseProvisioner`.
 - **`BlinkTalk`** (MAUI Blazor Hybrid, multi-targets `net10.0-android;-ios;-maccatalyst;-windows`) —
   the host. `Components/` holds the Razor UI; `Services/` holds the MAUI implementations of the Core
-  interfaces; `Resources/Raw/English.zip` is the shipped word list (a zipped `Word,LanguageUsageCount`
-  CSV, a `MauiAsset`) used to seed the dictionary.
-- **`BlinkTalk.Application.Tests`** (xUnit) — tests for Core. Links the real `English.zip` for parity tests.
+  interfaces. Word lists (zipped `Word,LanguageUsageCount` CSVs) are **not bundled**: they live in
+  repo-root `LanguagePacks/` and are downloaded on demand from GitHub raw
+  (`LanguagePackDownloader.UrlFormat`) by the Settings page.
+- **`BlinkTalk.Application.Tests`** (xUnit) — tests for Core. Links the real `LanguagePacks/English.zip` for parity tests.
 
 > Naming gotcha: assembly `BlinkTalk.Application` and the app's root namespace `BlinkTalk`. Because
 > `BlinkTalk.Application` (a namespace) would shadow MAUI's `Application` type inside the `BlinkTalk`
@@ -94,9 +95,13 @@ like the original. Two rules: **bind user-entered text as parameters** (the orig
 which broke on apostrophes and was injectable), and read integer columns with `Convert.ToInt32(...)`
 because Microsoft.Data.Sqlite returns INTEGER as `long`. On startup `IDatabaseProvisioner` resolves the
 writable app-data path, then `AutoMigratingDatabase.Migrate()` creates the schema with SQL (idempotent
-`CREATE ... IF NOT EXISTS`), seeds the `Words` dictionary from the bundled word list via `ISeedWordSource`
-(`MauiSeedWordSource` reads `English.zip`, parsed by `WordListZipReader`) when the table is empty, and
-prunes word sequences older than 30 days.
+`CREATE ... IF NOT EXISTS`), seeds the `Words` dictionary via `ISeedWordSource` when the table is empty,
+and prunes word sequences older than 30 days. The registered seed source is `EmptySeedWordSource`; real
+seeding happens when the Settings page's Done button finds no database for the selected language
+(`IDatabaseProvisioner.DatabaseExists()`): it downloads the pack from GitHub raw
+(`Prediction`-adjacent `Persistence/LanguagePackDownloader`, progress + cancel in a modal) and passes a
+one-shot `InMemoryZipSeedWordSource` (parsed by `WordListZipReader`) to
+`AppDatabase.OpenForCurrentLanguage(seedOverride)`.
 
 **Settings / scan speed:** `ScanController.CycleDelaySeconds` reads/writes `ISettingsStore`
 (MAUI `Preferences`); the slider lives in `Components/Pages/Settings.razor`. Default and the longer

@@ -1,64 +1,5 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!-- 
-    Microsoft ResX Schema 
-    
-    Version 2.0
-    
-    The primary goals of this format is to allow a simple XML format 
-    that is mostly human readable. The generation and parsing of the 
-    various data types are done through the TypeConverter classes 
-    associated with the data types.
-    
-    Example:
-    
-    ... ado.net/XML headers & schema ...
-    <resheader name="resmimetype">text/microsoft-resx</resheader>
-    <resheader name="version">2.0</resheader>
-    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
-    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
-    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
-    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
-    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
-        <value>[base64 mime encoded serialized .NET Framework object]</value>
-    </data>
-    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
-        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
-        <comment>This is a comment</comment>
-    </data>
-                
-    There are any number of "resheader" rows that contain simple 
-    name/value pairs.
-    
-    Each data row contains a name, and value. The row also contains a 
-    type or mimetype. Type corresponds to a .NET class that support 
-    text/value conversion through the TypeConverter architecture. 
-    Classes that don't support this are serialized and stored with the 
-    mimetype set.
-    
-    The mimetype is used for serialized objects, and tells the 
-    ResXResourceReader how to depersist the object. This is currently not 
-    extensible. For a given mimetype the value must be set accordingly:
-    
-    Note - application/x-microsoft.net.object.binary.base64 is the format 
-    that the ResXResourceWriter will generate, however the reader can 
-    read any of the formats listed below.
-    
-    mimetype: application/x-microsoft.net.object.binary.base64
-    value   : The object must be serialized with 
-            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
-            : and then encoded with base64 encoding.
-    
-    mimetype: application/x-microsoft.net.object.soap.base64
-    value   : The object must be serialized with 
-            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
-            : and then encoded with base64 encoding.
-
-    mimetype: application/x-microsoft.net.object.bytearray.base64
-    value   : The object must be serialized into a byte array 
-            : using a System.ComponentModel.TypeConverter
-            : and then encoded with base64 encoding.
-    -->
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
     <xsd:element name="root" msdata:IsDataSet="true">
@@ -118,120 +59,120 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Camera_CameraPermissionWasDenied" xml:space="preserve">
-    <value>Camera permission was denied. Enable the camera for BlinkTalk in your device settings, then reopen this page.</value>
+    <value>A permissão da câmara foi negada. Ative a câmara para o BlinkTalk nas definições do seu dispositivo e volte a abrir esta página.</value>
   </data>
   <data name="Camera_CameraReady" xml:space="preserve">
-    <value>Camera ready. Press Train and follow the prompts.</value>
+    <value>Câmara pronta. Prima Treinar e siga as instruções.</value>
   </data>
   <data name="Camera_CouldNotStartTheCameraX0Format" xml:space="preserve">
-    <value>Could not start the camera: {0}</value>
+    <value>Não foi possível iniciar a câmara: {0}</value>
   </data>
   <data name="Camera_DetectedX0GestureFormat" xml:space="preserve">
-    <value>Training successful! I detected your “{0}” gesture. Ensure ‘Use camera’ is ticked so you can use it.</value>
+    <value>Treino bem-sucedido! Detetei o seu gesto “{0}”. Certifique-se de que ‘Usar câmara’ está marcado para o poder utilizar.</value>
   </data>
   <data name="Camera_EyeGesture" xml:space="preserve">
-    <value>Eye gesture</value>
+    <value>Gesto ocular</value>
   </data>
   <data name="Camera_HoldTimeX0SecondsFormat" xml:space="preserve">
-    <value>Hold time: {0:0.0} seconds</value>
+    <value>Tempo de manutenção: {0:0.0} segundos</value>
   </data>
   <data name="Camera_Instructions_CouldNotDetectGesture" xml:space="preserve">
-    <value>I couldn't detect a clear, repeatable gesture - let's try again.</value>
+    <value>Não consegui detetar um gesto claro e repetível - vamos tentar outra vez.</value>
   </data>
   <data name="Camera_Instructions_LookAtCamera" xml:space="preserve">
-    <value>Look at the screen and relax your face. Do not look at the camera.</value>
+    <value>Olhe para o ecrã e relaxe o rosto. Não olhe para a câmara.</value>
   </data>
   <data name="Camera_Instructions_MakeIndicatingGesture" xml:space="preserve">
-    <value>Now make your indicating gesture and hold it until I tell you to relax. I recommend you look up.</value>
+    <value>Agora faça o seu gesto de indicação e mantenha-o até eu lhe dizer para relaxar. Recomendo que olhe para cima.</value>
   </data>
   <data name="Camera_Instructions_NowRelax" xml:space="preserve">
-    <value>Now relax.</value>
+    <value>Agora relaxe.</value>
   </data>
   <data name="Camera_LearntGesture" xml:space="preserve">
-    <value>Learnt gestured</value>
+    <value>Gesto aprendido</value>
   </data>
   <data name="Camera_StartingCamera" xml:space="preserve">
-    <value>Starting camera</value>
+    <value>A iniciar a câmara</value>
   </data>
   <data name="Camera_TestingInstructions" xml:space="preserve">
-    <value>Hold your gesture and the bar fill with time. Set the slider where you'd like it to trigger. You'll hear a beep when the bar reaches it.</value>
+    <value>Mantenha o seu gesto e a barra vai enchendo com o tempo. Coloque o cursor onde quer que seja acionado. Ouvirá um sinal sonoro quando a barra o alcançar.</value>
   </data>
   <data name="Camera_Train" xml:space="preserve">
-    <value>Train</value>
+    <value>Treinar</value>
   </data>
   <data name="Camera_TrainFirst" xml:space="preserve">
-    <value>Train first</value>
+    <value>Treinar primeiro</value>
   </data>
   <data name="Camera_Training" xml:space="preserve">
-    <value>Training</value>
+    <value>Treino</value>
   </data>
   <data name="Camera_TrainingFailedX0Format" xml:space="preserve">
-    <value>Training failed: {0}</value>
+    <value>O treino falhou: {0}</value>
   </data>
   <data name="Camera_UseCamera" xml:space="preserve">
-    <value>Use camera</value>
+    <value>Usar câmara</value>
   </data>
   <data name="Gesture_Blink" xml:space="preserve">
-    <value>blink</value>
+    <value>piscar os olhos</value>
   </data>
   <data name="Gesture_LookSideways" xml:space="preserve">
-    <value>look sideways</value>
+    <value>olhar para o lado</value>
   </data>
   <data name="Gesture_LookUp" xml:space="preserve">
-    <value>look up</value>
+    <value>olhar para cima</value>
   </data>
   <data name="Gesture_RaiseEyebrows" xml:space="preserve">
-    <value>raise eyebrows</value>
+    <value>levantar as sobrancelhas</value>
   </data>
   <data name="Gesture_Smile" xml:space="preserve">
-    <value>smile</value>
+    <value>sorrir</value>
   </data>
   <data name="NotFound_ErrorDescription" xml:space="preserve">
-    <value>The application tried to access a page that does not exist. Please report this issue.</value>
+    <value>A aplicação tentou aceder a uma página que não existe. Por favor, comunique este problema.</value>
   </data>
   <data name="NotFound_NotFound" xml:space="preserve">
-    <value>Not found</value>
+    <value>Não encontrado</value>
   </data>
   <data name="Settings_AssistantPressesSpaceBarOnKeyboard" xml:space="preserve">
-    <value>Assistant presses space-bar on keyboard</value>
+    <value>O assistente prime a barra de espaços no teclado</value>
   </data>
   <data name="Settings_AssistantTapsScreenOrClicksMouse" xml:space="preserve">
-    <value>Assistant taps screen or clicks mouse</value>
+    <value>O assistente toca no ecrã ou clica com o rato</value>
   </data>
   <data name="Settings_IndicatorMethod" xml:space="preserve">
-    <value>Indicator method</value>
+    <value>Método de indicação</value>
   </data>
   <data name="Settings_Language" xml:space="preserve">
-    <value>Language</value>
+    <value>Idioma</value>
   </data>
   <data name="Settings_ScanSpeed" xml:space="preserve">
-    <value>Scan speed</value>
+    <value>Velocidade de varrimento</value>
   </data>
   <data name="Settings_ScanSpeed_Description" xml:space="preserve">
-    <value>This how many seconds to wait before the selection moves on to the next item. Lower is faster.</value>
+    <value>Quantos segundos esperar antes de a seleção passar para o item seguinte. Menos é mais rápido.</value>
   </data>
   <data name="Settings_ScanSpeed_ScanSpeedX0SecondsPerStepFormat" xml:space="preserve">
-    <value>Scan speed: {0:0.0} seconds per step</value>
+    <value>Velocidade de varrimento: {0:0.0} segundos por passo</value>
   </data>
   <data name="Settings_DownloadingLanguagePackX0Format" xml:space="preserve">
-    <value>Downloading language pack: {0}</value>
+    <value>A descarregar o pacote de idioma: {0}</value>
   </data>
   <data name="Settings_LanguagePackDownloadFailed" xml:space="preserve">
-    <value>The language pack could not be downloaded. Please check your internet connection and try again.</value>
+    <value>Não foi possível descarregar o pacote de idioma. Verifique a sua ligação à Internet e tente novamente.</value>
   </data>
   <data name="Settings_SetUpCamera" xml:space="preserve">
-    <value>Set up camera</value>
+    <value>Configurar câmara</value>
   </data>
   <data name="Settings_Title" xml:space="preserve">
-    <value>Settings</value>
+    <value>Definições</value>
   </data>
   <data name="Settings_UseCameraToDetectEyeGesture" xml:space="preserve">
-    <value>Use camera to detect eye gesture</value>
+    <value>Usar a câmara para detetar o gesto ocular</value>
   </data>
   <data name="Shared_Cancel" xml:space="preserve">
-    <value>Cancel</value>
+    <value>Cancelar</value>
   </data>
   <data name="Shared_Done" xml:space="preserve">
-    <value>Done</value>
+    <value>Concluído</value>
   </data>
 </root>

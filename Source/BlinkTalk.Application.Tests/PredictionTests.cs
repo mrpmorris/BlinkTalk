@@ -78,12 +78,12 @@ public class PredictionTests
             var words = new WordService(db);
 
             // Dictionary prefix lookup returns real suggestions (schema/columns match the ported SQL).
-            // WordService normalises the query to upper case, and the bundled word list stores words
-            // upper case, so results come back upper case and prefixed with "TH".
+            // WordService normalises the query to upper case; the word list stores words in their
+            // natural casing and SQLite's LIKE is case-insensitive for ASCII, so the match is
+            // case-insensitive too.
             var dictionary = words.GetWordSuggestions("th", 6);
             Assert.NotEmpty(dictionary);
-            Assert.All(dictionary, w => Assert.StartsWith("TH", w));
-            Assert.All(dictionary, w => Assert.Equal(w.ToUpperInvariant(), w));
+            Assert.All(dictionary, w => Assert.StartsWith("TH", w, StringComparison.OrdinalIgnoreCase));
 
             // Apostrophes used to break the original (interpolated SQL); now bound as a parameter.
             var apostrophe = words.GetWordSuggestions("don'", 6);

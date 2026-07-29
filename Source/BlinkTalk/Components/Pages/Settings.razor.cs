@@ -1,5 +1,7 @@
 using BlinkTalk.Application.Abstractions;
 using BlinkTalk.Application.Input;
+using BlinkTalk.Application.Persistence;
+using BlinkTalk.Resources;
 using BlinkTalk.Services;
 using Microsoft.AspNetCore.Components;
 using System.Globalization;
@@ -26,19 +28,31 @@ public partial class Settings
 
 	private string SelectedLanguage { get; set; } = string.Empty;
 
+	private bool IsDownloading { get; set; }
+
+	private double? DownloadProgress { get; set; }
+
+	private string? DownloadError { get; set; }
+
+	private CancellationTokenSource? DownloadCts;
+
 	private readonly CameraIndicatorConfig Camera;
 	private readonly ScanController Controller;
 	private readonly AppDatabase Database;
+	private readonly LanguagePackDownloader Downloader;
 	private readonly NavigationManager Navigation;
+	private readonly IDatabaseProvisioner Provisioner;
 	private readonly ISettingsStore SettingsStore;
 
-	public Settings(ScanController controller, CameraIndicatorConfig camera, AppDatabase database, NavigationManager navigation, ISettingsStore settingsStore)
+	public Settings(ScanController controller, CameraIndicatorConfig camera, AppDatabase database, NavigationManager navigation, ISettingsStore settingsStore, LanguagePackDownloader downloader, IDatabaseProvisioner provisioner)
 	{
 		Controller = controller;
 		Camera = camera;
 		Database = database;
 		Navigation = navigation;
 		SettingsStore = settingsStore;
+		Downloader = downloader;
+		Provisioner = provisioner;
 	}
 
 	protected override void OnInitialized()
@@ -60,11 +74,81 @@ public partial class Settings
 	/// needs word suggestions, so this is the last moment it can happen, and the person is already
 	/// expecting the page to change.
 	/// </summary>
-	private void GoBack()
+	private async Task GoBackAsync()
 	{
+		if (IsDownloading)
+			return;
+
 		AppLanguage.Persist(SettingsStore);
-		Database.OpenForCurrentLanguage();
-		Navigation.NavigateTo("/type");
+
+		if (Provisioner.DatabaseExists())
+		{
+			Database.OpenForCurrentLanguage();
+			Navigation.NavigateTo("/type");
+			return;
+		}
+
+		if (await DownloadAndSeedAsync())
+			Navigation.NavigateTo("/type");
+	}
+
+	/// <summary>
+	/// Downloads the language pack for the current language into memory and seeds a new database
+	/// from it, behind a modal with a progress bar. Returns false — leaving the person on this
+	/// page — if the download is cancelled or fails.
+	/// </summary>
+	private async Task<bool> DownloadAndSeedAsync()
+	{
+		IsDownloading = true;
+		DownloadProgress = null;
+		DownloadError = null;
+		using var cts = new CancellationTokenSource();
+		DownloadCts = cts;
+		try
+		{
+			// Progress<T> posts to the captured sync context; InvokeAsync keeps the render on the
+			// UI thread per the app's threading rule.
+			var progress = new Progress<double?>(fraction =>
+			{
+				DownloadProgress = fraction;
+				_ = InvokeAsync(StateHasChanged);
+			});
+			byte[] zip = await Downloader.DownloadAsync(AppLanguage.Name, progress, cts.Token);
+
+			// Seeding inserts tens of thousands of rows; keep it off the UI thread so the modal
+			// stays responsive.
+			await Task.Run(() => Database.OpenForCurrentLanguage(new InMemoryZipSeedWordSource(zip)));
+
+			IsDownloading = false;
+			return true;
+		}
+		catch (OperationCanceledException)
+		{
+			IsDownloading = false;
+			return false;
+		}
+		catch
+		{
+			// The seed transaction rolls back on failure, but delete the file too so an empty
+			// database is not mistaken for an installed language pack next time.
+			Database.CloseCurrent();
+			if (Provisioner.DatabaseExists())
+				File.Delete(Provisioner.GetDatabasePath());
+			DownloadError = Localization.Settings_LanguagePackDownloadFailed;
+			return false;
+		}
+		finally
+		{
+			DownloadCts = null;
+		}
+	}
+
+	private void CancelDownload() => DownloadCts?.Cancel();
+
+	private void CloseDownloadModal()
+	{
+		IsDownloading = false;
+		DownloadError = null;
 	}
 
 	private void GoToCamera() => Navigation.NavigateTo("/camera");

@@ -9,4 +9,7 @@ public interface IDatabaseProvisioner
 {
     /// <returns>The absolute path the writable database file should live at.</returns>
     string GetDatabasePath();
+
+    /// <returns>Whether the database file for the current language already exists on disk.</returns>
+    bool DatabaseExists();
 }

@@ -154,6 +154,12 @@
   <data name="Settings_ScanSpeed_ScanSpeedX0SecondsPerStepFormat" xml:space="preserve">
     <value>Velocidad de escaneo: {0:0.0} segundos por paso</value>
   </data>
+  <data name="Settings_DownloadingLanguagePackX0Format" xml:space="preserve">
+    <value>Descargando paquete de idioma: {0}</value>
+  </data>
+  <data name="Settings_LanguagePackDownloadFailed" xml:space="preserve">
+    <value>No se pudo descargar el paquete de idioma. Comprueba tu conexión a Internet e inténtalo de nuevo.</value>
+  </data>
   <data name="Settings_SetUpCamera" xml:space="preserve">
     <value>Configurar cámara</value>
   </data>
@@ -162,6 +168,9 @@
   </data>
   <data name="Settings_UseCameraToDetectEyeGesture" xml:space="preserve">
     <value>Usar cámara para detectar gesto ocular</value>
+  </data>
+  <data name="Shared_Cancel" xml:space="preserve">
+    <value>Cancelar</value>
   </data>
   <data name="Shared_Done" xml:space="preserve">
     <value>Hecho</value>

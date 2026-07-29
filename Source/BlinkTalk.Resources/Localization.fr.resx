@@ -154,6 +154,12 @@
   <data name="Settings_ScanSpeed_ScanSpeedX0SecondsPerStepFormat" xml:space="preserve">
     <value>Vitesse de balayage : {0:0.0} secondes par étape</value>
   </data>
+  <data name="Settings_DownloadingLanguagePackX0Format" xml:space="preserve">
+    <value>Téléchargement du pack de langue : {0}</value>
+  </data>
+  <data name="Settings_LanguagePackDownloadFailed" xml:space="preserve">
+    <value>Le pack de langue n'a pas pu être téléchargé. Veuillez vérifier votre connexion Internet et réessayer.</value>
+  </data>
   <data name="Settings_SetUpCamera" xml:space="preserve">
     <value>Configurer la caméra</value>
   </data>
@@ -162,6 +168,9 @@
   </data>
   <data name="Settings_UseCameraToDetectEyeGesture" xml:space="preserve">
     <value>Utiliser la caméra pour détecter le geste oculaire</value>
+  </data>
+  <data name="Shared_Cancel" xml:space="preserve">
+    <value>Annuler</value>
   </data>
   <data name="Shared_Done" xml:space="preserve">
     <value>Terminé</value>

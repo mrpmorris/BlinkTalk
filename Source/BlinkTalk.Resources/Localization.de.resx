@@ -154,6 +154,12 @@
   <data name="Settings_ScanSpeed_ScanSpeedX0SecondsPerStepFormat" xml:space="preserve">
     <value>Scan-Geschwindigkeit: {0:0.0} Sekunden pro Schritt</value>
   </data>
+  <data name="Settings_DownloadingLanguagePackX0Format" xml:space="preserve">
+    <value>Sprachpaket wird heruntergeladen: {0}</value>
+  </data>
+  <data name="Settings_LanguagePackDownloadFailed" xml:space="preserve">
+    <value>Das Sprachpaket konnte nicht heruntergeladen werden. Bitte überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.</value>
+  </data>
   <data name="Settings_SetUpCamera" xml:space="preserve">
     <value>Kamera einrichten</value>
   </data>
@@ -162,6 +168,9 @@
   </data>
   <data name="Settings_UseCameraToDetectEyeGesture" xml:space="preserve">
     <value>Kamera zur Erkennung der Augengeste verwenden</value>
+  </data>
+  <data name="Shared_Cancel" xml:space="preserve">
+    <value>Abbrechen</value>
   </data>
   <data name="Shared_Done" xml:space="preserve">
     <value>Fertig</value>

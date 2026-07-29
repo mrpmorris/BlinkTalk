@@ -349,6 +349,24 @@ namespace BlinkTalk.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Downloading language pack: {0}.
+        /// </summary>
+        public static string Settings_DownloadingLanguagePackX0Format {
+            get {
+                return ResourceManager.GetString("Settings_DownloadingLanguagePackX0Format", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The language pack could not be downloaded. Please check your internet connection and try again..
+        /// </summary>
+        public static string Settings_LanguagePackDownloadFailed {
+            get {
+                return ResourceManager.GetString("Settings_LanguagePackDownloadFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Set up camera.
         /// </summary>
         public static string Settings_SetUpCamera {
@@ -375,6 +393,15 @@ namespace BlinkTalk.Resources {
             }
         }
         
+        /// <summary>
+        ///   Looks up a localized string similar to Cancel.
+        /// </summary>
+        public static string Shared_Cancel {
+            get {
+                return ResourceManager.GetString("Shared_Cancel", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Done.
         /// </summary>

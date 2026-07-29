@@ -57,25 +57,37 @@ public sealed class AppDatabase : ISqliteDatabase, IDisposable
 	/// Opens and migrates the database for the current language, replacing the open one if the
 	/// language has changed since. Blocks while it does so.
 	/// </summary>
-	public void OpenForCurrentLanguage() => _ = Current;
+	public void OpenForCurrentLanguage() => OpenCore(SeedWords);
 
-	private ISqliteDatabase Current
+	/// <summary>
+	/// As <see cref="OpenForCurrentLanguage()"/>, but seeding from the given source instead of the
+	/// registered one — used to seed a freshly downloaded language pack. The override applies to
+	/// this open only; it is not remembered.
+	/// </summary>
+	public void OpenForCurrentLanguage(ISeedWordSource seedOverride) => OpenCore(seedOverride);
+
+	/// <summary>
+	/// Closes the open connection (if any) so the next query reopens. Lets the settings page delete
+	/// a database file whose creation failed part-way through.
+	/// </summary>
+	public void CloseCurrent() => Dispose();
+
+	private ISqliteDatabase Current => OpenCore(SeedWords);
+
+	private ISqliteDatabase OpenCore(ISeedWordSource seedWords)
 	{
-		get
+		lock (SyncRoot)
 		{
-			lock (SyncRoot)
-			{
-				string language = AppLanguage.Name;
-				if (Open is not null && OpenLanguage == language)
-					return Open;
+			string language = AppLanguage.Name;
+			if (Open is not null && OpenLanguage == language)
+				return Open;
 
-				Open?.Dispose();
-				var database = new MicrosoftDataSqliteDatabase(Provisioner.GetDatabasePath());
-				new AutoMigratingDatabase(database, Clock, SeedWords).Migrate();
-				Open = database;
-				OpenLanguage = language;
-				return database;
-			}
+			Open?.Dispose();
+			var database = new MicrosoftDataSqliteDatabase(Provisioner.GetDatabasePath());
+			new AutoMigratingDatabase(database, Clock, seedWords).Migrate();
+			Open = database;
+			OpenLanguage = language;
+			return database;
 		}
 	}
 }
