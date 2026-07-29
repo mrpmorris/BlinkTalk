@@ -102,12 +102,26 @@ public static class AppLanguage
 		}
 	}
 
+	/// <summary>
+	/// The word-list language for a culture: the full code ("pt-BR") is looked up before the partial
+	/// one ("pt"), so a language whose regions need word lists of their own can name them without
+	/// disturbing the languages where one list serves every region.
+	/// </summary>
 	private static string? GetName(CultureInfo cultureInfo) =>
-		cultureInfo.TwoLetterISOLanguageName.ToLowerInvariant() switch {
+		GetNameForCode(cultureInfo.Name) ?? GetNameForCode(cultureInfo.TwoLetterISOLanguageName);
+
+	/// <summary>
+	/// The word-list language named by exactly this culture code, or null if there is no list for it.
+	/// Keys are lower case because the code is lower-cased before matching — a full code arrives
+	/// canonicalised as "pt-BR", so it would not match a switch arm written in that casing by accident.
+	/// </summary>
+	private static string? GetNameForCode(string cultureCode) =>
+		cultureCode.ToLowerInvariant() switch {
 			"en" => "English",
 			"fr" => "French",
 			"de" => "German",
 			"es" => "Spanish",
+			"pt" => "Portuguese",
 			_ => null
 		};
 

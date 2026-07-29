@@ -44,8 +44,12 @@ public partial class Settings
 	protected override void OnInitialized()
 	{
 		ScanSpeed = Controller.CycleDelaySeconds;
-		SelectedLanguage = Languages
-			.FirstOrDefault(culture => culture.TwoLetterISOLanguageName == AppLanguage.Current.TwoLetterISOLanguageName)
+
+		// Full code before partial: an entry for the running culture itself wins over one that merely
+		// shares its language, so a region-specific option is preselected rather than its neutral sibling.
+		CultureInfo current = AppLanguage.Current;
+		SelectedLanguage = (Languages.FirstOrDefault(culture => culture.Name == current.Name)
+			?? Languages.FirstOrDefault(culture => culture.TwoLetterISOLanguageName == current.TwoLetterISOLanguageName))
 			?.Name ?? string.Empty;
 	}
 
