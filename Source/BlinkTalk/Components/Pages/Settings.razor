@@ -3,7 +3,8 @@
 @using System.Globalization
 @using BlinkTalk.Services
 
-<div class="bt-settings">
+@* Mirrored for a right-to-left language, so labels sit with the controls they belong to. *@
+<div class="bt-settings" dir="@TextDirection">
     <h1>@Localization.Settings_Title</h1>
 
     <div class="bt-setting-row">
@@ -53,7 +54,7 @@
 
 @if (IsDownloading)
 {
-    <div class="bt-modal-backdrop">
+    <div class="bt-modal-backdrop" dir="@TextDirection">
         <div class="bt-modal">
             <h2>@string.Format(Localization.Settings_DownloadingLanguagePackX0Format, AppLanguage.Name)</h2>
             @if (DownloadError is not null)

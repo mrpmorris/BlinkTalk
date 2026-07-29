@@ -22,7 +22,6 @@ public sealed class SentenceBuilder
 
     public event EventHandler? ViewModelChanged;
 
-    private readonly Dictionary<KeyCode, char> CharsByKeyCode;
     private const int NumberOfSuggestedWords = 6;
     private readonly IPhraseService PhraseService;
     private readonly List<KeyValuePair<int, string>> Words = new List<KeyValuePair<int, string>>();
@@ -32,7 +31,6 @@ public sealed class SentenceBuilder
     {
         WordService = wordService;
         PhraseService = phraseService;
-        CharsByKeyCode = BuildCharMap();
     }
 
     public bool IsEmpty => string.IsNullOrEmpty(ToString());
@@ -65,9 +63,21 @@ public sealed class SentenceBuilder
                 Backspace();
                 break;
             default:
-                CurrentWord += CharsByKeyCode[keyCode];
+                CurrentWord += KeyCharacters.TextOf(keyCode);
                 break;
         }
+        DoViewModelChanged();
+    }
+
+    /// <summary>
+    /// Appends text that no single key types: an accented letter composed from a base letter and a
+    /// diacritic. Some of those are two characters rather than one (an Arabic letter followed by its
+    /// harakat), which is why this exists alongside <see cref="Input"/>.
+    /// </summary>
+    public void InputText(string text)
+    {
+        CheckForClearOnInput();
+        CurrentWord += text;
         DoViewModelChanged();
     }
 
@@ -86,6 +96,12 @@ public sealed class SentenceBuilder
         return result;
     }
 
+    /// <summary>
+    /// Deletes one character, or the last committed word when the current word is already empty.
+    /// One character means one code unit, so backspacing an Arabic letter that carries a harakat
+    /// removes the harakat and leaves the letter — which is what someone correcting a mis-picked
+    /// diacritic wants.
+    /// </summary>
     private void Backspace()
     {
         if (CurrentWord.Length > 0)
@@ -93,26 +109,6 @@ public sealed class SentenceBuilder
         else
             PopWord();
         DoViewModelChanged();
-    }
-
-    private static Dictionary<KeyCode, char> BuildCharMap()
-    {
-        return new Dictionary<KeyCode, char>
-        {
-            { KeyCode.A, 'A' }, { KeyCode.B, 'B' }, { KeyCode.C, 'C' }, { KeyCode.D, 'D' },
-            { KeyCode.E, 'E' }, { KeyCode.F, 'F' }, { KeyCode.G, 'G' }, { KeyCode.H, 'H' },
-            { KeyCode.I, 'I' }, { KeyCode.J, 'J' }, { KeyCode.K, 'K' }, { KeyCode.L, 'L' },
-            { KeyCode.M, 'M' }, { KeyCode.N, 'N' }, { KeyCode.O, 'O' }, { KeyCode.P, 'P' },
-            { KeyCode.Q, 'Q' }, { KeyCode.R, 'R' }, { KeyCode.S, 'S' }, { KeyCode.T, 'T' },
-            { KeyCode.U, 'U' }, { KeyCode.V, 'V' }, { KeyCode.W, 'W' }, { KeyCode.X, 'X' },
-            { KeyCode.Y, 'Y' }, { KeyCode.Z, 'Z' },
-            { KeyCode.Number0, '0' }, { KeyCode.Number1, '1' }, { KeyCode.Number2, '2' },
-            { KeyCode.Number3, '3' }, { KeyCode.Number4, '4' }, { KeyCode.Number5, '5' },
-            { KeyCode.Number6, '6' }, { KeyCode.Number7, '7' }, { KeyCode.Number8, '8' },
-            { KeyCode.Number9, '9' },
-            { KeyCode.Comma, ',' }, { KeyCode.Period, '.' }, { KeyCode.Exclaim, '!' },
-            { KeyCode.Question, '?' }
-        };
     }
 
     private void CheckForClearOnInput()

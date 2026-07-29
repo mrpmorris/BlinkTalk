@@ -38,21 +38,26 @@ public partial class Type
 
 	// --- Highlight helpers (map the controller's HighlightTarget to CSS classes) ---
 
+	/// <summary>The accents on offer, or null when no accent is being picked.</summary>
+	private AccentSelectionState? Accents => Controller.AccentState;
+
 	private string DepthColor => Controller.Depth switch {
 		<= 1 => "#2f6bff", // blue
 		2 => "#2ec16b",    // green
 		3 => "#d44ce0",    // magenta
-		_ => "#e6c52f"     // yellow
+		_ => "#e6c52f"     // yellow — depth 4, picking an accent
 	};
 
 	private HighlightTarget H => Controller.Highlight;
 
 	private string KeyboardContextClass =>
-		H.Kind == HighlightKind.KeyboardRow || H.Kind == HighlightKind.Key ? "bt-context" : "";
+		H.Kind is HighlightKind.KeyboardRow or HighlightKind.Key or HighlightKind.AccentMark ? "bt-context" : "";
 
 	private IReadOnlyList<IReadOnlyList<KeyCode>> Rows => Controller.Keyboard.Rows;
 
 	private string SentenceText => Controller.Sentence.ToString();
+
+	private string TextDirection => Controller.Keyboard.IsRightToLeft ? "rtl" : "ltr";
 
 	private IReadOnlyList<string> Words => Controller.Sentence.SuggestedWords;
 
@@ -74,6 +79,17 @@ public partial class Type
 	{
 		Controller.StateChanged += OnStateChanged;
 		Controller.Start();
+	}
+
+	/// <summary>
+	/// The scanned mark, plus the one already chosen — which stays marked while the scan moves on to
+	/// the letters, so the person can see which accent they are about to apply.
+	/// </summary>
+	private string AccentMarkClass(int markIndex)
+	{
+		string chosen = Accents?.ChosenMarkIndex == markIndex ? " bt-accent-chosen" : "";
+		bool scanned = H.Kind == HighlightKind.AccentMark && H.MarkIndex == markIndex;
+		return (scanned ? "bt-highlight" : "") + chosen;
 	}
 
 	private void GoToSettings() => Navigation.NavigateTo("/settings");

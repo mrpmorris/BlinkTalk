@@ -72,7 +72,7 @@ public static class MauiProgram
 		// Prediction + sentence building
 		services.AddSingleton<IWordService, WordService>();
 		services.AddSingleton<IPhraseService, PhraseService>();
-		services.AddSingleton(KeyboardLayout.CreateDefault());
+		services.AddSingleton<IKeyboardLayoutProvider, AppKeyboardLayoutProvider>();
 		services.AddScoped<SentenceBuilder>();
 
 		// Indicators (input sources for the single switch). Scoped so they share the controller's

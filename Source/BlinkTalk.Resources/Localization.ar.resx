@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Camera_CameraPermissionWasDenied" xml:space="preserve">
+    <value>تم رفض إذن الكاميرا. مكّن الكاميرا لتطبيق BlinkTalk في إعدادات جهازك، ثم أعد فتح هذه الصفحة.</value>
+  </data>
+  <data name="Camera_CameraReady" xml:space="preserve">
+    <value>الكاميرا جاهزة. اضغط «تدريب» واتبع التعليمات.</value>
+  </data>
+  <data name="Camera_CouldNotStartTheCameraX0Format" xml:space="preserve">
+    <value>تعذّر تشغيل الكاميرا: {0}</value>
+  </data>
+  <data name="Camera_DetectedX0GestureFormat" xml:space="preserve">
+    <value>نجح التدريب! تعرّفت على إشارة «{0}». تأكّد من تحديد «استخدام الكاميرا» حتى تتمكّن من استخدامها.</value>
+  </data>
+  <data name="Camera_EyeGesture" xml:space="preserve">
+    <value>إشارة العين</value>
+  </data>
+  <data name="Camera_HoldTimeX0SecondsFormat" xml:space="preserve">
+    <value>مدة الثبات: {0:0.0} ثانية</value>
+  </data>
+  <data name="Camera_Instructions_CouldNotDetectGesture" xml:space="preserve">
+    <value>لم أتمكّن من تمييز إشارة واضحة قابلة للتكرار - لنحاول مرة أخرى.</value>
+  </data>
+  <data name="Camera_Instructions_LookAtCamera" xml:space="preserve">
+    <value>انظر إلى الشاشة وأرخِ ملامح وجهك. لا تنظر إلى الكاميرا.</value>
+  </data>
+  <data name="Camera_Instructions_MakeIndicatingGesture" xml:space="preserve">
+    <value>الآن قم بإشارتك واثبت عليها حتى أطلب منك الاسترخاء. أنصح بأن تنظر إلى أعلى.</value>
+  </data>
+  <data name="Camera_Instructions_NowRelax" xml:space="preserve">
+    <value>الآن استرخِ.</value>
+  </data>
+  <data name="Camera_LearntGesture" xml:space="preserve">
+    <value>الإشارة المتعلَّمة</value>
+  </data>
+  <data name="Camera_StartingCamera" xml:space="preserve">
+    <value>جارٍ تشغيل الكاميرا</value>
+  </data>
+  <data name="Camera_TestingInstructions" xml:space="preserve">
+    <value>اثبت على إشارتك وسيمتلئ الشريط تدريجيًا. اضبط المؤشّر عند الموضع الذي تريد التحديد عنده. ستسمع صوت تنبيه عندما يصل الشريط إليه.</value>
+  </data>
+  <data name="Camera_Train" xml:space="preserve">
+    <value>تدريب</value>
+  </data>
+  <data name="Camera_TrainFirst" xml:space="preserve">
+    <value>درِّب أولاً</value>
+  </data>
+  <data name="Camera_Training" xml:space="preserve">
+    <value>جارٍ التدريب</value>
+  </data>
+  <data name="Camera_TrainingFailedX0Format" xml:space="preserve">
+    <value>فشل التدريب: {0}</value>
+  </data>
+  <data name="Camera_UseCamera" xml:space="preserve">
+    <value>استخدام الكاميرا</value>
+  </data>
+  <data name="Gesture_Blink" xml:space="preserve">
+    <value>الرمش</value>
+  </data>
+  <data name="Gesture_LookSideways" xml:space="preserve">
+    <value>النظر إلى الجانب</value>
+  </data>
+  <data name="Gesture_LookUp" xml:space="preserve">
+    <value>النظر إلى أعلى</value>
+  </data>
+  <data name="Gesture_RaiseEyebrows" xml:space="preserve">
+    <value>رفع الحاجبين</value>
+  </data>
+  <data name="Gesture_Smile" xml:space="preserve">
+    <value>الابتسامة</value>
+  </data>
+  <data name="NotFound_ErrorDescription" xml:space="preserve">
+    <value>حاول التطبيق الوصول إلى صفحة غير موجودة. يُرجى الإبلاغ عن هذه المشكلة.</value>
+  </data>
+  <data name="NotFound_NotFound" xml:space="preserve">
+    <value>غير موجود</value>
+  </data>
+  <data name="Settings_AssistantPressesSpaceBarOnKeyboard" xml:space="preserve">
+    <value>يضغط المساعد مفتاح المسافة في لوحة المفاتيح</value>
+  </data>
+  <data name="Settings_AssistantTapsScreenOrClicksMouse" xml:space="preserve">
+    <value>يلمس المساعد الشاشة أو ينقر بالفأرة</value>
+  </data>
+  <data name="Settings_IndicatorMethod" xml:space="preserve">
+    <value>طريقة التحديد</value>
+  </data>
+  <data name="Settings_Language" xml:space="preserve">
+    <value>اللغة</value>
+  </data>
+  <data name="Settings_ScanSpeed" xml:space="preserve">
+    <value>سرعة المسح</value>
+  </data>
+  <data name="Settings_ScanSpeed_Description" xml:space="preserve">
+    <value>عدد الثواني التي يُنتظر انقضاؤها قبل أن ينتقل التحديد إلى العنصر التالي. القيمة الأقل أسرع.</value>
+  </data>
+  <data name="Settings_ScanSpeed_ScanSpeedX0SecondsPerStepFormat" xml:space="preserve">
+    <value>سرعة المسح: {0:0.0} ثانية لكل خطوة</value>
+  </data>
+  <data name="Settings_DownloadingLanguagePackX0Format" xml:space="preserve">
+    <value>جارٍ تنزيل حزمة اللغة: {0}</value>
+  </data>
+  <data name="Settings_LanguagePackDownloadFailed" xml:space="preserve">
+    <value>تعذّر تنزيل حزمة اللغة. يُرجى التحقّق من اتصالك بالإنترنت والمحاولة مرة أخرى.</value>
+  </data>
+  <data name="Settings_SetUpCamera" xml:space="preserve">
+    <value>إعداد الكاميرا</value>
+  </data>
+  <data name="Settings_Title" xml:space="preserve">
+    <value>الإعدادات</value>
+  </data>
+  <data name="Settings_UseCameraToDetectEyeGesture" xml:space="preserve">
+    <value>استخدام الكاميرا لتمييز إشارة العين</value>
+  </data>
+  <data name="Shared_Cancel" xml:space="preserve">
+    <value>إلغاء</value>
+  </data>
+  <data name="Shared_Done" xml:space="preserve">
+    <value>تم</value>
+  </data>
+</root>

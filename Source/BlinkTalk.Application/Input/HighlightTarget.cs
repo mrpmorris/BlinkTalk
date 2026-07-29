@@ -6,7 +6,10 @@ public enum HighlightKind
     Section,
     KeyboardRow,
     Key,
-    WordSuggestion
+    WordSuggestion,
+
+    /// <summary>A diacritic in the accent strip. The letter-picking phase highlights keys instead.</summary>
+    AccentMark
 }
 
 /// <summary>
@@ -18,31 +21,39 @@ public readonly struct HighlightTarget
 {
     public int ColumnIndex { get; }
     public HighlightKind Kind { get; }
+
+    /// <summary>Index into the accent strip's marks, for <see cref="HighlightKind.AccentMark"/>.</summary>
+    public int MarkIndex { get; }
     public int RowIndex { get; }
     public Section Section { get; }
     public int WordIndex { get; }
 
     public static readonly HighlightTarget None =
-        new HighlightTarget(HighlightKind.None, default, -1, -1, -1);
+        new HighlightTarget(HighlightKind.None, default, -1, -1, -1, -1);
 
-    private HighlightTarget(HighlightKind kind, Section section, int rowIndex, int columnIndex, int wordIndex)
+    private HighlightTarget(
+        HighlightKind kind, Section section, int rowIndex, int columnIndex, int wordIndex, int markIndex)
     {
         Kind = kind;
         Section = section;
         RowIndex = rowIndex;
         ColumnIndex = columnIndex;
         WordIndex = wordIndex;
+        MarkIndex = markIndex;
     }
 
+    public static HighlightTarget ForAccentMark(int markIndex) =>
+        new HighlightTarget(HighlightKind.AccentMark, default, -1, -1, -1, markIndex);
+
     public static HighlightTarget ForKey(int rowIndex, int columnIndex) =>
-        new HighlightTarget(HighlightKind.Key, default, rowIndex, columnIndex, -1);
+        new HighlightTarget(HighlightKind.Key, default, rowIndex, columnIndex, -1, -1);
 
     public static HighlightTarget ForKeyboardRow(int rowIndex) =>
-        new HighlightTarget(HighlightKind.KeyboardRow, default, rowIndex, -1, -1);
+        new HighlightTarget(HighlightKind.KeyboardRow, default, rowIndex, -1, -1, -1);
 
     public static HighlightTarget ForSection(Section section) =>
-        new HighlightTarget(HighlightKind.Section, section, -1, -1, -1);
+        new HighlightTarget(HighlightKind.Section, section, -1, -1, -1, -1);
 
     public static HighlightTarget ForWord(int wordIndex) =>
-        new HighlightTarget(HighlightKind.WordSuggestion, default, -1, -1, wordIndex);
+        new HighlightTarget(HighlightKind.WordSuggestion, default, -1, -1, wordIndex, -1);
 }

@@ -191,6 +191,27 @@ html, body {
     text-transform: none;
 }
 
+/* The diacritics on offer, shown beneath the row they will be applied to. Inset and tinted so it
+   reads as belonging to that row rather than as another row of keys. */
+.bt-accent-row {
+    background: rgba(230, 197, 47, 0.08);
+    border-radius: 1vh;
+    margin: 0 6vw;
+}
+
+.bt-accent {
+    /* A diacritic on a dotted circle is a small mark: give it room over a plain letter. */
+    font-size: 4.6vh;
+    background: #363c4a;
+}
+
+/* The mark already chosen, while the scan moves along the row picking a letter for it. It is not
+   what is being scanned, so it gets a steady border rather than the pulsing highlight. */
+.bt-accent-chosen {
+    border-color: var(--bt-hl-color);
+    background: #454d60;
+}
+
 .bt-speak {
     flex: 0 0 auto;
     display: flex;

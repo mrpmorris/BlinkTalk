@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using BlinkTalk.Application.Abstractions;
 using BlinkTalk.Application.Persistence;
+using BlinkTalk.Application.Text;
 
 namespace BlinkTalk.Application.Prediction;
 
@@ -44,9 +45,12 @@ public sealed class PhraseService : IPhraseService
             $" PrecedingWord3Id in ({nullableWordIdsAsString})" +
             $" and PrecedingWord2Id in ({nullableWordIdsAsString})" +
             $" and PrecedingWord1Id in ({nullableWordIdsAsString})";
-        bool hasPrefix = !string.IsNullOrEmpty(currentWord);
+        // Folded here rather than by the caller: the prefix must match SearchWord, which is the
+        // case- and accent-folded form of the word.
+        string prefix = TextFold.Fold(currentWord);
+        bool hasPrefix = prefix.Length > 0;
         if (hasPrefix)
-            sqlConditions += " and Words.Word like @prefix";
+            sqlConditions += " and Words.SearchWord like @prefix";
 
         string sql =
             $"Select {scoreSql}, Words.Word from WordSequences join Words on Words.Id = WordSequences.SuggestedWordId" +
@@ -54,7 +58,7 @@ public sealed class PhraseService : IPhraseService
             $" order by (Score1 + Score2 + Score3) desc, WordSequences.UsageCount desc, LastUsedDate desc, Words.UserSelectionCount desc";
 
         DataTable data = hasPrefix
-            ? Database.ExecuteQuery(sql, ("@prefix", currentWord + "%"))
+            ? Database.ExecuteQuery(sql, ("@prefix", prefix + "%"))
             : Database.ExecuteQuery(sql);
 
         return data.Rows

@@ -122,6 +122,7 @@ public static class AppLanguage
 			"de" => "German",
 			"es" => "Spanish",
 			"pt" => "Portuguese",
+			"ar" => "Arabic",
 			_ => null
 		};
 

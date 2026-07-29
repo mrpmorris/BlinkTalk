@@ -14,6 +14,9 @@ public interface IScanController
     KeyboardLayout Keyboard { get; }
     ITextToSpeechService Speech { get; }
 
+    /// <summary>The diacritics currently on offer, or null when no accent is being picked.</summary>
+    AccentSelectionState? AccentState { get; }
+
     /// <summary>What the scanner is currently highlighting; the UI maps this to a CSS class.</summary>
     HighlightTarget Highlight { get; }
 
@@ -27,8 +30,14 @@ public interface IScanController
     /// <summary>Push a new scanning level (the original StartInputStrategy).</summary>
     TStrategy Push<TStrategy>() where TStrategy : IInputStrategy, new();
 
-    /// <summary>Pop the current scanning level back to its parent (the original InputStrategyFinished).</summary>
-    void Pop();
+    /// <summary>
+    /// Pop the current scanning level back to its parent (the original InputStrategyFinished).
+    /// <paramref name="levels"/> pops more than one at a time, so the level below is re-entered once
+    /// rather than being restarted for each level passed through.
+    /// </summary>
+    void Pop(int levels = 1);
+
+    void SetAccentState(AccentSelectionState? state);
 
     void SetHighlight(HighlightTarget target);
 

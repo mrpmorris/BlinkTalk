@@ -14,7 +14,7 @@ public class PredictionTests
     {
         using var db = NewInMemoryDb();
         db.ExecuteNonQuery(
-            "INSERT INTO Words(ID,Word,UserSelectionCount,LanguageUsageCount) VALUES (1,'i',0,0),(2,'am',0,0)");
+            "INSERT INTO Words(ID,Word,SearchWord,UserSelectionCount,LanguageUsageCount) VALUES (1,'i','I',0,0),(2,'am','AM',0,0)");
         var phrase = new PhraseService(db, new FixedClock());
 
         phrase.IncrementPhraseUsage(new[] { 1, 2 });
@@ -32,8 +32,8 @@ public class PredictionTests
     {
         using var db = NewInMemoryDb();
         db.ExecuteNonQuery(
-            "INSERT INTO Words(ID,Word,UserSelectionCount,LanguageUsageCount) VALUES " +
-            "(1,'hello',0,0),(2,'apple',0,0),(3,'ant',0,0)");
+            "INSERT INTO Words(ID,Word,SearchWord,UserSelectionCount,LanguageUsageCount) VALUES " +
+            "(1,'hello','HELLO',0,0),(2,'apple','APPLE',0,0),(3,'ant','ANT',0,0)");
         db.ExecuteNonQuery(
             "INSERT INTO WordSequences(PrecedingWord3Id,PrecedingWord2Id,PrecedingWord1Id,SuggestedWordId,UsageCount,LastUsedDate) VALUES " +
             "(-1,-1,1,2,5,20260101)," +   // apple
@@ -50,8 +50,8 @@ public class PredictionTests
     {
         using var db = NewInMemoryDb();
         db.ExecuteNonQuery(
-            "INSERT INTO Words(ID,Word,UserSelectionCount,LanguageUsageCount) VALUES " +
-            "(1,'hello',0,0),(2,'xword',0,0),(3,'yword',0,0),(4,'zword',0,0)");
+            "INSERT INTO Words(ID,Word,SearchWord,UserSelectionCount,LanguageUsageCount) VALUES " +
+            "(1,'hello','HELLO',0,0),(2,'xword','XWORD',0,0),(3,'yword','YWORD',0,0),(4,'zword','ZWORD',0,0)");
         // Two strong context matches (preceding word 1 == hello), differing only by usage count.
         db.ExecuteNonQuery(
             "INSERT INTO WordSequences(PrecedingWord3Id,PrecedingWord2Id,PrecedingWord1Id,SuggestedWordId,UsageCount,LastUsedDate) VALUES " +
@@ -78,9 +78,8 @@ public class PredictionTests
             var words = new WordService(db);
 
             // Dictionary prefix lookup returns real suggestions (schema/columns match the ported SQL).
-            // WordService normalises the query to upper case; the word list stores words in their
-            // natural casing and SQLite's LIKE is case-insensitive for ASCII, so the match is
-            // case-insensitive too.
+            // The word list stores words in their natural casing; the prefix is matched against the
+            // folded SearchWord seeded alongside each one, so the match ignores case (and accents).
             var dictionary = words.GetWordSuggestions("th", 6);
             Assert.NotEmpty(dictionary);
             Assert.All(dictionary, w => Assert.StartsWith("TH", w, StringComparison.OrdinalIgnoreCase));
@@ -114,6 +113,78 @@ public class PredictionTests
         Assert.Equal(2, Convert.ToInt32(row[0]["UserSelectionCount"]));
     }
 
+    [Theory]
+    [InlineData("CAFE")]  // typed without the accent, which is all the keyboard used to allow
+    [InlineData("CAFÉ")]  // typed with it
+    [InlineData("cafe")]
+    public void AccentedDictionaryWordsAreFoundHoweverTheyAreTyped(string typed)
+    {
+        using var db = NewInMemoryDb(new FakeSeedWordSource(("café", 500)));
+        var words = new WordService(db);
+
+        Assert.Equal(new[] { "café" }, words.GetWordSuggestions(typed, 6));
+    }
+
+    [Fact]
+    public void SelectingAWordCreditsTheSeededRowRatherThanCreatingANearDuplicate()
+    {
+        using var db = NewInMemoryDb(new FakeSeedWordSource(("café", 500)));
+        var words = new WordService(db);
+
+        words.IncreaseWordUsage("CAFE", out int wordId);
+
+        // One row, still spelled as the word list spells it, now carrying the selection. Before
+        // SearchWord existed this inserted a second row "CAFE" and the counts diverged.
+        Assert.Equal(1, Convert.ToInt32(db.ExecuteScalar("select count(1) from Words")));
+        var row = db.ExecuteQuery("select Word, UserSelectionCount from Words where ID = @id", ("@id", wordId)).Rows;
+        Assert.Equal("café", (string)row[0]["Word"]!);
+        Assert.Equal(1, Convert.ToInt32(row[0]["UserSelectionCount"]));
+    }
+
+    [Fact]
+    public void SelectingAnAccentedWordPrefersTheRowWithTheSameAccents()
+    {
+        // "cafe" and "café" both fold to CAFE, so both are candidates; the accents decide.
+        using var db = NewInMemoryDb(new FakeSeedWordSource(("cafe", 900), ("café", 500)));
+        var words = new WordService(db);
+
+        words.IncreaseWordUsage("CAFÉ", out int wordId);
+
+        Assert.Equal("café", (string)db.ExecuteQuery(
+            "select Word from Words where ID = @id", ("@id", wordId)).Rows[0]["Word"]!);
+    }
+
+    [Fact]
+    public void UnknownWordsAreStillLearnedWithTheirSearchKey()
+    {
+        using var db = NewInMemoryDb();
+        var words = new WordService(db);
+
+        words.IncreaseWordUsage("CRÈCHE", out int wordId);
+
+        var row = db.ExecuteQuery("select Word, SearchWord from Words where ID = @id", ("@id", wordId)).Rows;
+        Assert.Equal("CRÈCHE", (string)row[0]["Word"]!);
+        Assert.Equal("CRECHE", (string)row[0]["SearchWord"]!);
+        Assert.Contains("CRÈCHE", words.GetWordSuggestions("CRE", 6));
+    }
+
+    [Fact]
+    public void PhrasePrefixIgnoresAccentsToo()
+    {
+        using var db = NewInMemoryDb();
+        db.ExecuteNonQuery(
+            "INSERT INTO Words(ID,Word,SearchWord,UserSelectionCount,LanguageUsageCount) VALUES " +
+            "(1,'un','UN',0,0),(2,'été','ETE',0,0),(3,'enfant','ENFANT',0,0)");
+        db.ExecuteNonQuery(
+            "INSERT INTO WordSequences(PrecedingWord3Id,PrecedingWord2Id,PrecedingWord1Id,SuggestedWordId,UsageCount,LastUsedDate) VALUES " +
+            "(-1,-1,1,2,5,20260101)," +
+            "(-1,-1,1,3,5,20260101)");
+
+        var phrase = new PhraseService(db, new FixedClock());
+
+        Assert.Equal(new[] { "été" }, phrase.GetWordSuggestions(new[] { 1 }, "ET", 6));
+    }
+
     // --- Parity against the bundled word list (English.zip, linked into the test output) ---
 
     private sealed class ZipSeedWordSource : ISeedWordSource
@@ -126,10 +197,10 @@ public class PredictionTests
         }
     }
 
-    private static MicrosoftDataSqliteDatabase NewInMemoryDb()
+    private static MicrosoftDataSqliteDatabase NewInMemoryDb(ISeedWordSource? seedWordSource = null)
     {
         var db = new MicrosoftDataSqliteDatabase(":memory:");
-        new AutoMigratingDatabase(db, new FixedClock()).Migrate();
+        new AutoMigratingDatabase(db, new FixedClock(), seedWordSource).Migrate();
         return db;
     }
 }

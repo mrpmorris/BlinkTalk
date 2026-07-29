@@ -88,13 +88,12 @@ public class ScanFlowTests
         var word = new FakeWordService();
         var phrase = new FakePhraseService();
         var sentence = new SentenceBuilder(word, phrase);
-        var keyboard = KeyboardLayout.CreateDefault();
         var tts = new FakeTextToSpeech();
         var gate = new StepDelay();
         var indicator = new FakeIndicator();
         var controller = new ScanController(
-            sentence, keyboard, tts, new FakeSettingsStore(), new InlineUIDispatcher(),
-            new[] { indicator }, gate.Delay);
+            sentence, new FixedKeyboardLayoutProvider(KeyboardLayout.CreateDefault()), tts,
+            new FakeSettingsStore(), new InlineUIDispatcher(), new[] { indicator }, gate.Delay);
         return (controller, indicator, gate, tts);
     }
 }

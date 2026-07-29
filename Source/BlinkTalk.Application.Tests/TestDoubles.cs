@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using BlinkTalk.Application.Abstractions;
+using BlinkTalk.Application.Persistence;
 using BlinkTalk.Application.Prediction;
+using BlinkTalk.Application.Text;
 
 namespace BlinkTalk.Application.Tests;
 
@@ -14,16 +16,27 @@ namespace BlinkTalk.Application.Tests;
 /// </summary>
 public sealed class StepDelay
 {
-    // Parked is released by the cycler once it has fired a tick and parked in Delay.
-    // Go is released by the test to allow exactly one more tick. The semaphores make the
-    // handshake robust regardless of whether continuations resume sync or async.
-    private readonly SemaphoreSlim Go = new SemaphoreSlim(0);
+    // Parked is released by the cycler once it has fired a tick and parked in Delay. Current is the
+    // park a step releases: the most recent one, which is always the running cycler's, since a
+    // cycler is stopped before its replacement is started and so the replacement parks last.
+    //
+    // Releasing that one park specifically — rather than posting a shared signal for whichever
+    // delay happens to be waiting — is what makes stepping deterministic. A stopped cycler's park
+    // lingers in the wait queue for a moment (a cancelled SemaphoreSlim waiter is removed
+    // asynchronously), and would otherwise take the signal meant for the live cycler and then exit
+    // without parking again, hanging the test.
+    private TaskCompletionSource<bool>? Current;
     private readonly SemaphoreSlim Parked = new SemaphoreSlim(0);
+    private readonly object Sync = new object();
 
-    public async Task Delay(TimeSpan _, CancellationToken ct)
+    public Task Delay(TimeSpan _, CancellationToken ct)
     {
+        var park = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        lock (Sync)
+            Current = park;
+        CancellationTokenRegistration registration = ct.Register(() => park.TrySetCanceled(ct));
         Parked.Release();
-        await Go.WaitAsync(ct).ConfigureAwait(false);
+        return AwaitThenUnregister(park.Task, registration);
     }
 
     public async Task StepAsync()
@@ -31,8 +44,21 @@ public sealed class StepDelay
         // Drain any stale 'parked' signals left by cyclers that started/stopped between steps
         // (e.g. a Pop that re-initialises the parent's cycler).
         while (Parked.Wait(0)) { }
-        Go.Release();             // allow exactly one tick
+
+        TaskCompletionSource<bool>? park;
+        lock (Sync)
+            park = Current;
+        if (park is null)
+            throw new InvalidOperationException("Nothing is scanning: no cycler has parked in Delay.");
+
+        park.TrySetResult(true);  // allow exactly one tick
         await Parked.WaitAsync(); // the cycler releases this only after the tick's fire completes
+    }
+
+    private static async Task AwaitThenUnregister(Task task, CancellationTokenRegistration registration)
+    {
+        try { await task.ConfigureAwait(false); }
+        finally { registration.Dispose(); }
     }
 }
 
@@ -134,4 +160,22 @@ public sealed class GatedDelay
 public sealed class FixedClock : IClock
 {
     public DateTime UtcNow { get; set; } = new DateTime(2026, 6, 3, 0, 0, 0, DateTimeKind.Utc);
+}
+
+/// <summary>One keyboard, for tests that do not change language mid-run.</summary>
+public sealed class FixedKeyboardLayoutProvider : IKeyboardLayoutProvider
+{
+    public KeyboardLayout Current { get; }
+
+    public FixedKeyboardLayoutProvider(KeyboardLayout current) => Current = current;
+}
+
+/// <summary>A word list given inline, for seeding a database without building a zip.</summary>
+public sealed class FakeSeedWordSource : ISeedWordSource
+{
+    private readonly (string Word, int LanguageUsageCount)[] Words;
+
+    public FakeSeedWordSource(params (string Word, int LanguageUsageCount)[] words) => Words = words;
+
+    public IEnumerable<(string Word, int LanguageUsageCount)> GetWords() => Words;
 }

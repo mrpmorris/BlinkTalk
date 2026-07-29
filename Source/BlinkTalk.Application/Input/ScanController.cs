@@ -16,8 +16,14 @@ namespace BlinkTalk.Application.Input;
 /// </summary>
 public sealed class ScanController : IScanController, IDisposable
 {
+    public AccentSelectionState? AccentState { get; private set; }
     public HighlightTarget Highlight { get; private set; } = HighlightTarget.None;
-    public KeyboardLayout Keyboard { get; }
+
+    /// <summary>
+    /// The keyboard for the current language, read through the provider on every access so that
+    /// changing language takes effect without restarting the app.
+    /// </summary>
+    public KeyboardLayout Keyboard => KeyboardLayouts.Current;
     public SentenceBuilder Sentence { get; }
     public ITextToSpeechService Speech { get; }
 
@@ -32,13 +38,14 @@ public sealed class ScanController : IScanController, IDisposable
     // Number of in-progress held gestures; while > 0 the active cycle is paused.
     private int DwellDepth;
     private readonly IEnumerable<IIndicator> Indicators;
+    private readonly IKeyboardLayoutProvider KeyboardLayouts;
     private readonly ISettingsStore Settings;
     private bool Started;
     private readonly Stack<IInputStrategy> Strategies = new Stack<IInputStrategy>();
 
     public ScanController(
         SentenceBuilder sentence,
-        KeyboardLayout keyboard,
+        IKeyboardLayoutProvider keyboardLayouts,
         ITextToSpeechService speech,
         ISettingsStore settings,
         IUIDispatcher dispatcher,
@@ -47,7 +54,7 @@ public sealed class ScanController : IScanController, IDisposable
         IClock? clock = null)
     {
         Sentence = sentence;
-        Keyboard = keyboard;
+        KeyboardLayouts = keyboardLayouts;
         Speech = speech;
         Settings = settings;
         Dispatcher = dispatcher;
@@ -112,12 +119,15 @@ public sealed class ScanController : IScanController, IDisposable
         return cycler;
     }
 
-    public void Pop()
+    public void Pop(int levels = 1)
     {
         if (Strategies.Count == 0)
             return;
-        IInputStrategy terminated = Strategies.Pop();
-        terminated.Terminated();
+
+        // Terminate every level being left before re-entering the one below: initialising an
+        // intermediate level would start its scan cycle only to stop it again a moment later.
+        for (int i = 0; i < levels && Strategies.Count > 0; i++)
+            Strategies.Pop().Terminated();
         if (Strategies.Count > 0)
             Strategies.Peek().Initialize(this);
         RaiseStateChanged();
@@ -135,6 +145,31 @@ public sealed class ScanController : IScanController, IDisposable
         strategy.Initialize(this);
         RaiseStateChanged();
         return strategy;
+    }
+
+    /// <summary>
+    /// Abandons the current scan and starts again from the top. Used when the language changes: the
+    /// keyboard behind the running strategies has just been replaced with a different one, whose
+    /// rows are a different shape. The sentence in progress is deliberately left alone.
+    /// </summary>
+    public void Restart()
+    {
+        while (Strategies.Count > 0)
+            Strategies.Pop().Terminated();
+        AccentState = null;
+        Highlight = HighlightTarget.None;
+        if (Started)
+        {
+            Sentence.Initialize();
+            Push<SectionSelectorInputStrategy>();
+        }
+        RaiseStateChanged();
+    }
+
+    public void SetAccentState(AccentSelectionState? state)
+    {
+        AccentState = state;
+        RaiseStateChanged();
     }
 
     public void SetHighlight(HighlightTarget target)

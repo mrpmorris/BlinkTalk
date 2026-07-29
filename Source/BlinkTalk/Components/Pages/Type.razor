@@ -1,8 +1,11 @@
 @page "/type"
 @implements IDisposable
 
+@* dir drives the whole page: the browser mirrors the flex rows for a right-to-left script, so
+   scan index 0 is the rightmost key, and the sentence reads in the right direction. *@
 <div class="bt-root"
      style="--bt-hl-color: @DepthColor"
+     dir="@TextDirection"
      tabindex="0"
      @ref=Root
      @onpointerdown=OnIndicate
@@ -58,6 +61,19 @@
                     </span>
                 }
             </div>
+            @* The accents on offer, shown against the row they will be applied to. *@
+            @if (Accents is not null && Accents.ActiveRowIndex == rowIndex)
+            {
+                <div class="bt-row bt-accent-row">
+                    @for (int m = 0; m < Accents.Marks.Count; m++)
+                    {
+                        int markIndex = m;
+                        <span class="bt-key bt-accent @AccentMarkClass(markIndex)">
+                            @Accents.Marks[markIndex].DisplayGlyph
+                        </span>
+                    }
+                </div>
+            }
         }
     </div>
 

@@ -26,6 +26,12 @@ public partial class Settings
 
 	private double ScanSpeed { get; set; }
 
+	/// <summary>
+	/// Read from the culture rather than the keyboard: this page switches language as soon as the
+	/// dropdown changes, before the keyboard for it has been asked for.
+	/// </summary>
+	private string TextDirection => AppLanguage.Current.TextInfo.IsRightToLeft ? "rtl" : "ltr";
+
 	private string SelectedLanguage { get; set; } = string.Empty;
 
 	private bool IsDownloading { get; set; }
@@ -84,12 +90,12 @@ public partial class Settings
 		if (Provisioner.DatabaseExists())
 		{
 			Database.OpenForCurrentLanguage();
-			Navigation.NavigateTo("/type");
+			ReturnToTyping();
 			return;
 		}
 
 		if (await DownloadAndSeedAsync())
-			Navigation.NavigateTo("/type");
+			ReturnToTyping();
 	}
 
 	/// <summary>
@@ -163,6 +169,17 @@ public partial class Settings
 		CultureInfo? culture = Languages.FirstOrDefault(language => language.Name == SelectedLanguage);
 		if (culture is not null)
 			AppLanguage.SetCurrent(culture);
+	}
+
+	/// <summary>
+	/// The controller outlives this page, and its scan levels are still holding the row and key
+	/// counts of the keyboard for the language we may have just left — restart it so it picks up the
+	/// new keyboard, and the suggestions from the new language's dictionary.
+	/// </summary>
+	private void ReturnToTyping()
+	{
+		Controller.Restart();
+		Navigation.NavigateTo("/type");
 	}
 
 	private void OnScanSpeedChanged(ChangeEventArgs e)
