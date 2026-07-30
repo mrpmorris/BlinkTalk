@@ -1,5 +1,6 @@
 using BlinkTalk.Services;
 using BlinkTalk.Services.Indicators;
+using BlinkTalk.Application;
 using BlinkTalk.Application.Abstractions;
 using BlinkTalk.Application.Input;
 using BlinkTalk.Application.Persistence;

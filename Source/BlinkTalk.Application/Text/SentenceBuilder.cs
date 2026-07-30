@@ -150,7 +150,12 @@ public sealed class SentenceBuilder
             List<string> suggestionsFromDictionary = WordService.GetWordSuggestions(CurrentWord, NumberOfSuggestedWords * 2);
             result.AddRange(suggestionsFromDictionary);
         }
-        SuggestedWords = result.Distinct(StringComparer.CurrentCultureIgnoreCase).Take(NumberOfSuggestedWords).ToList();
+        // Two spellings are the same suggestion under the app's language, not under whatever culture
+        // this thread happens to carry: StringComparer.CurrentCultureIgnoreCase reads the per-thread
+        // CultureInfo.CurrentCulture, and this runs off the back of scan callbacks on thread-pool
+        // threads that may predate AppLanguage.SetCurrent — which would dedupe by the system culture.
+        var sameWord = StringComparer.Create(AppLanguage.Current, ignoreCase: true);
+        SuggestedWords = result.Distinct(sameWord).Take(NumberOfSuggestedWords).ToList();
     }
 
     private void PopWord()

@@ -18,10 +18,12 @@ Portuguese and Arabic are the ones selectable today (see the `Language` enum).
 
 Under `Source/` (all in `BlinkTalk.sln`):
 
-- **`BlinkTalk.Application`** (`netstandard2.0`) — all the scanning/prediction/persistence logic.
-  **Contains no MAUI or Blazor types** and is unit-tested on plain .NET. Platform concerns enter only
-  through interfaces in `Abstractions/` (`IUIDispatcher`, `ITextToSpeechService`, `ISettingsStore`,
-  `IClock`, `IIndicator`) and `Persistence/IDatabaseProvisioner`.
+- **`BlinkTalk.Application`** (`net10.0`) — all the scanning/prediction/persistence logic, plus the
+  `Language` enum and `AppLanguage` (both at the project root, since the culture decides the word list,
+  the keyboard and the database). **Contains no MAUI or Blazor types** and is unit-tested on plain
+  .NET. Platform concerns enter only through interfaces in `Abstractions/` (`IUIDispatcher`,
+  `ITextToSpeechService`, `ISettingsStore`, `IClock`, `IIndicator`) and
+  `Persistence/IDatabaseProvisioner`. `ImplicitUsings` is **disabled** here — spell out `using System;`.
 - **`BlinkTalk`** (MAUI Blazor Hybrid) — the host. `Components/` holds the Razor UI; `Services/`
   holds the MAUI implementations of the Application interfaces. Word lists (zipped
   `Word,LanguageUsageCount` CSVs) are **not bundled**: they live in repo-root `LanguagePacks/` and are
@@ -140,10 +142,12 @@ seeding happens when the Settings page's Done button finds no database for the s
 `InMemoryZipSeedWordSource` (parsed by `WordListZipReader`) to
 `AppDatabase.OpenForCurrentLanguage(seedOverride)`.
 
-**Language is global state, set before DI exists.** `MauiProgram` hand-builds a
-`MauiPreferencesSettings` and calls `AppLanguage.RestorePersisted` *before* the builder, because the
-culture decides both resource lookups and the database filename (`BlinkTalk-Portuguese.db`) — one database
-per language, so a Portuguese UI never inherits an English dictionary. `AppLanguage.SetCurrent` sets the
+**Language is global state, set before DI exists.** `AppLanguage` lives in `BlinkTalk.Application`
+alongside the `Language` enum, so the Application project can resolve the culture itself rather than be
+told. `MauiProgram` hand-builds a `MauiPreferencesSettings` and calls `AppLanguage.RestorePersisted`
+*before* the builder, because the culture decides both resource lookups and the database filename
+(`BlinkTalk-Portuguese.db`) — one database per language, so a Portuguese UI never inherits an English
+dictionary. `AppLanguage.SetCurrent` sets the
 `DefaultThreadCurrent*` pair as well as the current thread's, because scan callbacks arrive on
 thread-pool threads; read `AppLanguage.Current`, never `CultureInfo.CurrentUICulture`. `AppLanguage.Name`
 is a `BlinkTalk.Application.Language` enum, not a string, and its **member names are the file names** —

@@ -1,9 +1,9 @@
+using System;
 using System.Globalization;
-using BlinkTalk.Application;
 using BlinkTalk.Application.Abstractions;
 using BlinkTalk.Resources;
 
-namespace BlinkTalk.Services;
+namespace BlinkTalk.Application;
 
 /// <summary>
 /// The language the app is running in, as the <see cref="Language"/> that names the per-language

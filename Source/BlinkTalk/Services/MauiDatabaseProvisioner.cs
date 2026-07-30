@@ -1,3 +1,4 @@
+using BlinkTalk.Application;
 using BlinkTalk.Application.Persistence;
 
 namespace BlinkTalk.Services;
