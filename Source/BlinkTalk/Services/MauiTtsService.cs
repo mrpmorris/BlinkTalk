@@ -11,9 +11,12 @@ namespace BlinkTalk.Services;
 /// <summary>
 /// Text-to-speech via MAUI's cross-platform TextToSpeech. Reproduces the original
 /// TextToSpeech.Speak: low pitch and full volume, a trailing period, and flushing any in-progress
-/// utterance by cancelling it. The voice follows <see cref="CultureInfo.CurrentCulture"/> so the
+/// utterance by cancelling it. The voice follows <see cref="AppLanguage.Current"/> so the
 /// spoken language matches the localised UI; the document's &lt;html lang&gt; has no bearing on it,
 /// because this is the native platform engine rather than the WebView's speechSynthesis.
+/// <see cref="CultureInfo.CurrentCulture"/> would not do: it flows with the ExecutionContext, so it
+/// reverts to the startup language once the handler that switched language has finished, and every
+/// utterance after that would be spoken by the previous language's voice.
 ///
 /// Note: MAUI's SpeechOptions exposes Volume, Pitch and Locale but no cross-platform speaking
 /// rate, so the original's slow rate (0.4) is not yet applied. Applying it requires a
@@ -65,7 +68,7 @@ public sealed class MauiTtsService : ITextToSpeechService
     /// </summary>
     private static string ToSpokenText(string text)
     {
-        var culture = CultureInfo.CurrentCulture;
+        var culture = AppLanguage.Current;
         string[] words = text.Split(' ');
 
         for (int index = 0; index < words.Length; index++)
@@ -110,14 +113,14 @@ public sealed class MauiTtsService : ITextToSpeechService
     }
 
     /// <summary>
-    /// Picks the installed voice that best matches the current culture: the exact tag first
+    /// Picks the installed voice that best matches the app's language: the exact tag first
     /// (en-GB), then any voice for the same language (fr-CA for fr-FR), then a language-only
     /// voice. Cached per culture name, so switching language re-resolves rather than reusing a
     /// stale voice.
     /// </summary>
     private async Task<Locale?> ResolveLocaleAsync()
     {
-        var culture = CultureInfo.CurrentCulture;
+        var culture = AppLanguage.Current;
         if (ResolvedForCulture == culture.Name)
             return ResolvedLocale;
 
