@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using BlinkTalk.Application.Abstractions;
 using BlinkTalk.Resources;
@@ -21,6 +22,29 @@ public static class AppLanguage
 
 	/// <summary>Used when the UI language has no word list of its own.</summary>
 	public const Language Fallback = Language.English;
+
+	/// <summary>
+	/// The cultures offered in the settings dropdown — one per <c>.resx</c> the app is translated into,
+	/// so the list and the translations cannot drift apart. Neutral codes ("pt") for the most part,
+	/// because the choice is a language rather than a region; a region code ("pt-BR") appears alongside
+	/// its neutral sibling only where that region has a <c>.resx</c> of its own, and then the neutral
+	/// entry means the language's other regions.
+	/// <para>
+	/// A region entry does not imply a word list of its own: <see cref="GetName"/> falls back to the
+	/// language's list, which is why "pt-BR" needs no <see cref="Language"/> member. The page skips any
+	/// code this device does not recognise, so an exotic region cannot empty the dropdown.
+	/// </para>
+	/// </summary>
+	public static readonly IReadOnlyList<string> OfferedCultureCodes =
+	[
+		"ar",
+		"de",
+		"en",
+		"es",
+		"fr",
+		"pt",
+		"pt-BR"
+	];
 
 	/// <summary>
 	/// The culture the app is running in. <see cref="Localization.Culture"/> is null unless something
@@ -87,7 +111,7 @@ public static class AppLanguage
 	/// The culture named by <paramref name="cultureCode"/>, or null if it is empty, is not a culture
 	/// this device recognises, or is not one the app supports.
 	/// </summary>
-	private static CultureInfo? FindSupported(string cultureCode)
+	public static CultureInfo? FindSupported(string cultureCode)
 	{
 		if (string.IsNullOrWhiteSpace(cultureCode))
 			return null;

@@ -59,16 +59,16 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Camera_CameraPermissionWasDenied" xml:space="preserve">
-    <value>A permissão da câmara foi negada. Ative a câmara para o BlinkTalk nas definições do seu dispositivo e volte a abrir esta página.</value>
+    <value>A permissão da câmera foi negada. Ative a câmera para o BlinkTalk nas configurações do seu dispositivo e abra esta página novamente.</value>
   </data>
   <data name="Camera_CameraReady" xml:space="preserve">
-    <value>Câmara pronta. Prima Treinar e siga as instruções.</value>
+    <value>Câmera pronta. Pressione Treinar e siga as instruções.</value>
   </data>
   <data name="Camera_CouldNotStartTheCameraX0Format" xml:space="preserve">
-    <value>Não foi possível iniciar a câmara: {0}</value>
+    <value>Não foi possível iniciar a câmera: {0}</value>
   </data>
   <data name="Camera_DetectedX0GestureFormat" xml:space="preserve">
-    <value>Treino bem-sucedido! Detetei o seu gesto “{0}”. Certifique-se de que ‘Usar câmara’ está marcado para o poder utilizar.</value>
+    <value>Treinamento bem-sucedido! Detectei seu gesto “{0}”. Certifique-se de que ‘Usar câmera’ está marcado para poder utilizá-lo.</value>
   </data>
   <data name="Camera_EyeGesture" xml:space="preserve">
     <value>Gesto ocular</value>
@@ -77,13 +77,13 @@
     <value>Tempo do gesto: {0:0.0} segundos</value>
   </data>
   <data name="Camera_Instructions_CouldNotDetectGesture" xml:space="preserve">
-    <value>Não consegui detetar um gesto claro e repetível - vamos tentar outra vez.</value>
+    <value>Não consegui detectar um gesto claro e repetível - vamos tentar outra vez.</value>
   </data>
   <data name="Camera_Instructions_LookAtCamera" xml:space="preserve">
-    <value>Olhe para o ecrã e relaxe o rosto. Não olhe para a câmara.</value>
+    <value>Olhe para a tela e relaxe o rosto. Não olhe para a câmera.</value>
   </data>
   <data name="Camera_Instructions_MakeIndicatingGesture" xml:space="preserve">
-    <value>Agora faça o seu gesto de indicação e mantenha-o até eu lhe dizer para relaxar. Recomendo que olhe para cima.</value>
+    <value>Agora faça seu gesto de indicação e segure até eu dizer para relaxar. Recomendo que olhe para cima.</value>
   </data>
   <data name="Camera_Instructions_NowRelax" xml:space="preserve">
     <value>Agora relaxe.</value>
@@ -92,10 +92,10 @@
     <value>Gesto aprendido</value>
   </data>
   <data name="Camera_StartingCamera" xml:space="preserve">
-    <value>A iniciar a câmara</value>
+    <value>Iniciando a câmera</value>
   </data>
   <data name="Camera_TestingInstructions" xml:space="preserve">
-    <value>Mantenha o seu gesto e a barra vai enchendo com o tempo. Coloque o cursor de deslize onde quer que seja acionado. Ouvirá um sinal sonoro quando a barra o alcançar.</value>
+    <value>Mantenha seu gesto e a barra vai enchendo com o tempo. Posicione o controle deslizante onde você quer que ele seja acionado. Você ouvirá um bipe quando a barra chegar lá.</value>
   </data>
   <data name="Camera_Train" xml:space="preserve">
     <value>Treinar</value>
@@ -104,13 +104,13 @@
     <value>Treinar primeiro</value>
   </data>
   <data name="Camera_Training" xml:space="preserve">
-    <value>Treino</value>
+    <value>Treinamento</value>
   </data>
   <data name="Camera_TrainingFailedX0Format" xml:space="preserve">
-    <value>O treino falhou: {0}</value>
+    <value>O treinamento falhou: {0}</value>
   </data>
   <data name="Camera_UseCamera" xml:space="preserve">
-    <value>Usar câmara</value>
+    <value>Usar câmera</value>
   </data>
   <data name="Gesture_Blink" xml:space="preserve">
     <value>piscar os olhos</value>
@@ -128,55 +128,55 @@
     <value>sorrir</value>
   </data>
   <data name="NotFound_ErrorDescription" xml:space="preserve">
-    <value>A aplicação tentou aceder a uma página que não existe. Por favor, comunique este problema.</value>
+    <value>O aplicativo tentou acessar uma página que não existe. Por favor, relate este problema.</value>
   </data>
   <data name="NotFound_NotFound" xml:space="preserve">
     <value>Não encontrado</value>
   </data>
   <data name="Settings_AssistantPressesSpaceBarOnKeyboard" xml:space="preserve">
-    <value>O assistente prime a barra de espaços no teclado</value>
+    <value>O assistente pressiona a barra de espaço no teclado</value>
   </data>
   <data name="Settings_AssistantTapsScreenOrClicksMouse" xml:space="preserve">
-    <value>O assistente toca no ecrã ou clica com o rato</value>
+    <value>O assistente toca na tela ou clica com o mouse</value>
   </data>
   <data name="Settings_IndicatorMethod" xml:space="preserve">
     <value>Método de indicação</value>
   </data>
   <data name="Settings_KeyboardLayout" xml:space="preserve">
-    <value>Disposição do teclado</value>
+    <value>Layout do teclado</value>
   </data>
   <data name="Settings_KeyboardLayout_Alphabetical" xml:space="preserve">
-    <value>Alfabética</value>
+    <value>Alfabético</value>
   </data>
   <data name="Settings_KeyboardLayout_Speed" xml:space="preserve">
-    <value>Rapidez</value>
+    <value>Velocidade</value>
   </data>
   <data name="Settings_Language" xml:space="preserve">
     <value>Idioma</value>
   </data>
   <data name="Settings_ScanSpeed" xml:space="preserve">
-    <value>Velocidade de varrimento</value>
+    <value>Velocidade de varredura</value>
   </data>
   <data name="Settings_ScanSpeed_Description" xml:space="preserve">
-    <value>Quantos segundos esperar antes de a seleção passar para o item seguinte. Menos é mais rápido.</value>
+    <value>Quantos segundos esperar antes de a seleção passar para o próximo item. Menos é mais rápido.</value>
   </data>
   <data name="Settings_ScanSpeed_ScanSpeedX0SecondsPerStepFormat" xml:space="preserve">
-    <value>Velocidade de varrimento: {0:0.0} segundos por passo</value>
+    <value>Velocidade de varredura: {0:0.0} segundos por passo</value>
   </data>
   <data name="Settings_DownloadingLanguagePackX0Format" xml:space="preserve">
-    <value>A descarregar o pacote de idioma: {0}</value>
+    <value>Baixando o pacote de idioma: {0}</value>
   </data>
   <data name="Settings_LanguagePackDownloadFailed" xml:space="preserve">
-    <value>Não foi possível descarregar o pacote de idioma. Verifique a sua ligação à Internet e tente novamente.</value>
+    <value>Não foi possível baixar o pacote de idioma. Verifique sua conexão à Internet e tente novamente.</value>
   </data>
   <data name="Settings_SetUpCamera" xml:space="preserve">
-    <value>Configurar câmara</value>
+    <value>Configurar câmera</value>
   </data>
   <data name="Settings_Title" xml:space="preserve">
-    <value>Definições</value>
+    <value>Configurações</value>
   </data>
   <data name="Settings_UseCameraToDetectEyeGesture" xml:space="preserve">
-    <value>Usar a câmara para detetar o gesto ocular</value>
+    <value>Usar a câmera para detectar o gesto ocular</value>
   </data>
   <data name="Shared_Cancel" xml:space="preserve">
     <value>Cancelar</value>

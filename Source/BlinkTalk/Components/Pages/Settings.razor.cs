@@ -13,16 +13,18 @@ namespace BlinkTalk.Components.Pages;
 public partial class Settings
 {
 	/// <summary>
-	/// The languages offered in the dropdown: every neutral culture this device knows about that
-	/// the app has a word list for. Neutral cultures only — the choice is a language, not a region
-	/// — and one entry per language, because a language can have more than one neutral culture
-	/// (script variants such as "sr-Cyrl" / "sr-Latn").
+	/// The languages offered in the dropdown, ordered by the name each one calls itself so the list
+	/// reads to the person choosing rather than to us. Taken from
+	/// <see cref="AppLanguage.OfferedCultureCodes"/> — which is the set the app is translated into,
+	/// region entries and all — rather than by filtering every culture the device knows: enumerating
+	/// cannot tell a region we translated from one that merely shares a word list, so "pt-BR" was
+	/// dropped either by <see cref="CultureTypes.NeutralCultures"/> excluding it or by grouping it in
+	/// with "pt". Codes this device does not recognise fall out here.
 	/// </summary>
 	private static readonly IReadOnlyList<CultureInfo> Languages =
-		CultureInfo.GetCultures(CultureTypes.NeutralCultures)
-			.Where(AppLanguage.IsSupported)
-			.GroupBy(culture => culture.TwoLetterISOLanguageName)
-			.Select(group => group.First())
+		AppLanguage.OfferedCultureCodes
+			.Select(AppLanguage.FindSupported)
+			.OfType<CultureInfo>()
 			.OrderBy(culture => culture.NativeName, StringComparer.CurrentCultureIgnoreCase)
 			.ToList();
 

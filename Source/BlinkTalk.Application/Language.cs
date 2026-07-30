@@ -15,6 +15,12 @@ namespace BlinkTalk.Application;
 /// so they stay out until both exist. Their arms in <c>AppLanguage.GetNameForCode</c> are commented
 /// out to match.
 /// </para>
+/// <para>
+/// A region with its own <c>.resx</c> does not earn a member either: Brazilian Portuguese is offered
+/// in the settings dropdown and translated in <c>Localization.pt-BR.resx</c>, but it types the same
+/// letters and predicts from the same word list as <see cref="Portuguese"/>, so it resolves to that.
+/// A region only belongs here once it needs a pack of its own.
+/// </para>
 /// </summary>
 public enum Language
 {
