@@ -47,4 +47,4 @@ used words and natural word combinations are offered first.
 
 ## Credits
 * [wortschatz-leipzig](https://wortschatz-leipzig.de/en/download/): Data for words + usage frequencies.
-* [Google](https://github.com/google-ai-edge/mediapipe): Media Pipe face landmarks.
+* [Google](https://github.com/google-ai-edg[Build Keyboard](LanguagePacks/BuildKeyboard.cs)e/mediapipe): Media Pipe face landmarks.
