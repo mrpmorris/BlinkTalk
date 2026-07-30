@@ -56,24 +56,11 @@
                 {
                     int colIndex = c;
                     var key = Rows[rowIndex][colIndex];
-                    <span class="bt-key @(key == KeyCode.Space ? "bt-key-wide" : "") @KeyClass(rowIndex, colIndex)">
-                        @KeyDisplay.Label(key)
+                    <span class="bt-key @(key.Kind == KeyboardKeyKind.Space ? "bt-key-wide" : "") @KeyClass(rowIndex, colIndex)">
+                        @key.Label
                     </span>
                 }
             </div>
-            @* The accents on offer, shown against the row they will be applied to. *@
-            @if (Accents is not null && Accents.ActiveRowIndex == rowIndex)
-            {
-                <div class="bt-row bt-accent-row">
-                    @for (int m = 0; m < Accents.Marks.Count; m++)
-                    {
-                        int markIndex = m;
-                        <span class="bt-key bt-accent @AccentMarkClass(markIndex)">
-                            @Accents.Marks[markIndex].DisplayGlyph
-                        </span>
-                    }
-                </div>
-            }
         }
     </div>
 
@@ -81,6 +68,25 @@
     <div class="bt-section bt-speak @SectionClass(Section.Speak)">
         SPEAK
     </div>
+
+    @* The letter decorators on offer. Inside the root div, not beside it: the whole root is the
+       indicate surface, so a tap that lands on the popup still has to reach it. *@
+    @if (Controller.IsChoosingDecorator)
+    {
+        <div class="bt-modal-backdrop">
+            <div class="bt-modal bt-decorators">
+                @for (int d = 0; d < Decorators.Count; d++)
+                {
+                    int decoratorIndex = d;
+                    @* The dotted circle gives the combining mark a letter to sit on, so it has a
+                       shape of its own to be recognised by. *@
+                    <span class="bt-key bt-decorator @DecoratorClass(decoratorIndex)">
+                        @(KeyboardKey.DottedCircle + Decorators[decoratorIndex])
+                    </span>
+                }
+            </div>
+        </div>
+    }
 
     @* When the camera indicator is enabled+trained, it triggers its own indicator, which the
        controller subscribes to just like the pointer and keyboard. *@

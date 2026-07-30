@@ -38,22 +38,22 @@ public partial class Type
 
 	// --- Highlight helpers (map the controller's HighlightTarget to CSS classes) ---
 
-	/// <summary>The accents on offer, or null when no accent is being picked.</summary>
-	private AccentSelectionState? Accents => Controller.AccentState;
+	/// <summary>The letter decorators on offer, shown in the popup while one is being picked.</summary>
+	private IReadOnlyList<string> Decorators => Controller.Keyboard.Decorators;
 
 	private string DepthColor => Controller.Depth switch {
 		<= 1 => "#2f6bff", // blue
 		2 => "#2ec16b",    // green
 		3 => "#d44ce0",    // magenta
-		_ => "#e6c52f"     // yellow — depth 4, picking an accent
+		_ => "#e6c52f"     // yellow — depth 4, picking a decorator
 	};
 
 	private HighlightTarget H => Controller.Highlight;
 
 	private string KeyboardContextClass =>
-		H.Kind is HighlightKind.KeyboardRow or HighlightKind.Key or HighlightKind.AccentMark ? "bt-context" : "";
+		H.Kind is HighlightKind.KeyboardRow or HighlightKind.Key or HighlightKind.Decorator ? "bt-context" : "";
 
-	private IReadOnlyList<IReadOnlyList<KeyCode>> Rows => Controller.Keyboard.Rows;
+	private IReadOnlyList<IReadOnlyList<KeyboardKey>> Rows => Controller.Keyboard.Rows;
 
 	private string SentenceText => Controller.Sentence.ToString();
 
@@ -81,16 +81,8 @@ public partial class Type
 		Controller.Start();
 	}
 
-	/// <summary>
-	/// The scanned mark, plus the one already chosen — which stays marked while the scan moves on to
-	/// the letters, so the person can see which accent they are about to apply.
-	/// </summary>
-	private string AccentMarkClass(int markIndex)
-	{
-		string chosen = Accents?.ChosenMarkIndex == markIndex ? " bt-accent-chosen" : "";
-		bool scanned = H.Kind == HighlightKind.AccentMark && H.MarkIndex == markIndex;
-		return (scanned ? "bt-highlight" : "") + chosen;
-	}
+	private string DecoratorClass(int decoratorIndex) =>
+		H.Kind == HighlightKind.Decorator && H.DecoratorIndex == decoratorIndex ? "bt-highlight" : "";
 
 	private void GoToSettings() => Navigation.NavigateTo("/settings");
 

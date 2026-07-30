@@ -89,8 +89,8 @@ public class LanguagePackDownloaderTests
     public void RequestsThePackNamedAfterTheLanguageFromTheGitHubRepository()
     {
         Assert.Equal(
-            "https://github.com/mrpmorris/BlinkTalk/raw/refs/heads/master/LanguagePacks/French.zip",
-            string.Format(LanguagePackDownloader.UrlFormat, Language.French));
+            "https://github.com/mrpmorris/BlinkTalk/raw/refs/heads/master/LanguagePacks/Portuguese.zip",
+            string.Format(LanguagePackDownloader.UrlFormat, Language.Portuguese));
     }
 
     private static HttpResponseMessage Response(byte[] payload, long? contentLength)

@@ -1,6 +1,8 @@
+using BlinkTalk.Application;
 using BlinkTalk.Application.Abstractions;
 using BlinkTalk.Application.Input;
 using BlinkTalk.Application.Persistence;
+using BlinkTalk.Application.Text;
 using BlinkTalk.Resources;
 using BlinkTalk.Services;
 using Microsoft.AspNetCore.Components;
@@ -24,7 +26,20 @@ public partial class Settings
 			.OrderBy(culture => culture.NativeName, StringComparer.CurrentCultureIgnoreCase)
 			.ToList();
 
+	private static readonly IReadOnlyList<KeyboardLayoutStyle> KeyboardLayoutStyles =
+		Enum.GetValues<KeyboardLayoutStyle>();
+
 	private double ScanSpeed { get; set; }
+
+	/// <summary>
+	/// Written through to settings as it changes, like the scan speed: there is no database to seed
+	/// off the back of it, so there is nothing to defer until the person leaves.
+	/// </summary>
+	private KeyboardLayoutStyle SelectedKeyboardLayout
+	{
+		get => KeyboardLayouts.Style;
+		set => KeyboardLayouts.Style = value;
+	}
 
 	/// <summary>
 	/// Read from the culture rather than the keyboard: this page switches language as soon as the
@@ -42,15 +57,22 @@ public partial class Settings
 
 	private CancellationTokenSource? DownloadCts;
 
+	/// <summary>
+	/// The language on the way in, so leaving can tell whether it changed. A different language means
+	/// a different alphabet and a different dictionary, so whatever was being composed is thrown away.
+	/// </summary>
+	private Language LanguageOnEntry;
+
 	private readonly CameraIndicatorConfig Camera;
 	private readonly ScanController Controller;
 	private readonly AppDatabase Database;
 	private readonly LanguagePackDownloader Downloader;
+	private readonly IKeyboardLayoutProvider KeyboardLayouts;
 	private readonly NavigationManager Navigation;
 	private readonly IDatabaseProvisioner Provisioner;
 	private readonly ISettingsStore SettingsStore;
 
-	public Settings(ScanController controller, CameraIndicatorConfig camera, AppDatabase database, NavigationManager navigation, ISettingsStore settingsStore, LanguagePackDownloader downloader, IDatabaseProvisioner provisioner)
+	public Settings(ScanController controller, CameraIndicatorConfig camera, AppDatabase database, NavigationManager navigation, ISettingsStore settingsStore, LanguagePackDownloader downloader, IDatabaseProvisioner provisioner, IKeyboardLayoutProvider keyboardLayouts)
 	{
 		Controller = controller;
 		Camera = camera;
@@ -59,11 +81,13 @@ public partial class Settings
 		SettingsStore = settingsStore;
 		Downloader = downloader;
 		Provisioner = provisioner;
+		KeyboardLayouts = keyboardLayouts;
 	}
 
 	protected override void OnInitialized()
 	{
 		ScanSpeed = Controller.CycleDelaySeconds;
+		LanguageOnEntry = AppLanguage.Name;
 
 		// Full code before partial: an entry for the running culture itself wins over one that merely
 		// shares its language, so a region-specific option is preselected rather than its neutral sibling.
@@ -175,12 +199,25 @@ public partial class Settings
 	/// The controller outlives this page, and its scan levels are still holding the row and key
 	/// counts of the keyboard for the language we may have just left — restart it so it picks up the
 	/// new keyboard, and the suggestions from the new language's dictionary.
+	/// <para>
+	/// Clearing comes before the restart, which reloads suggestions: a sentence half-composed in the
+	/// language just left cannot be finished in the new one, and it would be predicted against a
+	/// dictionary that has never seen its words.
+	/// </para>
 	/// </summary>
 	private void ReturnToTyping()
 	{
+		if (AppLanguage.Name != LanguageOnEntry)
+			Controller.Sentence.Clear();
 		Controller.Restart();
 		Navigation.NavigateTo("/type");
 	}
+
+	private static string LayoutLabel(KeyboardLayoutStyle style) => style switch
+	{
+		KeyboardLayoutStyle.Speed => Localization.Settings_KeyboardLayout_Speed,
+		_ => Localization.Settings_KeyboardLayout_Alphabetical
+	};
 
 	private void OnScanSpeedChanged(ChangeEventArgs e)
 	{

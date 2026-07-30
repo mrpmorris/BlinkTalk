@@ -16,8 +16,10 @@ namespace BlinkTalk.Application.Input;
 /// </summary>
 public sealed class ScanController : IScanController, IDisposable
 {
-    public AccentSelectionState? AccentState { get; private set; }
     public HighlightTarget Highlight { get; private set; } = HighlightTarget.None;
+
+    /// <summary>Whether the letter-decorator popup is open.</summary>
+    public bool IsChoosingDecorator { get; private set; }
 
     /// <summary>
     /// The keyboard for the current language, read through the provider on every access so that
@@ -148,15 +150,16 @@ public sealed class ScanController : IScanController, IDisposable
     }
 
     /// <summary>
-    /// Abandons the current scan and starts again from the top. Used when the language changes: the
-    /// keyboard behind the running strategies has just been replaced with a different one, whose
-    /// rows are a different shape. The sentence in progress is deliberately left alone.
+    /// Abandons the current scan and starts again from the top. Used when the language or the layout
+    /// changes: the keyboard behind the running strategies has just been replaced with a different
+    /// one, whose rows are a different shape. Whether the sentence in progress survives is the
+    /// caller's decision — see <see cref="SentenceBuilder.Clear"/>.
     /// </summary>
     public void Restart()
     {
         while (Strategies.Count > 0)
             Strategies.Pop().Terminated();
-        AccentState = null;
+        IsChoosingDecorator = false;
         Highlight = HighlightTarget.None;
         if (Started)
         {
@@ -166,9 +169,9 @@ public sealed class ScanController : IScanController, IDisposable
         RaiseStateChanged();
     }
 
-    public void SetAccentState(AccentSelectionState? state)
+    public void SetChoosingDecorator(bool choosing)
     {
-        AccentState = state;
+        IsChoosingDecorator = choosing;
         RaiseStateChanged();
     }
 

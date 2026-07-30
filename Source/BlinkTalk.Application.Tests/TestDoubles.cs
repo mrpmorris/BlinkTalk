@@ -162,10 +162,13 @@ public sealed class FixedClock : IClock
     public DateTime UtcNow { get; set; } = new DateTime(2026, 6, 3, 0, 0, 0, DateTimeKind.Utc);
 }
 
-/// <summary>One keyboard, for tests that do not change language mid-run.</summary>
+/// <summary>One keyboard, for tests that do not change language or layout mid-run.</summary>
 public sealed class FixedKeyboardLayoutProvider : IKeyboardLayoutProvider
 {
     public KeyboardLayout Current { get; }
+
+    /// <summary>Settable but ignored: <see cref="Current"/> is whatever the test was given.</summary>
+    public KeyboardLayoutStyle Style { get; set; }
 
     public FixedKeyboardLayoutProvider(KeyboardLayout current) => Current = current;
 }

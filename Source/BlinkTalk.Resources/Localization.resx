@@ -201,6 +201,15 @@
   <data name="Settings_IndicatorMethod" xml:space="preserve">
     <value>Indicator method</value>
   </data>
+  <data name="Settings_KeyboardLayout" xml:space="preserve">
+    <value>Keyboard layout</value>
+  </data>
+  <data name="Settings_KeyboardLayout_Alphabetical" xml:space="preserve">
+    <value>Alphabetical</value>
+  </data>
+  <data name="Settings_KeyboardLayout_Speed" xml:space="preserve">
+    <value>Speed</value>
+  </data>
   <data name="Settings_Language" xml:space="preserve">
     <value>Language</value>
   </data>

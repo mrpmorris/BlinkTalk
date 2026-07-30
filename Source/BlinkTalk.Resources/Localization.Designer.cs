@@ -313,6 +313,33 @@ namespace BlinkTalk.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Keyboard layout.
+        /// </summary>
+        public static string Settings_KeyboardLayout {
+            get {
+                return ResourceManager.GetString("Settings_KeyboardLayout", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Alphabetical.
+        /// </summary>
+        public static string Settings_KeyboardLayout_Alphabetical {
+            get {
+                return ResourceManager.GetString("Settings_KeyboardLayout_Alphabetical", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Speed.
+        /// </summary>
+        public static string Settings_KeyboardLayout_Speed {
+            get {
+                return ResourceManager.GetString("Settings_KeyboardLayout_Speed", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Language.
         /// </summary>
         public static string Settings_Language {

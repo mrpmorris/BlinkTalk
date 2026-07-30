@@ -11,4 +11,10 @@ namespace BlinkTalk.Application.Abstractions;
 public interface IKeyboardLayoutProvider
 {
     KeyboardLayout Current { get; }
+
+    /// <summary>
+    /// Which arrangement of the language's letters <see cref="Current"/> uses. Persisted, so this is
+    /// also where the settings page reads and writes the choice.
+    /// </summary>
+    KeyboardLayoutStyle Style { get; set; }
 }

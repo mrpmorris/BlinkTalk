@@ -14,8 +14,12 @@ public interface IScanController
     KeyboardLayout Keyboard { get; }
     ITextToSpeechService Speech { get; }
 
-    /// <summary>The diacritics currently on offer, or null when no accent is being picked.</summary>
-    AccentSelectionState? AccentState { get; }
+    /// <summary>
+    /// Whether the letter-decorator popup is open. What it offers is
+    /// <see cref="KeyboardLayout.Decorators"/>, and which one is focused is on the highlight, so
+    /// there is nothing else for the UI to be told.
+    /// </summary>
+    bool IsChoosingDecorator { get; }
 
     /// <summary>What the scanner is currently highlighting; the UI maps this to a CSS class.</summary>
     HighlightTarget Highlight { get; }
@@ -37,7 +41,7 @@ public interface IScanController
     /// </summary>
     void Pop(int levels = 1);
 
-    void SetAccentState(AccentSelectionState? state);
+    void SetChoosingDecorator(bool choosing);
 
     void SetHighlight(HighlightTarget target);
 

@@ -53,7 +53,7 @@ public class ScanFlowTests
         // Type a letter so the sentence is non-empty (enables the Speak section).
         indicator.Fire(); // rows
         indicator.Fire(); // keys of row 0
-        indicator.Fire(); // type (0,0) -> '1', back to rows
+        indicator.Fire(); // type (0,0) -> 'A', back to rows
 
         string typed = controller.Sentence.ToString().Trim();
         Assert.False(string.IsNullOrEmpty(typed));

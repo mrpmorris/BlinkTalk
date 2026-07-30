@@ -4,7 +4,7 @@ namespace BlinkTalk.Application.Input.Strategies;
 
 /// <summary>
 /// Scans the keys within the active row. Indicating a key types it into the sentence and
-/// returns to row scanning; indicating the accent key opens the accent level instead. Auto-exits
+/// returns to row scanning; indicating the decorator key opens the decorator level instead. Auto-exits
 /// after cycling through the keys about once without a selection (FocusChangeCount > keys + 2),
 /// matching the original. Set up by the row selector via <see cref="SetActiveRow"/>.
 /// </summary>
@@ -34,10 +34,10 @@ public sealed class KeyboardColumnSelectorInputStrategy : IInputStrategy
     public void ReceiveIndication()
     {
         Cycler?.Stop();
-        KeyCode key = Controller.Keyboard.Rows[ActiveRow][FocusedColumn];
-        if (key == KeyCode.Accent)
+        KeyboardKey key = Controller.Keyboard.Rows[ActiveRow][FocusedColumn];
+        if (key.Kind == KeyboardKeyKind.Decorators)
         {
-            Controller.Push<AccentSelectorInputStrategy>().SetActiveRow(ActiveRow);
+            Controller.Push<DecoratorSelectorInputStrategy>();
             return;
         }
         Sentence.Input(key);

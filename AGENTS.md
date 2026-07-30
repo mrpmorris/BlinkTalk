@@ -11,7 +11,8 @@ gesture. The UI continuously **scans** — highlighting one option at a time on 
 indication "selects" whatever is highlighted. Through a hierarchy of scanners the person spells
 letters, picks predicted words, and speaks sentences aloud. A SQLite dictionary plus an n-gram model
 learns the person's vocabulary over time. This is a .NET MAUI Blazor Hybrid rewrite of an original
-Unity3D app, localised into English/French/German/Spanish/Portuguese.
+Unity3D app, localised into English/French/German/Spanish/Portuguese/Arabic — of which English,
+Portuguese and Arabic are the ones selectable today (see the `Language` enum).
 
 ## Projects
 
@@ -141,12 +142,17 @@ seeding happens when the Settings page's Done button finds no database for the s
 
 **Language is global state, set before DI exists.** `MauiProgram` hand-builds a
 `MauiPreferencesSettings` and calls `AppLanguage.RestorePersisted` *before* the builder, because the
-culture decides both resource lookups and the database filename (`BlinkTalk-French.db`) — one database
-per language, so a French UI never inherits an English dictionary. `AppLanguage.SetCurrent` sets the
+culture decides both resource lookups and the database filename (`BlinkTalk-Portuguese.db`) — one database
+per language, so a Portuguese UI never inherits an English dictionary. `AppLanguage.SetCurrent` sets the
 `DefaultThreadCurrent*` pair as well as the current thread's, because scan callbacks arrive on
-thread-pool threads; read `AppLanguage.Current`, never `CultureInfo.CurrentUICulture`. Supported
-languages are the switch in `AppLanguage.GetNameForCode` — adding one means a `.resx`, a
-`LanguagePacks/<Name>.zip`, and an arm there.
+thread-pool threads; read `AppLanguage.Current`, never `CultureInfo.CurrentUICulture`. `AppLanguage.Name`
+is a `BlinkTalk.Application.Language` enum, not a string, and its **member names are the file names** —
+the pack (`English.zip`) and the database (`BlinkTalk-English.db`) are both interpolated straight from it.
+Which of those languages a culture maps to is the switch in `AppLanguage.GetNameForCode`, so adding one
+means a `Language` member, a `.resx`, letters in `Text/Layouts/`, a `LanguagePacks/<Name>.zip`, and an
+arm there. French, German and Spanish are commented out in **both** `Language` and `GetNameForCode`:
+they have a `.resx` but no letters and no pack, so they stay unselectable until both exist. The enum's
+numbers are not load-bearing (the setting stores a culture code), which is what makes that safe.
 
 **Settings:** keys live in one place, `Abstractions/ISettingsStore.cs` (`SettingsKeys`), backed by MAUI
 `Preferences`. `ScanController.CycleDelaySeconds` is the scan speed; its default and the longer
@@ -161,6 +167,27 @@ initialism. Known gap: MAUI exposes no cross-platform speaking *rate*, so the or
 
 ## Adding to the keyboard or keys
 
-The keyboard layout (rows of keys) is `Text/KeyboardLayout.CreateDefault()` — the single source for both
-scanning and rendering. Valid keys are the `Text/KeyCode` enum; display labels are in `Text/KeyDisplay`.
-The char map (KeyCode → character) is in `SentenceBuilder`; Space and Backspace are keys, not characters.
+**The letters are data.** Each language is one `LanguageKeyboard` in
+`Text/Layouts/<Name>Keyboard.cs`: two `string[][]` of its letters — `Alphabetical` and `Speed`, four
+letter rows then a digit row each — plus optional `Decorators` and `IsRightToLeft`. Accented and
+precomposed letters (`Ã`, `Ç`, `أ`) are keys of their own, spelled as the word list spells them;
+nothing is composed from a base letter and a mark. `Decorators` is for combining marks alone (only
+Arabic has any), written as `\uXXXX` with the Unicode name in a comment, most-used first.
+`Source/Tools/LanguagePackBuilder` prints all of this — `Alphabetical`, `Frequency` (→ `Speed`) and
+`Decorators` — for a corpus, so a new language is transcription, not design.
+
+`Text/KeyboardLayout.Create(language, style)` turns that into the rows the scanner walks and the UI
+renders — the single source for both — inserting the keys that are the same in every language: Space
+then Backspace at the start of row 4, and the decorator key at the start of row 1 when the language
+has marks. A key is a `Text/KeyboardKey`: its `Kind` says whether it types (`Character`, carrying
+`Text`) or acts, and its `Label` is what the UI shows, so there is no separate enum, char map or
+label switch to keep in sync. `KeyboardLayoutTests` guards the data — same characters in both
+arrangements, fixed keys in the right places.
+
+Which arrangement is in use is `IKeyboardLayoutProvider.Style`, persisted under
+`SettingsKeys.KeyboardLayoutStyle` and chosen on the settings page. `AppKeyboardLayoutProvider`
+caches on `(Language, Style)` — keying on either alone silently serves a stale keyboard.
+
+Selecting the decorator key pushes `DecoratorSelectorInputStrategy`, a fourth scan level that shows
+`ScanController.IsChoosingDecorator` as a popup on the typing page; picking a mark appends it via
+`SentenceBuilder.InputText` and pops back to row scanning, exactly as typing a letter does.

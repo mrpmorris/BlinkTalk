@@ -1,22 +1,35 @@
 @page "/"
 @page "/settings"
 @using System.Globalization
+@using BlinkTalk.Application.Text
 @using BlinkTalk.Services
 
 @* Mirrored for a right-to-left language, so labels sit with the controls they belong to. *@
 <div class="bt-settings" dir="@TextDirection">
     <h1>@Localization.Settings_Title</h1>
 
-    <div class="bt-setting-row">
-        <label for="language">@Localization.Settings_Language</label>
-        @* @bind rather than value/@onchange: it is what makes Blazor select the matching <option> on
-           first render, so the dropdown opens showing the language the app is actually running in. *@
-        <select id="language" @bind=SelectedLanguage @bind:after=OnLanguageChanged>
-            @foreach (CultureInfo language in Languages)
-            {
-                <option value=@language.Name>@language.NativeName</option>
-            }
-        </select>
+    <div class="bt-setting-row bt-setting-columns">
+        <div class="bt-setting-field">
+            <label for="language">@Localization.Settings_Language</label>
+            @* @bind rather than value/@onchange: it is what makes Blazor select the matching <option> on
+               first render, so the dropdown opens showing the language the app is actually running in. *@
+            <select id="language" @bind=SelectedLanguage @bind:after=OnLanguageChanged>
+                @foreach (CultureInfo language in Languages)
+                {
+                    <option value=@language.Name>@language.NativeName</option>
+                }
+            </select>
+        </div>
+
+        <div class="bt-setting-field">
+            <label for="keyboardLayout">@Localization.Settings_KeyboardLayout</label>
+            <select id="keyboardLayout" @bind=SelectedKeyboardLayout>
+                @foreach (KeyboardLayoutStyle style in KeyboardLayoutStyles)
+                {
+                    <option value=@style>@LayoutLabel(style)</option>
+                }
+            </select>
+        </div>
     </div>
 
     <div class="bt-setting-row">

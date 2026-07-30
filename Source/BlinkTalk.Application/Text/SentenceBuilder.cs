@@ -9,7 +9,7 @@ namespace BlinkTalk.Application.Text;
 /// Builds up the sentence being composed: the current (unfinished) word plus the list of
 /// committed words, and the live list of suggested next words. Ported from the original
 /// SentenceBuilder; the static WordService/PhraseService calls are now injected services,
-/// and UnityEngine.KeyCode is replaced by the Core KeyCode enum. Speaking is left to the
+/// and UnityEngine.KeyCode is replaced by <see cref="KeyboardKey"/>. Speaking is left to the
 /// caller (the section strategy), exactly as in the original.
 /// </summary>
 public sealed class SentenceBuilder
@@ -35,6 +35,19 @@ public sealed class SentenceBuilder
 
     public bool IsEmpty => string.IsNullOrEmpty(ToString());
 
+    /// <summary>
+    /// Throws the sentence away. Used when the language changes: the words already typed are spelled
+    /// in the language just left, and the dictionary that would carry on suggesting after them has
+    /// been swapped for another one.
+    /// </summary>
+    public void Clear()
+    {
+        Words.Clear();
+        CurrentWord = "";
+        ShouldClearOnNextInput = false;
+        DoViewModelChanged();
+    }
+
     public string Commit()
     {
         if (!string.IsNullOrEmpty(CurrentWord))
@@ -51,28 +64,31 @@ public sealed class SentenceBuilder
         GetWordSuggestions();
     }
 
-    public void Input(KeyCode keyCode)
+    public void Input(KeyboardKey key)
     {
         CheckForClearOnInput();
-        switch (keyCode)
+        switch (key.Kind)
         {
-            case KeyCode.Space:
+            case KeyboardKeyKind.Space:
                 PushCurrentWord();
                 break;
-            case KeyCode.Backspace:
+            case KeyboardKeyKind.Backspace:
                 Backspace();
                 break;
-            default:
-                CurrentWord += KeyCharacters.TextOf(keyCode);
+            case KeyboardKeyKind.Character:
+                CurrentWord += key.Text;
                 break;
+            default:
+                // The decorator key types nothing — the column selector opens the popup instead of
+                // getting here, so reaching this is a bug in the scanning, not bad input.
+                throw new ArgumentOutOfRangeException(nameof(key), key.Kind, "Key types no character.");
         }
         DoViewModelChanged();
     }
 
     /// <summary>
-    /// Appends text that no single key types: an accented letter composed from a base letter and a
-    /// diacritic. Some of those are two characters rather than one (an Arabic letter followed by its
-    /// harakat), which is why this exists alongside <see cref="Input"/>.
+    /// Appends text that no key on the keyboard types: a combining mark picked from the decorator
+    /// popup, which lands on the letter already at the end of the word.
     /// </summary>
     public void InputText(string text)
     {
@@ -116,13 +132,6 @@ public sealed class SentenceBuilder
         if (ShouldClearOnNextInput)
             Clear();
         ShouldClearOnNextInput = false;
-    }
-
-    private void Clear()
-    {
-        Words.Clear();
-        CurrentWord = "";
-        DoViewModelChanged();
     }
 
     private void DoViewModelChanged()

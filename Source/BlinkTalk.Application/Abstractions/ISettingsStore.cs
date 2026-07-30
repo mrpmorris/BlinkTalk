@@ -20,5 +20,6 @@ public static class SettingsKeys
     // persisted — it is a session-only flag (off on every start), so there is no key for it.
     public const string CameraTrained = "camera.trained";
     public const string CycleDelaySeconds = "cycleDelaySeconds";
+    public const string KeyboardLayoutStyle = "keyboard.layoutStyle"; // a KeyboardLayoutStyle member name
     public const string LanguageCultureCode = "language.cultureCode"; // e.g. "fr", "en-GB"
 }

@@ -118,12 +118,12 @@ public static class AppLanguage
 	/// </summary>
 	private static Language? GetNameForCode(string cultureCode) =>
 		cultureCode.ToLowerInvariant() switch {
+			"ar" => Language.Arabic,
 			"en" => Language.English,
-			//"fr" => Language.French,
-			//"de" => Language.German,
-			//"es" => Language.Spanish,
+			"de" => Language.German,
+			"es" => Language.Spanish,
+			"fr" => Language.French,
 			"pt" => Language.Portuguese,
-			//"ar" => Language.Arabic,
 			_ => null
 		};
 

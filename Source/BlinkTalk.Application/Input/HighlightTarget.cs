@@ -8,8 +8,8 @@ public enum HighlightKind
     Key,
     WordSuggestion,
 
-    /// <summary>A diacritic in the accent strip. The letter-picking phase highlights keys instead.</summary>
-    AccentMark
+    /// <summary>A combining mark in the letter-decorator popup.</summary>
+    Decorator
 }
 
 /// <summary>
@@ -20,10 +20,10 @@ public enum HighlightKind
 public readonly struct HighlightTarget
 {
     public int ColumnIndex { get; }
-    public HighlightKind Kind { get; }
 
-    /// <summary>Index into the accent strip's marks, for <see cref="HighlightKind.AccentMark"/>.</summary>
-    public int MarkIndex { get; }
+    /// <summary>Index into the popup's marks, for <see cref="HighlightKind.Decorator"/>.</summary>
+    public int DecoratorIndex { get; }
+    public HighlightKind Kind { get; }
     public int RowIndex { get; }
     public Section Section { get; }
     public int WordIndex { get; }
@@ -32,18 +32,18 @@ public readonly struct HighlightTarget
         new HighlightTarget(HighlightKind.None, default, -1, -1, -1, -1);
 
     private HighlightTarget(
-        HighlightKind kind, Section section, int rowIndex, int columnIndex, int wordIndex, int markIndex)
+        HighlightKind kind, Section section, int rowIndex, int columnIndex, int wordIndex, int decoratorIndex)
     {
         Kind = kind;
         Section = section;
         RowIndex = rowIndex;
         ColumnIndex = columnIndex;
         WordIndex = wordIndex;
-        MarkIndex = markIndex;
+        DecoratorIndex = decoratorIndex;
     }
 
-    public static HighlightTarget ForAccentMark(int markIndex) =>
-        new HighlightTarget(HighlightKind.AccentMark, default, -1, -1, -1, markIndex);
+    public static HighlightTarget ForDecorator(int decoratorIndex) =>
+        new HighlightTarget(HighlightKind.Decorator, default, -1, -1, -1, decoratorIndex);
 
     public static HighlightTarget ForKey(int rowIndex, int columnIndex) =>
         new HighlightTarget(HighlightKind.Key, default, rowIndex, columnIndex, -1, -1);

@@ -142,6 +142,15 @@
   <data name="Settings_IndicatorMethod" xml:space="preserve">
     <value>طريقة التحديد</value>
   </data>
+  <data name="Settings_KeyboardLayout" xml:space="preserve">
+    <value>تخطيط لوحة المفاتيح</value>
+  </data>
+  <data name="Settings_KeyboardLayout_Alphabetical" xml:space="preserve">
+    <value>أبجدي</value>
+  </data>
+  <data name="Settings_KeyboardLayout_Speed" xml:space="preserve">
+    <value>سرعة</value>
+  </data>
   <data name="Settings_Language" xml:space="preserve">
     <value>اللغة</value>
   </data>
