@@ -1,3 +1,4 @@
+using System.Globalization;
 using BlinkTalk.Application.Abstractions;
 using BlinkTalk.Resources;
 using BlinkTalk.Services;
@@ -154,9 +155,11 @@ public partial class Camera
 		await InvokeAsync(StateHasChanged);
 	}
 
+	// The range input always reports "1.2" regardless of language, so parse invariantly: a culture that
+	// reads "." as a group separator would take that as 12 seconds.
 	private async Task OnDwellChanged(ChangeEventArgs e)
 	{
-		if (double.TryParse(e.Value?.ToString(), out double seconds))
+		if (double.TryParse(e.Value?.ToString(), CultureInfo.InvariantCulture, out double seconds))
 		{
 			DwellSeconds = seconds;
 			Config.DwellSeconds = seconds;

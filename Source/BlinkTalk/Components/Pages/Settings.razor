@@ -42,7 +42,9 @@
                step="0.1"
                value=@ScanSpeed.ToString(CultureInfo.InvariantCulture)
                @oninput=OnScanSpeedChanged />
-        <label for="scanSpeed">@string.Format(Localization.Settings_ScanSpeed_ScanSpeedX0SecondsPerStepFormat, ScanSpeed)</label>
+        @* See the note on the dwell label in Camera.razor: the culture has to be passed explicitly,
+           because the ambient one reverts to the startup language between events. *@
+        <label for="scanSpeed">@string.Format(AppLanguage.Current, Localization.Settings_ScanSpeed_ScanSpeedX0SecondsPerStepFormat, ScanSpeed)</label>
     </div>
 
     <div class="bt-setting-row">

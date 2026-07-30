@@ -1,4 +1,6 @@
 @page "/camera"
+@using System.Globalization
+@using BlinkTalk.Services
 @implements IAsyncDisposable
 
 <div class="bt-settings bt-cam-page @(Flash ? "bt-cam-flash" : "")">
@@ -24,14 +26,17 @@
                 <h2>@Localization.Camera_EyeGesture</h2>
                 <label>@Localization.Camera_LearntGesture: <strong>@SignalDescription</strong></label>
                 <div class="bt-meter"><div class="bt-meter-fill" style="width:@($"{(int)(HoldFraction * 100)}%")"></div></div>
-                <label for="holdTime">@string.Format(Localization.Camera_HoldTimeX0SecondsFormat, DwellSeconds)</label>
+                @* Formatted against AppLanguage.Current, not the ambient culture: CurrentCulture flows
+                   with the ExecutionContext, so it reverts to the startup language once the handler that
+                   switched it has finished — which would show the dwell as "1,2" in an English UI. *@
+                <label for="holdTime">@string.Format(AppLanguage.Current, Localization.Camera_HoldTimeX0SecondsFormat, DwellSeconds)</label>
                 @Localization.Camera_TestingInstructions
                 <input id="holdTime"
                        type="range"
                        min="0.1"
                        max="2.0"
                        step="0.1"
-                       value=@DwellSeconds
+                       value=@DwellSeconds.ToString(CultureInfo.InvariantCulture)
                        @oninput=OnDwellChanged />
             </div>
         }
