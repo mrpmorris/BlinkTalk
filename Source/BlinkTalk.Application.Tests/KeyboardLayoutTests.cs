@@ -32,14 +32,14 @@ public class KeyboardLayoutTests
 
     [Theory]
     [MemberData(nameof(EveryLayout))]
-    public void SpaceAndBackspaceAreTheFirstTwoKeysOfTheFourthRowAndAppearNowhereElse(
+    public void SpaceLeadsTheThirdRowAndBackspaceTheFourthAndNeitherAppearsElsewhere(
         Language language, KeyboardLayoutStyle style)
     {
         var layout = KeyboardLayout.Create(language, style);
 
-        Assert.Equal(KeyboardKey.Space, layout.Rows[3][0]);
-        Assert.Equal(KeyboardKey.Backspace, layout.Rows[3][1]);
-        // One of each, on that row alone: a second Space would cost a dwell on every sweep.
+        Assert.Equal(KeyboardKey.Space, layout.Rows[2][0]);
+        Assert.Equal(KeyboardKey.Backspace, layout.Rows[3][0]);
+        // One of each, on their own row alone: a second Space would cost a dwell on every sweep.
         IEnumerable<KeyboardKey> keys = layout.Rows.SelectMany(row => row);
         Assert.Single(keys, key => key.Kind == KeyboardKeyKind.Space);
         Assert.Single(keys, key => key.Kind == KeyboardKeyKind.Backspace);
@@ -103,8 +103,9 @@ public class KeyboardLayoutTests
         var layout = KeyboardLayout.Create(Language.English, KeyboardLayoutStyle.Alphabetical);
 
         Assert.Equal(new[] { "A", "B", "C", "D", "E", "F", "G" }, TextOf(layout.Rows[0]));
-        Assert.Equal(new[] { "space", "⌫", "V", "W", "X", "Y", "Z", "'" },
-            layout.Rows[3].Select(key => key.Label).ToArray());
+        // Letters only: where Space and Backspace sit is the business of the theory above, and pinning
+        // their labels here would make this class fail on the day one of them becomes a different glyph.
+        Assert.Equal(new[] { "V", "W", "X", "Y", "Z", "'" }, TextOf(layout.Rows[3]));
         Assert.Equal(new[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" }, TextOf(layout.Rows[4]));
     }
 

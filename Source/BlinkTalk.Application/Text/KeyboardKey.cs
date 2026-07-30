@@ -23,6 +23,14 @@ public sealed class KeyboardKey
 	/// <summary>The conventional stand-in for the letter a diacritic would sit on.</summary>
 	public const string DottedCircle = "◌";
 
+	/// <summary>
+	/// The label of the space key: the gap it types, the way a space bar is blank rather than lettered.
+	/// No-break spaces, because the browser collapses ordinary ones and would leave the key empty. By
+	/// code point rather than as literals, so the label cannot be mangled by an editor trimming what
+	/// looks like trailing whitespace.
+	/// </summary>
+	private const string SpaceLabel = "\u00A0\u00A0";
+
 	public KeyboardKeyKind Kind { get; }
 
 	/// <summary>What the UI shows on the key.</summary>
@@ -33,7 +41,7 @@ public sealed class KeyboardKey
 
 	public static readonly KeyboardKey Backspace = new KeyboardKey(KeyboardKeyKind.Backspace, null, "⌫");
 	public static readonly KeyboardKey Decorators = new KeyboardKey(KeyboardKeyKind.Decorators, null, DottedCircle);
-	public static readonly KeyboardKey Space = new KeyboardKey(KeyboardKeyKind.Space, null, "space");
+	public static readonly KeyboardKey Space = new KeyboardKey(KeyboardKeyKind.Space, null, SpaceLabel);
 
 	private KeyboardKey(KeyboardKeyKind kind, string? text, string label)
 	{

@@ -10,19 +10,25 @@ namespace BlinkTalk.Application.Text;
 /// single source for both.
 /// <para>
 /// The letters are data: one array per language per <see cref="KeyboardLayoutStyle"/>, in
-/// <c>Text/Layouts/</c>. Only the keys that are the same in every language are added here — Space and
-/// Backspace at the start of the fourth row, and, for a language that writes combining marks, the
-/// decorator key at the start of the first. Rows are in scan order, which for a right-to-left script
-/// means index 0 is the rightmost key on screen.
+/// <c>Text/Layouts/</c>. Only the keys that are the same in every language are added here — Space at
+/// the start of the third row, Backspace at the start of the fourth, and, for a language that writes
+/// combining marks, the decorator key at the start of the first. Rows are in scan order, which for a
+/// right-to-left script means index 0 is the rightmost key on screen.
 /// </para>
 /// </summary>
 public sealed class KeyboardLayout
 {
 	/// <summary>
-	/// The row Space and Backspace go on. The fourth: far enough down that the letters a word needs
-	/// are reached first, near enough that finishing a word or fixing a mistake stays cheap.
+	/// The row Space leads. The third rather than the fourth: it is pressed once per word, more often
+	/// than any single letter, so it is worth a row of scanning less than Backspace.
 	/// </summary>
-	private const int EditingRowIndex = 3;
+	private const int SpaceRowIndex = 2;
+
+	/// <summary>
+	/// The row Backspace leads. Far enough down that the letters a word needs are reached first, near
+	/// enough that fixing a mistake stays cheap.
+	/// </summary>
+	private const int BackspaceRowIndex = 3;
 
 	/// <summary>The marks the decorator key offers; empty when the layout has no decorator key.</summary>
 	public IReadOnlyList<string> Decorators { get; }
@@ -64,14 +70,13 @@ public sealed class KeyboardLayout
 	/// </summary>
 	private static IReadOnlyList<KeyboardKey> BuildRow(int rowIndex, string[] letters, bool withDecoratorKey)
 	{
-		var row = new List<KeyboardKey>(letters.Length + 2);
+		var row = new List<KeyboardKey>(letters.Length + 1);
 		if (rowIndex == 0 && withDecoratorKey)
 			row.Add(KeyboardKey.Decorators);
-		if (rowIndex == EditingRowIndex)
-		{
+		if (rowIndex == SpaceRowIndex)
 			row.Add(KeyboardKey.Space);
+		if (rowIndex == BackspaceRowIndex)
 			row.Add(KeyboardKey.Backspace);
-		}
 		foreach (string letter in letters)
 			row.Add(KeyboardKey.Character(letter));
 		return row;
