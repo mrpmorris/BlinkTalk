@@ -51,6 +51,24 @@ public static class IcuAlphabet
 		return true;
 	}
 
+	/// <summary>
+	/// True if <paramref name="character"/> is a combining mark rather than a letter of its own — the
+	/// Arabic harakat, the Devanagari matras, the Thai vowel and tone marks. CLDR lists these in a
+	/// locale's exemplar set because they are part of the writing system, so <see cref="IsValidWord"/>
+	/// accepts words that contain them, but they are not keys: the app reaches them through the accent
+	/// popup instead.
+	/// <para>
+	/// The Unicode General Category is the test here, not the Unicode Diacritic property. The latter
+	/// sounds purpose-built but splits the wrong way: it reports false for U+0670 (Arabic superscript
+	/// alef) and true for the Thai tone marks and the Devanagari virama.
+	/// </para>
+	/// </summary>
+	public static bool IsCombiningMark(char character) =>
+		CharUnicodeInfo.GetUnicodeCategory(character) is
+			UnicodeCategory.NonSpacingMark or
+			UnicodeCategory.SpacingCombiningMark or
+			UnicodeCategory.EnclosingMark;
+
 	private static IntPtr OpenExemplarSet(CultureInfo culture, bool includeAuxiliary)
 	{
 		string localeId = culture.Name.Replace('-', '_');

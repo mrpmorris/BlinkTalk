@@ -122,7 +122,11 @@ foreach (KeyValuePair<string, long> kv in sorted)
 	}
 }
 
-char[] freqOrder = counts.OrderByDescending(kv => kv.Value).Select(kv => kv.Key).ToArray();
+// Combining marks are not keys of their own: the app offers them through the accent popup, so they
+// leave the letter grid and are listed on their own at the end. Only the marks the corpus actually
+// uses are listed, because every extra one is another item the person has to wait out while scanning.
+char[] markOrder = counts.Where(kv => IcuAlphabet.IsCombiningMark(kv.Key)).OrderByDescending(kv => kv.Value).Select(kv => kv.Key).ToArray();
+char[] freqOrder = counts.Where(kv => !IcuAlphabet.IsCombiningMark(kv.Key)).OrderByDescending(kv => kv.Value).Select(kv => kv.Key).ToArray();
 StringComparer comp = StringComparer.Create(locale, CompareOptions.IgnoreNonSpace);
 char[] alphaOrder = freqOrder.OrderBy(l => l.ToString(), comp).ToArray();
 
@@ -171,6 +175,17 @@ for (int y = 0; y < 4; y++)
 	Console.WriteLine(string.Join(",", row));
 }
 Console.WriteLine(digitsRow);
+
+// Most used first, so the order can be transcribed straight into AccentScheme, where the first mark
+// is the one the accent scan reaches soonest.
+if (markOrder.Length > 0)
+{
+	Console.WriteLine();
+	Console.WriteLine("Decorators");
+	Console.WriteLine("==========");
+	foreach (char mark in markOrder)
+		Console.WriteLine(mark);
+}
 
 Console.WriteLine("Done.");
 
