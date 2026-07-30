@@ -40,7 +40,7 @@
                min="0.3"
                max="4.0"
                step="0.1"
-               value=@ScanSpeed
+               value=@ScanSpeed.ToString(CultureInfo.InvariantCulture)
                @oninput=OnScanSpeedChanged />
         <label for="scanSpeed">@string.Format(Localization.Settings_ScanSpeed_ScanSpeedX0SecondsPerStepFormat, ScanSpeed)</label>
     </div>
