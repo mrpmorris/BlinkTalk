@@ -22,9 +22,13 @@ public sealed class LanguagePackDownloader
         HttpClient = httpClient;
     }
 
-    public async Task<byte[]> DownloadAsync(string languageName, IProgress<double?> progress, CancellationToken cancellationToken)
+    /// <summary>
+    /// Fetches the pack for <paramref name="language"/>. The pack is named after the enum member,
+    /// which is why the URL can be built from it directly.
+    /// </summary>
+    public async Task<byte[]> DownloadAsync(Language language, IProgress<double?> progress, CancellationToken cancellationToken)
     {
-        string url = string.Format(UrlFormat, languageName);
+        string url = string.Format(UrlFormat, language);
 
         // ResponseHeadersRead so bytes stream through the progress loop instead of being
         // buffered whole before we see them.

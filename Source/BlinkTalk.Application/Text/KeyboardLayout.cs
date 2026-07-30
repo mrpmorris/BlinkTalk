@@ -34,16 +34,16 @@ public sealed class KeyboardLayout
         IsRightToLeft = isRightToLeft;
     }
 
-    public static KeyboardLayout CreateDefault() => CreateForLanguage("English");
+    public static KeyboardLayout CreateDefault() => CreateForLanguage(Language.English);
 
     /// <summary>
-    /// The keyboard for a language, by the name <c>AppLanguage.Name</c> uses. Unknown names get the
-    /// Latin layout without accents, which is the same thing English gets.
+    /// The keyboard for a language. Every language but Arabic gets the Latin layout, with an accent
+    /// key only where the language writes diacritics — so English gets the bare QWERTY grid.
     /// </summary>
-    public static KeyboardLayout CreateForLanguage(string languageName)
+    public static KeyboardLayout CreateForLanguage(Language language)
     {
-        AccentScheme? accents = AccentScheme.ForLanguage(languageName);
-        return languageName == "Arabic"
+        AccentScheme? accents = AccentScheme.ForLanguage(language);
+        return language == Language.Arabic
             ? new KeyboardLayout(CreateArabicRows(accents != null), accents, isRightToLeft: true)
             : new KeyboardLayout(CreateLatinRows(accents != null), accents);
     }

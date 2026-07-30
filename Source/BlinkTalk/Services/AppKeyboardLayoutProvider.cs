@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using BlinkTalk.Application;
 using BlinkTalk.Application.Abstractions;
 using BlinkTalk.Application.Text;
 
@@ -12,7 +13,7 @@ namespace BlinkTalk.Services;
 /// </summary>
 public sealed class AppKeyboardLayoutProvider : IKeyboardLayoutProvider
 {
-	private readonly ConcurrentDictionary<string, KeyboardLayout> LayoutsByLanguage = new();
+	private readonly ConcurrentDictionary<Language, KeyboardLayout> LayoutsByLanguage = new();
 
 	public KeyboardLayout Current =>
 		LayoutsByLanguage.GetOrAdd(AppLanguage.Name, KeyboardLayout.CreateForLanguage);

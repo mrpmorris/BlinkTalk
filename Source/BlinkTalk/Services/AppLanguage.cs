@@ -1,12 +1,13 @@
 using System.Globalization;
+using BlinkTalk.Application;
 using BlinkTalk.Application.Abstractions;
 using BlinkTalk.Resources;
 
 namespace BlinkTalk.Services;
 
 /// <summary>
-/// The language the app is running in, as the plain English name used to name per-language
-/// files: the bundled word list ("English.zip") and the writable database ("BlinkTalk-English.db").
+/// The language the app is running in, as the <see cref="Language"/> that names the per-language
+/// files: the downloaded word list ("English.zip") and the writable database ("BlinkTalk-English.db").
 /// Both must agree — a French UI seeded from the French word list needs its own database, or it
 /// would inherit whichever language happened to be installed first.
 /// </summary>
@@ -19,7 +20,7 @@ public static class AppLanguage
 	public const string DefaultCultureCode = "en-GB";
 
 	/// <summary>Used when the UI language has no word list of its own.</summary>
-	public const string Fallback = "English";
+	public const Language Fallback = Language.English;
 
 	/// <summary>
 	/// The culture the app is running in. <see cref="Localization.Culture"/> is null unless something
@@ -31,7 +32,7 @@ public static class AppLanguage
 	public static CultureInfo Current => Localization.Culture ?? CultureInfo.CurrentUICulture;
 
 	/// <summary>The word-list language for the current UI culture.</summary>
-	public static string Name => GetName(Current) ?? Fallback;
+	public static Language Name => GetName(Current) ?? Fallback;
 
 	/// <summary>
 	/// Writes the current culture's code to <paramref name="settings"/> so the next launch starts in
@@ -107,7 +108,7 @@ public static class AppLanguage
 	/// one ("pt"), so a language whose regions need word lists of their own can name them without
 	/// disturbing the languages where one list serves every region.
 	/// </summary>
-	private static string? GetName(CultureInfo cultureInfo) =>
+	private static Language? GetName(CultureInfo cultureInfo) =>
 		GetNameForCode(cultureInfo.Name) ?? GetNameForCode(cultureInfo.TwoLetterISOLanguageName);
 
 	/// <summary>
@@ -115,14 +116,14 @@ public static class AppLanguage
 	/// Keys are lower case because the code is lower-cased before matching — a full code arrives
 	/// canonicalised as "pt-BR", so it would not match a switch arm written in that casing by accident.
 	/// </summary>
-	private static string? GetNameForCode(string cultureCode) =>
+	private static Language? GetNameForCode(string cultureCode) =>
 		cultureCode.ToLowerInvariant() switch {
-			"en" => "English",
-			//"fr" => "French",
-			//"de" => "German",
-			//"es" => "Spanish",
-			"pt" => "Portuguese",
-			//"ar" => "Arabic",
+			"en" => Language.English,
+			//"fr" => Language.French,
+			//"de" => Language.German,
+			//"es" => Language.Spanish,
+			"pt" => Language.Portuguese,
+			//"ar" => Language.Arabic,
 			_ => null
 		};
 

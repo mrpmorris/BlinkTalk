@@ -1,3 +1,4 @@
+using BlinkTalk.Application;
 using BlinkTalk.Application.Abstractions;
 using BlinkTalk.Application.Persistence;
 
@@ -23,7 +24,7 @@ public sealed class AppDatabase : ISqliteDatabase, IDisposable
 	// swap is cheap to make safe and a half-swapped connection would be a miserable bug to find.
 	private readonly Lock SyncRoot = new Lock();
 	private MicrosoftDataSqliteDatabase? Open;
-	private string? OpenLanguage;
+	private Language? OpenLanguage;
 	private readonly IDatabaseProvisioner Provisioner;
 	private readonly ISeedWordSource SeedWords;
 
@@ -78,7 +79,7 @@ public sealed class AppDatabase : ISqliteDatabase, IDisposable
 	{
 		lock (SyncRoot)
 		{
-			string language = AppLanguage.Name;
+			Language language = AppLanguage.Name;
 			if (Open is not null && OpenLanguage == language)
 				return Open;
 

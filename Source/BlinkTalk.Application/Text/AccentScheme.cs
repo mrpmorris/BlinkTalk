@@ -35,18 +35,18 @@ public sealed class AccentScheme
     }
 
     /// <summary>
-    /// The scheme for a language, by the name <c>AppLanguage.Name</c> uses, or null for a language
-    /// that writes no diacritics — English, whose keyboard then carries no accent key at all.
+    /// The scheme for a language, or null for a language that writes no diacritics — English, whose
+    /// keyboard then carries no accent key at all.
     /// </summary>
-    public static AccentScheme? ForLanguage(string languageName)
+    public static AccentScheme? ForLanguage(Language language)
     {
-        switch (languageName)
+        switch (language)
         {
-            case "French": return French();
-            case "German": return German();
-            case "Spanish": return Spanish();
-            case "Portuguese": return Portuguese();
-            case "Arabic": return Arabic();
+            case Language.French: return French();
+            case Language.German: return German();
+            case Language.Spanish: return Spanish();
+            case Language.Portuguese: return Portuguese();
+            case Language.Arabic: return Arabic();
             default: return null;
         }
     }

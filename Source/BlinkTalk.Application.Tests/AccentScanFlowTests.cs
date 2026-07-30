@@ -15,7 +15,7 @@ public class AccentScanFlowTests
     [Fact]
     public void AccentKeyIsTheFirstKeyOfEachLetterRowForALanguageWithAccents()
     {
-        var french = KeyboardLayout.CreateForLanguage("French");
+        var french = KeyboardLayout.CreateForLanguage(Language.French);
 
         // First in the row is first in the scan, so reaching it costs a single dwell.
         for (int row = 0; row < 3; row++)
@@ -28,7 +28,7 @@ public class AccentScanFlowTests
     [Fact]
     public void EnglishHasNoAccentKeyAtAll()
     {
-        var english = KeyboardLayout.CreateForLanguage("English");
+        var english = KeyboardLayout.CreateForLanguage(Language.English);
 
         Assert.Null(english.AccentScheme);
         Assert.All(english.Rows, row => Assert.DoesNotContain(KeyCode.Accent, row));
@@ -37,7 +37,7 @@ public class AccentScanFlowTests
     [Fact]
     public async Task PickingAnAccentThenALetterTypesThemTogetherAndReturnsToRowScanning()
     {
-        var (controller, indicator, gate) = Build("French");
+        var (controller, indicator, gate) = Build(Language.French);
         await DrillToAccentKeyAsync(controller, indicator, gate, row: 0);
 
         // Depth 4: the accent strip is being scanned, starting on the acute.
@@ -78,7 +78,7 @@ public class AccentScanFlowTests
     [Fact]
     public async Task PickingALetterTheMarkCannotTakeIsImpossibleBecauseThoseKeysAreSkipped()
     {
-        var (controller, indicator, gate) = Build("French");
+        var (controller, indicator, gate) = Build(Language.French);
         await DrillToAccentKeyAsync(controller, indicator, gate, row: 1);
         indicator.Fire();                                   // pick the first mark on offer
         Assert.Equal(HighlightKind.Key, controller.Highlight.Kind);
@@ -99,7 +99,7 @@ public class AccentScanFlowTests
     [Fact]
     public async Task GivingUpWhileChoosingAnAccentReturnsToScanningTheSameRowsKeys()
     {
-        var (controller, indicator, gate) = Build("French");
+        var (controller, indicator, gate) = Build(Language.French);
         await DrillToAccentKeyAsync(controller, indicator, gate, row: 0);
         int marks = controller.AccentState!.Marks.Count;
 
@@ -117,7 +117,7 @@ public class AccentScanFlowTests
     [Fact]
     public async Task GivingUpWhileChoosingALetterReturnsToRowScanning()
     {
-        var (controller, indicator, gate) = Build("French");
+        var (controller, indicator, gate) = Build(Language.French);
         await DrillToAccentKeyAsync(controller, indicator, gate, row: 0);
         indicator.Fire(); // pick the acute
 
@@ -133,7 +133,7 @@ public class AccentScanFlowTests
     [Fact]
     public async Task ArabicHarakatAreTypedOntoTheLetterTheyFollow()
     {
-        var (controller, indicator, gate) = Build("Arabic");
+        var (controller, indicator, gate) = Build(Language.Arabic);
         await DrillToAccentKeyAsync(controller, indicator, gate, row: 1);
 
         indicator.Fire(); // fatha, the first mark
@@ -148,7 +148,7 @@ public class AccentScanFlowTests
     /// <summary>The marks the accent key offers from a given row of the French keyboard.</summary>
     private static async Task<IReadOnlyList<AccentMark>> MarksOfferedForRowAsync(int row)
     {
-        var (controller, indicator, gate) = Build("French");
+        var (controller, indicator, gate) = Build(Language.French);
         await DrillToAccentKeyAsync(controller, indicator, gate, row);
         return controller.AccentState!.Marks;
     }
@@ -167,7 +167,7 @@ public class AccentScanFlowTests
         indicator.Fire();                        // select it
     }
 
-    private static (ScanController controller, FakeIndicator indicator, StepDelay gate) Build(string language)
+    private static (ScanController controller, FakeIndicator indicator, StepDelay gate) Build(Language language)
     {
         var sentence = new SentenceBuilder(new FakeWordService(), new FakePhraseService());
         var gate = new StepDelay();

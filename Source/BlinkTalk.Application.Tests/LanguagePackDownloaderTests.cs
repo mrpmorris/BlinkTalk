@@ -26,7 +26,7 @@ public class LanguagePackDownloaderTests
         byte[] zip = MakeZip("Word,LanguageUsageCount\nHELLO,500\nWORLD,400\n");
         var downloader = new LanguagePackDownloader(ClientReturning(Response(zip, contentLength: zip.Length)));
 
-        byte[] downloaded = await downloader.DownloadAsync("English", new NullProgress(), CancellationToken.None);
+        byte[] downloaded = await downloader.DownloadAsync(Language.English, new NullProgress(), CancellationToken.None);
 
         Assert.Equal(zip, downloaded);
         var words = new InMemoryZipSeedWordSource(downloaded).GetWords().Select(w => w.Word).ToArray();
@@ -40,7 +40,7 @@ public class LanguagePackDownloaderTests
         var reported = new List<double?>();
         var downloader = new LanguagePackDownloader(ClientReturning(Response(payload, contentLength: payload.Length)));
 
-        await downloader.DownloadAsync("English", new ListProgress(reported), CancellationToken.None);
+        await downloader.DownloadAsync(Language.English, new ListProgress(reported), CancellationToken.None);
 
         Assert.NotEmpty(reported);
         Assert.All(reported, p => Assert.NotNull(p));
@@ -56,7 +56,7 @@ public class LanguagePackDownloaderTests
         var reported = new List<double?>();
         var downloader = new LanguagePackDownloader(ClientReturning(response));
 
-        await downloader.DownloadAsync("English", new ListProgress(reported), CancellationToken.None);
+        await downloader.DownloadAsync(Language.English, new ListProgress(reported), CancellationToken.None);
 
         Assert.All(reported, Assert.Null);
     }
@@ -64,11 +64,13 @@ public class LanguagePackDownloaderTests
     [Fact]
     public async Task MissingPackThrowsRatherThanSeedingNothing()
     {
+        // Which language does not matter — the handler answers 404 whatever is asked for, which is
+        // what a pack that has not been uploaded yet looks like from here.
         var downloader = new LanguagePackDownloader(
             ClientReturning(new HttpResponseMessage(HttpStatusCode.NotFound)));
 
         await Assert.ThrowsAsync<HttpRequestException>(
-            () => downloader.DownloadAsync("Klingon", new NullProgress(), CancellationToken.None));
+            () => downloader.DownloadAsync(Language.English, new NullProgress(), CancellationToken.None));
     }
 
     [Fact]
@@ -80,7 +82,7 @@ public class LanguagePackDownloaderTests
             ClientReturning(Response(new byte[1000], contentLength: 1000)));
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => downloader.DownloadAsync("English", new NullProgress(), cts.Token));
+            () => downloader.DownloadAsync(Language.English, new NullProgress(), cts.Token));
     }
 
     [Fact]
@@ -88,7 +90,7 @@ public class LanguagePackDownloaderTests
     {
         Assert.Equal(
             "https://github.com/mrpmorris/BlinkTalk/raw/refs/heads/master/LanguagePacks/French.zip",
-            string.Format(LanguagePackDownloader.UrlFormat, "French"));
+            string.Format(LanguagePackDownloader.UrlFormat, Language.French));
     }
 
     private static HttpResponseMessage Response(byte[] payload, long? contentLength)

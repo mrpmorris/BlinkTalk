@@ -111,12 +111,18 @@ using (StreamWriter w = new StreamWriter(csvPath, false, Encoding.UTF8))
 }
 
 Dictionary<char, long> counts = new Dictionary<char, long>();
+bool hasApostrophe = false;
 foreach (KeyValuePair<string, long> kv in sorted)
 {
 	foreach (char ch in kv.Key)
 	{
-		// ' is not part of the layout data; it is appended explicitly at the end of the last row
-		if (ch == '\'') continue;
+		// ' earns no grid cell of its own; it is appended to the end of the last row instead, and only
+		// for a language that writes it. The source is the test because CLDR has no data that answers
+		// the question: the letter exemplar sets exclude ' even for English and French, while the
+		// punctuation set includes it for languages that never write it inside a word. One sighting is
+		// not enough, though — a scraped corpus carries stray quote marks stuck to word edges, and
+		// those are singletons, where a language that truly writes the apostrophe repeats it endlessly.
+		if (ch == '\'') { hasApostrophe |= kv.Value > 1; continue; }
 		counts.TryGetValue(ch, out long cur);
 		counts[ch] = cur + kv.Value;
 	}
@@ -141,7 +147,7 @@ Console.WriteLine("=========");
 for (int r = 0; r < 4; r++)
 {
 	List<string> row = alphaOrder.Skip(r * cols).Take(cols).Select(c => c.ToString()).ToList();
-	if (r == 3) row.Add("'");
+	if (r == 3 && hasApostrophe) row.Add("'");
 	Console.WriteLine(string.Join(",", row));
 }
 Console.WriteLine(digitsRow);
@@ -171,7 +177,7 @@ for (int y = 0; y < 4; y++)
 	List<string> row = new List<string>();
 	for (int x = 0; x < cols; x++)
 		if (grid.TryGetValue((x, y), out char ch)) row.Add(ch.ToString());
-	if (y == 3) row.Add("'");
+	if (y == 3 && hasApostrophe) row.Add("'");
 	Console.WriteLine(string.Join(",", row));
 }
 Console.WriteLine(digitsRow);
