@@ -51,66 +51,12 @@ public sealed class MauiTtsService : ITextToSpeechService
 
         try
         {
-            await TextToSpeech.Default.SpeakAsync(ToSpokenText(text) + ".", options, cts.Token);
+            await TextToSpeech.Default.SpeakAsync(text, options, cts.Token);
         }
         catch (System.OperationCanceledException)
         {
             // Superseded by a newer utterance; expected.
         }
-    }
-
-    /// <summary>
-    /// Lower-cases words that are entirely upper case. The keyboard, the dictionary and the CSS all
-    /// work in upper case, but engines read a short all-caps token as an initialism — the French
-    /// voice says "QUE" as "Q.U.E." — so the display convention has to be undone before speaking.
-    /// Mixed-case text (the localised prompts spoken from the camera page) is left untouched, which
-    /// also leaves genuine acronyms spelled out. Scripts without case (Arabic, Hebrew, CJK, Thai)
-    /// have no upper-case letters, so they never match and are passed through unchanged.
-    /// </summary>
-    private static string ToSpokenText(string text)
-    {
-        var culture = AppLanguage.Current;
-        string[] words = text.Split(' ');
-
-        for (int index = 0; index < words.Length; index++)
-        {
-            if (IsAllUpperCase(words[index]))
-                words[index] = ToLowerIfReversible(words[index], culture);
-        }
-
-        return string.Join(" ", words);
-    }
-
-    /// <summary>
-    /// True when a word contains at least one letter and none of its letters are lower case.
-    /// Non-letters (digits, punctuation) neither qualify nor disqualify a word.
-    /// </summary>
-    private static bool IsAllUpperCase(string word)
-    {
-        bool hasLetter = false;
-
-        foreach (char character in word)
-        {
-            if (!char.IsLetter(character))
-                continue;
-            if (!char.IsUpper(character))
-                return false;
-            hasLetter = true;
-        }
-
-        return hasLetter;
-    }
-
-    /// <summary>
-    /// Lower-cases using the culture's own rules (Turkish maps I to a dotless i, and İ to i), but
-    /// only when doing so is reversible: not every upper-case letter has a lower-case counterpart
-    /// that maps back, and where the round trip loses a letter the word is better spoken as typed
-    /// than respelled.
-    /// </summary>
-    private static string ToLowerIfReversible(string word, CultureInfo culture)
-    {
-        string lowered = word.ToLower(culture);
-        return lowered.ToUpper(culture) == word ? lowered : word;
     }
 
     /// <summary>
