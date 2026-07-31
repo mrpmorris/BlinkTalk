@@ -32,9 +32,7 @@ public sealed class WordSuggestionSelectorInputStrategy : IInputStrategy
     public void ReceiveIndication()
     {
         if (SelectedIndex >= 0 && SelectedIndex < Words.Count)
-            // Suggestions are stored lowercase in the DB and only displayed uppercase via CSS;
-            // insert the uppercase form so it matches letters typed on the keyboard.
-            Sentence.PushWord(Words[SelectedIndex].ToUpperInvariant());
+            Sentence.PushWord(Words[SelectedIndex]);
         Cycler?.Stop();
         RestartFocusCycler();
     }
