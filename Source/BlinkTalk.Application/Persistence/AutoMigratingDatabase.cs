@@ -9,8 +9,7 @@ namespace BlinkTalk.Application.Persistence;
 /// <summary>
 /// Owns the database schema. On startup it brings the database up to the current schema version
 /// (creating everything from SQL when DbInfo says version 0, i.e. a brand-new file), seeds the
-/// Words dictionary from the bundled word list the first time, and performs the same maintenance
-/// the original AutoMigratingDatabase did: prune learned word sequences older than 30 days.
+/// Words dictionary from the bundled word list the first time
 /// Schema creation and seeding each run in their own transaction, so an interrupted first launch
 /// leaves nothing half-built.
 /// </summary>
@@ -340,10 +339,29 @@ public sealed class AutoMigratingDatabase
 
 	private void PerformDbMaintenance()
 	{
-		int cutoff = DateInt.FromDate(Clock.UtcNow.Date.AddDays(-30));
-		Database.ExecuteNonQuery(
-			"delete from WordSequences where LastUsedDate <= @cutoff",
-			("@cutoff", cutoff));
+		/*
+		The idea of this routine originally to prune all words not used for
+		30 days or more.
+
+		I don't like that, because rare words are still valuable.
+
+		In future, consider pruning only user-added words with
+			A: LanguageUsageCount = 0 (user added)
+			B: UserSelectionCount < 2 (user used it fewer than 2 times)
+		
+		But is it worth it? Misspelled words in the DB shouldn't affect
+		the app because they will rarely (if ever) be suggested, and use
+		up very little disk space.
+
+		IMPORTANT
+		If I do re-implement this, then I must make sure that any related
+		WordSequences containing the candidate words are deleted first.
+
+		*/
+		//int cutoff = DateInt.FromDate(Clock.UtcNow.Date.AddDays(-30));
+		//Database.ExecuteNonQuery(
+		//	"delete from WordSequences where LastUsedDate <= @cutoff",
+		//	("@cutoff", cutoff));
 	}
 
 	/// <summary>A Words row read into memory for the case-merge pass.</summary>
