@@ -140,7 +140,6 @@ html, body {
 .bt-word {
     font-size: 3.4vh;
     font-weight: 600;
-    text-transform: uppercase;
     padding: 1vh 2vw;
     border-radius: 1vh;
     border: 0.5vh solid transparent;
@@ -178,7 +177,6 @@ html, body {
     justify-content: center;
     font-size: 3.6vh;
     font-weight: 600;
-    text-transform: uppercase;
     padding: 1.6vh 0;
     border-radius: 1vh;
     border: 0.5vh solid transparent;
@@ -188,7 +186,6 @@ html, body {
 .bt-key-wide {
     flex: 2 1 0;
     max-width: 24vw;
-    text-transform: none;
 }
 
 .bt-speak {
