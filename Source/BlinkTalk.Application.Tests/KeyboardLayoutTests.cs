@@ -20,6 +20,19 @@ public class KeyboardLayoutTests
         return data;
     }
 
+    /// <summary>
+    /// Every member, rather than the languages that happen to have their own file today: a language
+    /// added without letters falls back to English and passes, which is the harmless outcome, whereas
+    /// a hand-written list is one someone forgets to add to.
+    /// </summary>
+    public static TheoryData<Language> EveryLanguage()
+    {
+        var data = new TheoryData<Language>();
+        foreach (Language language in Enum.GetValues<Language>())
+            data.Add(language);
+        return data;
+    }
+
     [Theory]
     [MemberData(nameof(EveryLayout))]
     public void EveryLayoutHasFourLetterRowsAndARowOfDigits(Language language, KeyboardLayoutStyle style)
@@ -83,9 +96,7 @@ public class KeyboardLayoutTests
     }
 
     [Theory]
-    [InlineData(Language.English)]
-    [InlineData(Language.Portuguese)]
-    [InlineData(Language.Arabic)]
+    [MemberData(nameof(EveryLanguage))]
     public void BothArrangementsOfALanguageOfferTheSameCharacters(Language language)
     {
         string[] alphabetical = CharactersOf(language, KeyboardLayoutStyle.Alphabetical);
@@ -155,6 +166,57 @@ public class KeyboardLayoutTests
         Assert.Empty(layout.Decorators);
         Assert.Contains("Ã", TextOf(layout.Rows[0]));
         Assert.Contains("Ç", TextOf(layout.Rows[0]));
+    }
+
+    [Fact]
+    public void GermanTypesItsUmlautsAndEszettAsKeys()
+    {
+        var layout = KeyboardLayout.Create(Language.German, KeyboardLayoutStyle.Alphabetical);
+
+        Assert.Empty(layout.Decorators);
+        Assert.Contains("Ä", TextOf(layout.Rows[0]));
+        Assert.Contains("ß", TextOf(layout.Rows[2]));
+        Assert.Contains("Ü", TextOf(layout.Rows[3]));
+    }
+
+    [Fact]
+    public void SpanishTypesItsEnyeAndAccentedVowelsAsKeys()
+    {
+        var layout = KeyboardLayout.Create(Language.Spanish, KeyboardLayoutStyle.Alphabetical);
+
+        Assert.Empty(layout.Decorators);
+        Assert.Contains("Ñ", TextOf(layout.Rows[1]));
+        Assert.Contains("Á", TextOf(layout.Rows[0]));
+    }
+
+    [Fact]
+    public void FrenchTypesItsAccentedLettersAndBothLigaturesAsKeys()
+    {
+        var layout = KeyboardLayout.Create(Language.French, KeyboardLayoutStyle.Alphabetical);
+
+        Assert.Empty(layout.Decorators);
+        Assert.Contains("Ç", TextOf(layout.Rows[0]));
+        Assert.Contains("Æ", TextOf(layout.Rows[0]));
+        Assert.Contains("Œ", TextOf(layout.Rows[2]));
+    }
+
+    /// <summary>
+    /// The languages whose letters were transcribed after English: a keyboard that still answers with
+    /// English's letters is the fallback in <c>KeyboardLayout.For</c> showing through, which no test
+    /// above would notice — every assertion there holds just as well for the English data.
+    /// </summary>
+    [Theory]
+    [InlineData(Language.Arabic)]
+    [InlineData(Language.French)]
+    [InlineData(Language.German)]
+    [InlineData(Language.Portuguese)]
+    [InlineData(Language.Spanish)]
+    public void ALanguageWithItsOwnLettersDoesNotFallBackToEnglish(Language language)
+    {
+        string[] english = CharactersOf(Language.English, KeyboardLayoutStyle.Alphabetical);
+        string[] letters = CharactersOf(language, KeyboardLayoutStyle.Alphabetical);
+
+        Assert.NotEqual(english, letters);
     }
 
     [Fact]

@@ -30,6 +30,22 @@ public sealed class KeyboardLayout
 	/// </summary>
 	private const int BackspaceRowIndex = 3;
 
+	/// <summary>
+	/// Every language whose letters have been transcribed, and the only place that mapping is written
+	/// down — <see cref="HasLetters"/> and <see cref="For"/> both read it, so neither can come to
+	/// disagree with the other about which languages are ready to type in.
+	/// </summary>
+	private static readonly IReadOnlyDictionary<Language, LanguageKeyboard> Keyboards =
+		new Dictionary<Language, LanguageKeyboard>
+		{
+			[Language.Arabic] = ArabicKeyboard.Keyboard,
+			[Language.English] = EnglishKeyboard.Keyboard,
+			[Language.French] = FrenchKeyboard.Keyboard,
+			[Language.German] = GermanKeyboard.Keyboard,
+			[Language.Portuguese] = PortugueseKeyboard.Keyboard,
+			[Language.Spanish] = SpanishKeyboard.Keyboard
+		};
+
 	/// <summary>The marks the decorator key offers; empty when the layout has no decorator key.</summary>
 	public IReadOnlyList<string> Decorators { get; }
 
@@ -65,6 +81,13 @@ public sealed class KeyboardLayout
 		Create(Language.English, KeyboardLayoutStyle.Alphabetical);
 
 	/// <summary>
+	/// Whether <paramref name="language"/> types its own letters rather than borrowing English's.
+	/// <see cref="Create"/> answers for any language either way, so this is how a caller tells the
+	/// difference between a keyboard chosen for the person and the fallback standing in for one.
+	/// </summary>
+	public static bool HasLetters(Language language) => Keyboards.ContainsKey(language);
+
+	/// <summary>
 	/// A row of letters, with the fixed keys in front of them: first in the row is first in the scan,
 	/// so each is a single dwell away.
 	/// </summary>
@@ -86,13 +109,6 @@ public sealed class KeyboardLayout
 	/// A language's data. English is the fallback rather than a throw, so a language that reaches
 	/// here before its letters have been transcribed still gives the person a usable keyboard.
 	/// </summary>
-	private static LanguageKeyboard For(Language language)
-	{
-		switch (language)
-		{
-			case Language.Portuguese: return PortugueseKeyboard.Keyboard;
-			case Language.Arabic: return ArabicKeyboard.Keyboard;
-			default: return EnglishKeyboard.Keyboard;
-		}
-	}
+	private static LanguageKeyboard For(Language language) =>
+		Keyboards.TryGetValue(language, out LanguageKeyboard? keyboard) ? keyboard : EnglishKeyboard.Keyboard;
 }

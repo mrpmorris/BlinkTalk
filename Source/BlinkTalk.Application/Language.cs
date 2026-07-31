@@ -11,9 +11,10 @@ namespace BlinkTalk.Application;
 /// setting stores a culture code, not this enum — so commenting a member out is safe.
 /// </para>
 /// <para>
-/// The commented-out members have a <c>.resx</c> but no letters in <c>Text/Layouts/</c> and no pack,
-/// so they stay out until both exist. Their arms in <c>AppLanguage.GetNameForCode</c> are commented
-/// out to match.
+/// A member only belongs here once it has both: letters in <c>Text/Layouts/</c> and a pack in
+/// <c>LanguagePacks/</c>. A language translated into a <c>.resx</c> but missing either one stays out
+/// until both exist, along with its arm in <c>AppLanguage.GetNameForCode</c> — otherwise the person
+/// gets a translated UI over an English keyboard, or a dictionary with nothing to seed it from.
 /// </para>
 /// <para>
 /// A region with its own <c>.resx</c> does not earn a member either: Brazilian Portuguese is offered

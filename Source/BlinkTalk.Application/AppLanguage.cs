@@ -131,9 +131,16 @@ public static class AppLanguage
 	/// The word-list language for a culture: the full code ("pt-BR") is looked up before the partial
 	/// one ("pt"), so a language whose regions need word lists of their own can name them without
 	/// disturbing the languages where one list serves every region.
+	/// <para>
+	/// Null for a culture the app has no word list for, which is what <see cref="IsSupported"/> reports
+	/// and what keeps such a culture out of <see cref="OfferedCultureCodes"/>.
+	/// </para>
 	/// </summary>
-	private static Language? GetName(CultureInfo cultureInfo) =>
-		GetNameForCode(cultureInfo.Name) ?? GetNameForCode(cultureInfo.TwoLetterISOLanguageName);
+	public static Language? GetName(CultureInfo cultureInfo)
+	{
+		ArgumentNullException.ThrowIfNull(cultureInfo);
+		return GetNameForCode(cultureInfo.Name) ?? GetNameForCode(cultureInfo.TwoLetterISOLanguageName);
+	}
 
 	/// <summary>
 	/// The word-list language named by exactly this culture code, or null if there is no list for it.
