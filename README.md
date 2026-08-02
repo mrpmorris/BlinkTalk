@@ -16,7 +16,7 @@ the left mouse button anywhere on the app.
 
 *All platforms allow the user to indicate using a facial gesture such as looking up or blinking.*
 
-![Illustration](docs/Images/Illustration.png)
+![Illustration](docs/images/Illustration.png)
 
 ## How it works
 
@@ -31,15 +31,15 @@ Selecting moves through a hierarchy of scanners:
 
 1. **Section** — choose between picking a suggested word, opening the keyboard, or speaking the sentence.
 
-![Illustration](docs/Images/Demo-01-TopLevel.gif)
+![Illustration](docs/images/Demo-01-TopLevel.gif)
 
 2. **Word suggestions** — instead of spelling a whole word, pick from predicted words.
 
-![Illustration](docs/Images/Demo-02-SelectWord.gif)
+![Illustration](docs/images/Demo-02-SelectWord.gif)
 
 3. **Keyboard** — scan to a row of keys, then to a column, to land on a single letter.
 
-![Illustration](docs/Images/Demo-03-TypeWord.gif)
+![Illustration](docs/images/Demo-03-TypeWord.gif)
 
 To keep typing fast, BlinkTalk predicts what the person is most likely to say next. A bundled dictionary
 plus a word-sequence (n-gram) model learns the person's vocabulary and phrasing over time, so frequently

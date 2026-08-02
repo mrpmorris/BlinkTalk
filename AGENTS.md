@@ -81,7 +81,7 @@ It is translated into seven languages: `docs/index.html` (English) plus `docs/in
 `docs/index-ar.html` (Arabic is RTL), each with a language dropdown that redirects between them.
 **Always update all seven `docs/index-*.html` files together** — any copy, link, asset path or
 styling change must be applied to every language page, and new pages (or new languages) must
-extend the dropdown on every page. The pages share the repo-root `docs/Images/` assets
+extend the dropdown on every page. The pages share the repo-root `docs/images/` assets
 (`Illustration.png`, `BlinkTalkLogo.png`, the `Demo-*.gif` animations).
 
 ## Code style
