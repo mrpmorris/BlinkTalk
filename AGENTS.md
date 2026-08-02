@@ -73,6 +73,17 @@ commit is on `master` validates, builds the MSI + APK + AAB, and creates the Git
 version code is `major*10000 + minor*100 + patch`. Android signing needs the four `ANDROID_*`
 repo secrets or the job fails deliberately (rather than shipping a debug-signed package).
 
+## GitHub Pages site
+
+`docs/index.html` is the GitHub Pages landing page (single-file HTML+CSS+JS, no build step).
+It is translated into seven languages: `docs/index.html` (English) plus `docs/index-fr.html`,
+`docs/index-es.html`, `docs/index-de.html`, `docs/index-pt.html`, `docs/index-pt-br.html` and
+`docs/index-ar.html` (Arabic is RTL), each with a language dropdown that redirects between them.
+**Always update all seven `docs/index-*.html` files together** — any copy, link, asset path or
+styling change must be applied to every language page, and new pages (or new languages) must
+extend the dropdown on every page. The pages share the repo-root `Docs/Images/` assets
+(`Illustration.png`, `BlinkTalkLogo.png`, the `Demo-*.gif` animations).
+
 ## Code style
 
 `.editorconfig` is authoritative and unusual: **hard tabs**, Allman braces, `System.*` usings *not*
