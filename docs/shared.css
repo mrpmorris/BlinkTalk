@@ -521,7 +521,6 @@ footer a:hover { text-decoration: underline; }
     .hero-grid { grid-template-columns: 1fr; gap: 36px; text-align: center; }
     .hero .subtitle { margin-left: auto; margin-right: auto; }
     .hero-ctas { justify-content: center; }
-    .hero-lang { display: none; }
     .steps { grid-template-columns: 1fr; }
     .action-grid { grid-template-columns: 1fr; }
     .nav-links a:not(.nav-cta) { display: none; }
