@@ -1,5 +1,6 @@
 @page "/type"
 @implements IDisposable
+@implements IAsyncDisposable
 
 @* dir drives the whole page: the browser mirrors the flex rows for a right-to-left script, so
    scan index 0 is the rightmost key, and the sentence reads in the right direction. *@
@@ -39,9 +40,11 @@
         }
         else
         {
+            @* data-word-index is how the scroll-into-view script finds the highlighted word:
+               the index is stable across renders, where an ElementReference is not. *@
             @for (int i = 0; i < Words.Count; i++)
             {
-                <span class="bt-word @WordClass(i)">@Words[i]</span>
+                <span class="bt-word @WordClass(i)" data-word-index="@i">@Words[i]</span>
             }
         }
     </div>

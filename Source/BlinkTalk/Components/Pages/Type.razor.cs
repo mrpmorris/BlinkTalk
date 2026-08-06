@@ -3,23 +3,28 @@ using BlinkTalk.Application.Text;
 using BlinkTalk.Services.Indicators;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.JSInterop;
 
 namespace BlinkTalk.Components.Pages;
 
 public partial class Type
 {
 	private readonly ScanController Controller;
+	private readonly IJSRuntime JS;
 	private readonly KeyboardIndicator Keyboard;
+	private int LastScrolledWord = -1; // data-word-index last scrolled into view, or -1 for "none"
 	private readonly NavigationManager Navigation;
 	private readonly PointerIndicator Pointer;
 	private ElementReference Root;
+	private IJSObjectReference? WordsModule;
 
-	public Type(ScanController controller, PointerIndicator pointer, KeyboardIndicator keyboard, NavigationManager navigation)
+	public Type(ScanController controller, PointerIndicator pointer, KeyboardIndicator keyboard, NavigationManager navigation, IJSRuntime js)
 	{
 		Controller = controller;
 		Pointer = pointer;
 		Keyboard = keyboard;
 		Navigation = navigation;
+		JS = js;
 	}
 
 	// The already-committed words, rendered as a normal sentence. SentenceText is the committed
@@ -64,7 +69,21 @@ public partial class Type
 	private string WordsContextClass =>
 		H.Kind == HighlightKind.WordSuggestion ? "bt-context" : "";
 
-	public void Dispose() => Controller.StateChanged -= OnStateChanged;
+	// Blazor disposes a component that implements IAsyncDisposable by calling DisposeAsync, so the
+	// unsubscribe and module teardown live there; Dispose is the stub expected of callers that only
+	// support IDisposable, and stays empty rather than duplicating the teardown.
+	void IDisposable.Dispose()
+	{
+	}
+
+	async ValueTask IAsyncDisposable.DisposeAsync()
+	{
+		Controller.StateChanged -= OnStateChanged;
+		if (WordsModule is not null)
+		{
+			try { await WordsModule.DisposeAsync(); } catch { /* ignore */ }
+		}
+	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
@@ -72,6 +91,30 @@ public partial class Type
 		{
 			// Make the surface focusable so the keyboard switch (Space/Enter) is captured.
 			try { await Root.FocusAsync(); } catch { /* focus best-effort */ }
+		}
+
+		// Bring the highlighted suggestion into view: centred in the panel when there is room on
+		// both sides, clamped to the panel edges otherwise. Skipped while the same word stays
+		// highlighted — the suggestion list is static during word selection, so another render of
+		// the same word is not another scroll. Leaving word selection resets, so the first word of
+		// the next session always scrolls.
+		var highlight = Controller.Highlight;
+		if (highlight.Kind == HighlightKind.WordSuggestion)
+		{
+			if (highlight.WordIndex != LastScrolledWord)
+			{
+				LastScrolledWord = highlight.WordIndex;
+				try
+				{
+					WordsModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/blinktalk-words.js");
+					await WordsModule.InvokeVoidAsync("scrollWordIntoView", highlight.WordIndex);
+				}
+				catch { /* scrolling is cosmetic; scanning must never stop for it */ }
+			}
+		}
+		else
+		{
+			LastScrolledWord = -1;
 		}
 	}
 

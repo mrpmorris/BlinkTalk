@@ -130,20 +130,38 @@ html, body {
 .bt-words {
     flex: 0 0 auto;
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 1vw;
-    justify-content: center;
+    align-items: center;
     min-height: 10vh;
-    align-content: center;
+    /* One row only: words that don't fit are clipped off-screen here (overflow-x hidden shows
+       no scroll bar but stays programmatically scrollable, so a highlighted word can be
+       scrolled into view). The panel never grows, whatever the words are. */
+    overflow: hidden;
+    /* With justify-content at the start, auto margins on the first/last word centre the row as a
+       group when it all fits and collapse to zero when it overflows — so overflowing words sit
+       edge-to-edge and are all reachable (justify-content:center would clip the start dead). */
+    justify-content: flex-start;
 }
 
 .bt-word {
+    /* Words never shrink to fit: overflow is clipped, not squeezed. */
+    flex: 0 0 auto;
     font-size: 3.4vh;
     font-weight: 600;
     padding: 1vh 2vw;
     border-radius: 1vh;
     border: 0.5vh solid transparent;
     background: #2a2f3a;
+}
+
+/* Centre the row when it fits; sit flush to the panel edge when it overflows (see .bt-words). */
+.bt-word:first-child {
+    margin-inline-start: auto;
+}
+
+.bt-word:last-child {
+    margin-inline-end: auto;
 }
 
 .bt-words-empty {
