@@ -13,6 +13,7 @@ public partial class Type
 	private readonly IJSRuntime JS;
 	private readonly KeyboardIndicator Keyboard;
 	private int LastScrolledWord = -1; // data-word-index last scrolled into view, or -1 for "none"
+	private string? LastScrolledSentence; // sentence text last scrolled into view, or null for "none"
 	private readonly NavigationManager Navigation;
 	private readonly PointerIndicator Pointer;
 	private ElementReference Root;
@@ -115,6 +116,23 @@ public partial class Type
 		else
 		{
 			LastScrolledWord = -1;
+		}
+
+		// Keep the sentence scrolled to its end: the panel is a single fixed-height line (see
+		// .bt-sentence in blinktalk.css), so a long sentence clips, never grows. Its newest text
+		// is at the inline end, and the current-word box is the last thing rendered, so scrolling
+		// it into view end-aligned shows the whole tail. Skipped while the text is unchanged — the
+		// same-text guard as LastScrolledWord above.
+		string sentence = SentenceText;
+		if (!string.IsNullOrEmpty(sentence) && sentence != LastScrolledSentence)
+		{
+			LastScrolledSentence = sentence;
+			try
+			{
+				WordsModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/blinktalk-words.js");
+				await WordsModule.InvokeVoidAsync("scrollSentenceToEnd");
+			}
+			catch { /* scrolling is cosmetic; scanning must never stop for it */ }
 		}
 	}
 

@@ -77,20 +77,41 @@ html, body {
 
 .bt-sentence {
     flex: 0 0 auto;
-    min-height: 12vh;
+    /* Fixed height: the panel never grows, whatever the sentence is. Long text is one clipped
+       line (never wraps) — overflow-x hidden shows no scroll bar but stays programmatically
+       scrollable, and the current-word box is always scrolled to the end by the JS. */
+    height: 12vh;
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 1vw;
-    text-align: center;
     padding: 1.5vh 2vw;
     font-size: 5vh;
     font-weight: 600;
     line-height: 1.15;
     background: var(--bt-panel);
     border-radius: 1.2vh;
-    word-break: break-word;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+/* The sentence reads as a run of text + the current-word box; both are flex items that never
+   shrink to fit: overflow is clipped, not squeezed (same rule as .bt-word). */
+.bt-sentence > span {
+    flex: 0 0 auto;
+}
+
+/* With justify-content at the start, auto margins on the first/last item centre the line as a
+   group when it all fits and collapse to zero when it overflows — so overflowing text sits
+   flush to the start and the end (the newest word) is reachable by scrolling
+   (justify-content:center would clip the start dead). Same trick as .bt-words. */
+.bt-sentence > :first-child {
+    margin-inline-start: auto;
+}
+
+.bt-sentence > :last-child {
+    margin-inline-end: auto;
 }
 
 .bt-sentence.bt-pending {

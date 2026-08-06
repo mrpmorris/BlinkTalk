@@ -27,8 +27,10 @@
         else
         {
             @* Committed words read as a normal sentence; the word being edited sits in a box
-               (empty after a space, showing a new word has been started). *@
-            @CommittedText<span class="bt-current-word">@CurrentWord</span>
+               (empty after a space, showing a new word has been started). The committed text is
+               wrapped so the first child is an element: the sentence panel's auto margins (see
+               .bt-sentence in blinktalk.css) centre the line when it fits. *@
+            <span class="bt-committed">@CommittedText</span><span class="bt-current-word">@CurrentWord</span>
         }
     </div>
 
