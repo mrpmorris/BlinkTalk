@@ -103,8 +103,11 @@ foreach (string line in lines)
 	if (parts.Length == 2 && long.TryParse(parts[1].Trim(), out long count))
 	{
 		string word = parts[0].ToUpper(locale);
-		// Remove lines that have characters not valid for the selected locale ( ' is allowed)
-		if (!IcuAlphabet.IsValidWord(locale, word.Replace("'", "")))
+		// Remove lines that have characters not valid for the selected locale ( ' is allowed).
+		// The auxiliary set is included because naturalised loanwords are ordinary vocabulary a user
+		// will want to type: CLDR keeps è out of the Dutch standard set, which drops carrière, scène
+		// and crème, and does the same for other locales' borrowings.
+		if (!IcuAlphabet.IsValidWord(locale, word.Replace("'", ""), includeAuxiliary: true))
 			continue;
 		merged.TryGetValue(word, out long existing);
 		merged[word] = existing + count;
