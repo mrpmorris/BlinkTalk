@@ -243,4 +243,12 @@
   <data name="Shared_Done" xml:space="preserve">
     <value>Done</value>
   </data>
+  <data name="Type_NoSuggestions" xml:space="preserve">
+    <value>no suggestions</value>
+    <comment>Shown in place of the word list when nothing matches what has been typed. Lower case and unpunctuated: it is a quiet aside rather than a message, and the style is italic rather than shouted.</comment>
+  </data>
+  <data name="Type_Speak" xml:space="preserve">
+    <value>SPEAK</value>
+    <comment>The button that speaks the sentence aloud. Upper case because the typing page is, and there is no text-transform on it — a language without upper case gives its ordinary form instead.</comment>
+  </data>
 </root>

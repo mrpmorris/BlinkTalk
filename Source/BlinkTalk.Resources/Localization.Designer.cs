@@ -437,5 +437,23 @@ namespace BlinkTalk.Resources {
                 return ResourceManager.GetString("Shared_Done", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to no suggestions.
+        /// </summary>
+        public static string Type_NoSuggestions {
+            get {
+                return ResourceManager.GetString("Type_NoSuggestions", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to SPEAK.
+        /// </summary>
+        public static string Type_Speak {
+            get {
+                return ResourceManager.GetString("Type_Speak", resourceCulture);
+            }
+        }
     }
 }

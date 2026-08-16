@@ -14,7 +14,7 @@
      @onkeydown:preventDefault="true">
 
     <button class="bt-settings-button"
-            title="Settings"
+            title=@Localization.Settings_Title
             @onpointerdown:stopPropagation="true"
             @onpointerdown=GoToSettings>⚙</button>
 
@@ -38,7 +38,7 @@
     <div class="bt-section bt-words @SectionClass(Section.WordSelector) @WordsContextClass">
         @if (Words.Count == 0)
         {
-            <span class="bt-words-empty">no suggestions</span>
+            <span class="bt-words-empty">@Localization.Type_NoSuggestions</span>
         }
         else
         {
@@ -71,7 +71,7 @@
 
     <!-- Speak -->
     <div class="bt-section bt-speak @SectionClass(Section.Speak)">
-        SPEAK
+        @Localization.Type_Speak
     </div>
 
     @* The letter decorators on offer. Inside the root div, not beside it: the whole root is the

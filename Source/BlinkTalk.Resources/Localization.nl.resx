@@ -184,4 +184,10 @@
   <data name="Shared_Done" xml:space="preserve">
     <value>Klaar</value>
   </data>
+  <data name="Type_NoSuggestions" xml:space="preserve">
+    <value>geen suggesties</value>
+  </data>
+  <data name="Type_Speak" xml:space="preserve">
+    <value>SPREKEN</value>
+  </data>
 </root>
