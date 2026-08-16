@@ -1,5 +1,3 @@
-using System;
-
 namespace BlinkTalk.Application.Text.Layouts;
 
 /// <summary>
@@ -21,7 +19,7 @@ internal sealed class LanguageKeyboard
 	/// one most often wanted costs the fewest dwells. Empty for a language that writes none, which
 	/// is what leaves the decorator key off its keyboard entirely.
 	/// </summary>
-	public string[] Decorators { get; init; } = Array.Empty<string>();
+	public string[] Decorators { get; init; } = [];
 
 	/// <summary>Whether the script reads right to left, which the UI mirrors itself for.</summary>
 	public bool IsRightToLeft { get; init; }

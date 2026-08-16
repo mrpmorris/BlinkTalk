@@ -201,16 +201,18 @@ public class KeyboardLayoutTests
     }
 
     [Fact]
-    public void DutchTypesItsTremaAndBothStressAccentsAsKeys()
+    public void DutchTypesItsTremaAndAcuteAsKeysAndLeavesTheBorrowedAccentsOff()
     {
         var layout = KeyboardLayout.Create(Language.Dutch, KeyboardLayoutStyle.Alphabetical);
+        string[] letters = CharactersOf(Language.Dutch, KeyboardLayoutStyle.Alphabetical);
 
         Assert.Empty(layout.Decorators);
-        // The acute of "één" and the grave of "carrière" — the latter is the one CLDR files as
-        // auxiliary rather than standard, so a keyboard rebuilt from the standard set alone loses it.
+        // The acute of "één" and the trema of "Oekraïne" are Dutch; the grave of "carrière" and the
+        // circumflex of "enquête" belong to borrowings, and every key costs a column of scanning.
         Assert.Contains("É", TextOf(layout.Rows[0]));
-        Assert.Contains("È", TextOf(layout.Rows[0]));
         Assert.Contains("Ï", TextOf(layout.Rows[1]));
+        Assert.DoesNotContain("È", letters);
+        Assert.DoesNotContain("Ê", letters);
     }
 
     [Fact]

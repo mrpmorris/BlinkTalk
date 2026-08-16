@@ -81,6 +81,13 @@ if (confirm != "y" && confirm != "Y")
 const int MinimumLowerCaseUse = 20;
 const int MinimumLowerCaseWords = 3;
 
+// And at least one of those words has to be one people actually use. Breadth alone is not enough,
+// because a corpus scraped from the web carries whole sentences of a neighbouring language: the
+// English list has Romanian in it (că, să, dacă) and the German list has Luxembourgish (ëm, gëtt,
+// kënnen), each spread thinly over a dozen rare words. A letter the language itself writes anchors
+// on something ordinary — café in English, enquête in Dutch — so that is what is asked for.
+const int MinimumUseOfItsCommonestWord = 10;
+
 string text = File.ReadAllText(Path.Combine(packsDir, txtFile), Encoding.UTF8);
 
 // Repair the tail of a corpus that was written as UTF-8 and read back as Latin-1, which turns each
@@ -138,7 +145,7 @@ Dictionary<string, long> merged = new Dictionary<string, long>();
 // which letters earn keys further down. Collected here because this is the last place the corpus's own
 // casing survives: everything downstream works in upper case.
 Dictionary<char, long> lowerCaseUse = new Dictionary<char, long>();
-Dictionary<char, HashSet<string>> lowerCaseWords = new Dictionary<char, HashSet<string>>();
+Dictionary<char, Dictionary<string, long>> lowerCaseWords = new Dictionary<char, Dictionary<string, long>>();
 foreach (string line in lines)
 {
 	string[] parts = line.Split(',');
@@ -165,18 +172,17 @@ foreach (string line in lines)
 		{
 			lowerCaseUse.TryGetValue(ch, out long cur);
 			lowerCaseUse[ch] = cur + count;
-			if (!lowerCaseWords.TryGetValue(ch, out HashSet<string>? words))
-				lowerCaseWords[ch] = words = new HashSet<string>();
-			words.Add(word);
+			if (!lowerCaseWords.TryGetValue(ch, out Dictionary<string, long>? words))
+				lowerCaseWords[ch] = words = new Dictionary<string, long>();
+			words.TryGetValue(word, out long wordCount);
+			words[word] = wordCount + count;
 		}
 	}
 }
 
-List<KeyValuePair<string, long>> sorted = merged.OrderByDescending(kv => kv.Value).ToList();
-
 Dictionary<char, long> counts = new Dictionary<char, long>();
 bool hasApostrophe = false;
-foreach (KeyValuePair<string, long> kv in sorted)
+foreach (KeyValuePair<string, long> kv in merged)
 {
 	foreach (char ch in kv.Key)
 	{
@@ -192,6 +198,10 @@ foreach (KeyValuePair<string, long> kv in sorted)
 	}
 }
 
+// Letters the person building the pack struck by hand, once they had seen the words behind them —
+// filled in below, and empty until then.
+HashSet<char> struck = new HashSet<char>();
+
 // A letter earns a key if the language writes it, not merely if the corpus contains it. A scraped
 // corpus carries Curaçao, Bjørn and España along with the language's own words, and each of their
 // letters would cost every user a wider grid to scan across for as long as the pack lives.
@@ -204,11 +214,68 @@ foreach (KeyValuePair<string, long> kv in sorted)
 // In a unicameral script every word is "lower case throughout", so the evidence half would wave
 // everything through rather than nothing; there the standard set is the whole answer.
 bool EarnsAKey(char letter) =>
-	IcuAlphabet.IsStandardLetter(locale, letter)
-	|| (localeIsCased
-		&& IcuAlphabet.IsKeyableLetter(letter)
-		&& lowerCaseUse.GetValueOrDefault(letter) >= MinimumLowerCaseUse
-		&& lowerCaseWords.GetValueOrDefault(letter)?.Count >= MinimumLowerCaseWords);
+	!struck.Contains(letter)
+	&& (IcuAlphabet.IsStandardLetter(locale, letter) || EarnedItFromTheCorpus(letter));
+
+bool EarnedItFromTheCorpus(char letter) =>
+	localeIsCased
+	&& !IcuAlphabet.IsStandardLetter(locale, letter)
+	&& IcuAlphabet.IsKeyableLetter(letter)
+	&& lowerCaseUse.GetValueOrDefault(letter) >= MinimumLowerCaseUse
+	&& lowerCaseWords.GetValueOrDefault(letter) is Dictionary<string, long> evidence
+	&& evidence.Count >= MinimumLowerCaseWords
+	&& evidence.Values.Max() >= MinimumUseOfItsCommonestWord;
+
+// The letters CLDR did not vouch for and the corpus did. These are the judgement calls, and they are
+// printed with the words behind them because that is the only place a corpus's contamination shows:
+// the rule can tell a name from an ordinary word, but nothing here can tell one language from another,
+// and a list scraped from the web has its neighbours mixed in. Read these before transcribing.
+char[] earned = counts.Keys.Where(EarnedItFromTheCorpus).OrderByDescending(ch => counts[ch]).ToArray();
+if (earned.Length > 0)
+{
+	Console.WriteLine();
+	Console.WriteLine($"Letters CLDR does not list for {locale.Name}, given keys on the corpus's word ({earned.Length}):");
+	foreach (char ch in earned)
+	{
+		string words = string.Join(" ", lowerCaseWords[ch].OrderByDescending(w => w.Value).Take(6).Select(w => $"{w.Key.ToLower(locale)}({w.Value})"));
+		Console.WriteLine($"  {ch}  {words}");
+	}
+
+	// The one call no rule here can make. The casing test tells an ordinary word from a name, but
+	// nothing tells one language from another, and these lists are scraped from the web with their
+	// neighbours mixed in: the English corpus carries Romanian, the German one Luxembourgish. German
+	// is the case that needs a person — it capitalises its nouns, so Café and René can never appear
+	// as lower-case evidence, and the only lower-case words left carrying é are Luxembourgish.
+	//
+	// Keeping one is what has to be typed, rather than dropping one, so that the quiet answer is the
+	// conservative one: press enter without reading and the keyboard comes out as CLDR describes the
+	// language, which is the layout that is right when nobody has looked.
+	Console.Write("Type the ones the language really writes to keep them, or press enter to drop all: ");
+	string keep = (Console.ReadLine() ?? "").ToUpper(locale);
+	foreach (char ch in earned)
+		if (!keep.Contains(ch))
+			struck.Add(ch);
+	if (struck.Count > 0)
+		Console.WriteLine($"Dropping {string.Join(" ", struck)} — the keyboard will not offer them and the word list will not keep words that need them.");
+}
+
+// A word nobody can type is a word the prediction can never offer: it only takes up room in the
+// database and in the download. Words outrank keys here rather than the other way round — the grid is
+// what somebody has to scan across every time they write, so it is the thing kept small, and whatever
+// cannot be spelled on it goes. The marks are spellable too, through the decorator key.
+HashSet<char> spellable = counts.Keys.Where(ch => IcuAlphabet.IsCombiningMark(ch) || EarnsAKey(ch)).ToHashSet();
+// Only where the apostrophe is getting a key of its own. Arabic is the language this matters to: it
+// writes no apostrophe, so it is given no key for one, yet a corpus scraped from the web still has a
+// few dozen words with one stuck to them.
+if (hasApostrophe)
+	spellable.Add('\'');
+int before = merged.Count;
+List<KeyValuePair<string, long>> sorted = merged
+	.Where(kv => kv.Key.All(spellable.Contains))
+	.OrderByDescending(kv => kv.Value)
+	.ToList();
+if (sorted.Count < before)
+	Console.WriteLine($"\nDropped {before - sorted.Count:N0} of {before:N0} words that the keyboard cannot spell.");
 
 // Combining marks are not keys of their own: the app offers them through the decorator popup, so they
 // leave the letter grid and are listed on their own at the end. Only the marks the corpus actually
