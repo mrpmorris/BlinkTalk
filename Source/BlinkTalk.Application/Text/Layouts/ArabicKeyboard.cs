@@ -36,15 +36,15 @@ internal static class ArabicKeyboard
 		// directly after the name it would attach to the N and be unreadable.
 		Decorators =
 		[
-			"\u064B", // ARABIC FATHATAN ◌ً
-			"\u0651", // ARABIC SHADDA ◌ّ
-			"\u064F", // ARABIC DAMMA ◌ُ
-			"\u064E", // ARABIC FATHA ◌َ
-			"\u0650", // ARABIC KASRA ◌ِ
-			"\u064D", // ARABIC KASRATAN ◌ٍ
-			"\u0652", // ARABIC SUKUN ◌ْ
-			"\u064C", // ARABIC DAMMATAN ◌ٌ
-			"\u0670"  // ARABIC LETTER SUPERSCRIPT ALEF ◌ٰ
+			"\u064B", // ARABIC FATHATAN
+			"\u0651", // ARABIC SHADDA
+			"\u064F", // ARABIC DAMMA
+			"\u064E", // ARABIC FATHA
+			"\u0650", // ARABIC KASRA
+			"\u064D", // ARABIC KASRATAN
+			"\u0652", // ARABIC SUKUN
+			"\u064C", // ARABIC DAMMATAN
+			"\u0670"  // ARABIC LETTER SUPERSCRIPT ALEF
 		]
 	};
 }

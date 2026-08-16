@@ -30,8 +30,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The shipped dictionary/phrase DB, for parity tests against real data. -->
-    <None Include="..\..\LanguagePacks\English.zip" Link="English.zip" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The shipped dictionary/phrase DB, for parity tests against real data. Every language, not just
+         English: the seed filter has to be proved a no-op against each real pack, and the ones with
+         accents and combining marks are the only ones where it could fail to be. -->
+    <None Include="..\..\LanguagePacks\*.zip" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

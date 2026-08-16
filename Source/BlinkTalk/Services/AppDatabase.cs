@@ -85,7 +85,10 @@ public sealed class AppDatabase : ISqliteDatabase, IDisposable
 
 			Open?.Dispose();
 			var database = new MicrosoftDataSqliteDatabase(Provisioner.GetDatabasePath());
-			new AutoMigratingDatabase(database, Clock, seedWords).Migrate();
+			// The seed source is filtered here rather than deeper down because this is where the two
+			// halves meet: AutoMigratingDatabase seeds but knows nothing of languages, and the word
+			// source knows its words but not which keyboard they are destined for.
+			new AutoMigratingDatabase(database, Clock, new TypeableSeedWordSource(seedWords, language)).Migrate();
 			Open = database;
 			OpenLanguage = language;
 			return database;
