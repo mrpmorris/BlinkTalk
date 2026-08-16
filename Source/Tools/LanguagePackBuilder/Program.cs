@@ -74,20 +74,6 @@ if (confirm != "y" && confirm != "Y")
 	return;
 }
 
-// A letter has to appear in this many lower-case words, this many times over, before the corpus is
-// taken as evidence that the language writes it. One sighting proves nothing — a scraped corpus
-// carries a dialect spelling and a stray French phrase — while a letter the language truly writes
-// turns up in ordinary words over and over.
-const int MinimumLowerCaseUse = 20;
-const int MinimumLowerCaseWords = 3;
-
-// And at least one of those words has to be one people actually use. Breadth alone is not enough,
-// because a corpus scraped from the web carries whole sentences of a neighbouring language: the
-// English list has Romanian in it (că, să, dacă) and the German list has Luxembourgish (ëm, gëtt,
-// kënnen), each spread thinly over a dozen rare words. A letter the language itself writes anchors
-// on something ordinary — café in English, enquête in Dutch — so that is what is asked for.
-const int MinimumUseOfItsCommonestWord = 10;
-
 string text = File.ReadAllText(Path.Combine(packsDir, txtFile), Encoding.UTF8);
 
 // Repair the tail of a corpus that was written as UTF-8 and read back as Latin-1, which turns each
@@ -129,54 +115,22 @@ text = Regex.Replace(text, @"^.?,\d+\r?\n", "", RegexOptions.Multiline);
 // trailing â is treated as damage: château and bâtonnage carry the same letter mid-word and are real.
 text = Regex.Replace(text, @"^[^,\r\n]*â,\d+\r?\n", "", RegexOptions.Multiline | RegexOptions.IgnoreCase);
 
-// Whether this language's script has upper and lower case, and so whether the corpus can be asked
-// which of its letters belong to the language and which it only borrows for names. It cannot be asked
-// in Arabic, where every word looks alike, so nothing beyond CLDR's standard set is admitted there at
-// all: the auxiliary set for ar carries the Persian ک and ی, and the tatweel ـ, which is a
-// justification glyph rather than a letter and which a news corpus repeats thousands of times in بـ
-// and الـ. Each would take a key on a keyboard someone drives one dwell at a time.
-bool localeIsCased = IcuAlphabet.IsCasedScript(locale);
-if (!localeIsCased)
-	Console.WriteLine($"\n{locale.Name} is written in a unicameral script, so only CLDR's standard letters are used.");
-
 string[] lines = text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 Dictionary<string, long> merged = new Dictionary<string, long>();
-// How much of each letter's use is in words that are lower case throughout — the evidence that decides
-// which letters earn keys further down. Collected here because this is the last place the corpus's own
-// casing survives: everything downstream works in upper case.
-Dictionary<char, long> lowerCaseUse = new Dictionary<char, long>();
-Dictionary<char, Dictionary<string, long>> lowerCaseWords = new Dictionary<char, Dictionary<string, long>>();
 foreach (string line in lines)
 {
 	string[] parts = line.Split(',');
 	if (parts.Length == 2 && long.TryParse(parts[1].Trim(), out long count))
 	{
-		string original = parts[0];
-		string word = original.ToUpper(locale);
-		// Remove lines that have characters not valid for the selected locale ( ' is allowed).
-		// The auxiliary set is included because naturalised loanwords are ordinary vocabulary a user
-		// will want to type: CLDR keeps è out of the Dutch standard set, which drops carrière, scène
-		// and crème, and does the same for other locales' borrowings. Only for a cased script, though
-		// — see localeIsCased.
-		if (!IcuAlphabet.IsValidWord(locale, word.Replace("'", ""), includeAuxiliary: localeIsCased))
+		string word = parts[0].ToUpper(locale);
+		// Remove lines that have characters not valid for the selected locale ( ' is allowed). The
+		// standard exemplar set only: those are the letters the language writes its own words with.
+		// CLDR's auxiliary set is deliberately not consulted — it is where the borrowings live, the
+		// è of carrière and the ç of Curaçao, and a corpus scraped from the web is full of them.
+		if (!IcuAlphabet.IsValidWord(locale, word.Replace("'", "")))
 			continue;
 		merged.TryGetValue(word, out long existing);
 		merged[word] = existing + count;
-
-		// A word with no capital in it anywhere is not a name. Deliberately harsh: a common noun that
-		// only ever starts a sentence is counted as a name too, which costs its letters nothing,
-		// because a letter the language writes appears mid-sentence in some other word soon enough.
-		if (original.Any(char.IsUpper))
-			continue;
-		foreach (char ch in word.Distinct())
-		{
-			lowerCaseUse.TryGetValue(ch, out long cur);
-			lowerCaseUse[ch] = cur + count;
-			if (!lowerCaseWords.TryGetValue(ch, out Dictionary<string, long>? words))
-				lowerCaseWords[ch] = words = new Dictionary<string, long>();
-			words.TryGetValue(word, out long wordCount);
-			words[word] = wordCount + count;
-		}
 	}
 }
 
@@ -198,66 +152,12 @@ foreach (KeyValuePair<string, long> kv in merged)
 	}
 }
 
-// Letters the person building the pack struck by hand, once they had seen the words behind them —
-// filled in below, and empty until then.
-HashSet<char> struck = new HashSet<char>();
-
-// A letter earns a key if the language writes it, not merely if the corpus contains it. A scraped
-// corpus carries Curaçao, Bjørn and España along with the language's own words, and each of their
-// letters would cost every user a wider grid to scan across for as long as the pack lives.
-//
-// CLDR's standard exemplar set answers first and unconditionally: those letters are the language's own
-// by definition. Everything else has to earn its place out of the corpus, and the test is casing rather
-// than frequency. Frequency cannot separate them — in Dutch, Ç outranks Ê — but casing can: every Ç
-// word is a proper noun, while enquête and crêpe are ordinary vocabulary. A letter that never once
-// appears in a word that is lower case throughout is a letter this language only borrows for names.
-// In a unicameral script every word is "lower case throughout", so the evidence half would wave
-// everything through rather than nothing; there the standard set is the whole answer.
-bool EarnsAKey(char letter) =>
-	!struck.Contains(letter)
-	&& (IcuAlphabet.IsStandardLetter(locale, letter) || EarnedItFromTheCorpus(letter));
-
-bool EarnedItFromTheCorpus(char letter) =>
-	localeIsCased
-	&& !IcuAlphabet.IsStandardLetter(locale, letter)
-	&& IcuAlphabet.IsKeyableLetter(letter)
-	&& lowerCaseUse.GetValueOrDefault(letter) >= MinimumLowerCaseUse
-	&& lowerCaseWords.GetValueOrDefault(letter) is Dictionary<string, long> evidence
-	&& evidence.Count >= MinimumLowerCaseWords
-	&& evidence.Values.Max() >= MinimumUseOfItsCommonestWord;
-
-// The letters CLDR did not vouch for and the corpus did. These are the judgement calls, and they are
-// printed with the words behind them because that is the only place a corpus's contamination shows:
-// the rule can tell a name from an ordinary word, but nothing here can tell one language from another,
-// and a list scraped from the web has its neighbours mixed in. Read these before transcribing.
-char[] earned = counts.Keys.Where(EarnedItFromTheCorpus).OrderByDescending(ch => counts[ch]).ToArray();
-if (earned.Length > 0)
-{
-	Console.WriteLine();
-	Console.WriteLine($"Letters CLDR does not list for {locale.Name}, given keys on the corpus's word ({earned.Length}):");
-	foreach (char ch in earned)
-	{
-		string words = string.Join(" ", lowerCaseWords[ch].OrderByDescending(w => w.Value).Take(6).Select(w => $"{w.Key.ToLower(locale)}({w.Value})"));
-		Console.WriteLine($"  {ch}  {words}");
-	}
-
-	// The one call no rule here can make. The casing test tells an ordinary word from a name, but
-	// nothing tells one language from another, and these lists are scraped from the web with their
-	// neighbours mixed in: the English corpus carries Romanian, the German one Luxembourgish. German
-	// is the case that needs a person — it capitalises its nouns, so Café and René can never appear
-	// as lower-case evidence, and the only lower-case words left carrying é are Luxembourgish.
-	//
-	// Keeping one is what has to be typed, rather than dropping one, so that the quiet answer is the
-	// conservative one: press enter without reading and the keyboard comes out as CLDR describes the
-	// language, which is the layout that is right when nobody has looked.
-	Console.Write("Type the ones the language really writes to keep them, or press enter to drop all: ");
-	string keep = (Console.ReadLine() ?? "").ToUpper(locale);
-	foreach (char ch in earned)
-		if (!keep.Contains(ch))
-			struck.Add(ch);
-	if (struck.Count > 0)
-		Console.WriteLine($"Dropping {string.Join(" ", struck)} — the keyboard will not offer them and the word list will not keep words that need them.");
-}
+// A letter earns a key if the language writes it, not merely if the corpus contains it. CLDR's
+// standard exemplar set is the whole answer: those letters are the language's own by definition.
+// A corpus scraped from the web carries Curaçao, Bjørn and España alongside the language's own
+// words, and every letter of theirs would cost each person a wider grid to scan across for as long
+// as the pack lives.
+bool EarnsAKey(char letter) => IcuAlphabet.IsStandardLetter(locale, letter);
 
 // A word nobody can type is a word the prediction can never offer: it only takes up room in the
 // database and in the download. Words outrank keys here rather than the other way round — the grid is
@@ -283,16 +183,6 @@ if (sorted.Count < before)
 char[] markOrder = counts.Where(kv => IcuAlphabet.IsCombiningMark(kv.Key)).OrderByDescending(kv => kv.Value).Select(kv => kv.Key).ToArray();
 char[] freqOrder = counts.Where(kv => !IcuAlphabet.IsCombiningMark(kv.Key) && EarnsAKey(kv.Key)).OrderByDescending(kv => kv.Value).Select(kv => kv.Key).ToArray();
 
-// What the corpus threw away, so a letter that was expected on the keyboard and is not there can be
-// traced to the rule that dropped it rather than looked for in the layouts as a letter that vanished.
-char[] rejected = counts.Keys.Where(ch => !IcuAlphabet.IsCombiningMark(ch) && !EarnsAKey(ch)).OrderByDescending(ch => counts[ch]).ToArray();
-if (rejected.Length > 0)
-{
-	Console.WriteLine();
-	Console.WriteLine($"Letters the corpus uses only in names, left off the keyboard ({rejected.Length}):");
-	foreach (char ch in rejected)
-		Console.WriteLine($"  {ch}  {counts[ch],9:N0} uses, {lowerCaseUse.GetValueOrDefault(ch),7:N0} of them in {lowerCaseWords.GetValueOrDefault(ch)?.Count ?? 0} lower-case words");
-}
 StringComparer comp = StringComparer.Create(locale, CompareOptions.IgnoreNonSpace);
 char[] alphaOrder = freqOrder.OrderBy(l => l.ToString(), comp).ToArray();
 

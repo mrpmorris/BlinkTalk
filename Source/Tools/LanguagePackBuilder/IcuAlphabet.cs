@@ -20,7 +20,6 @@ public static class IcuAlphabet
 	// USet pointers are frozen and cached for the process lifetime, never closed.
 	private static readonly ConcurrentDictionary<string, IntPtr> ExemplarSets = new();
 
-	private static readonly ConcurrentDictionary<string, bool> CasedScripts = new();
 
 	/// <summary>
 	/// Returns true only if every character in <paramref name="word"/> is a letter of the
@@ -52,64 +51,14 @@ public static class IcuAlphabet
 	}
 
 	/// <summary>
-	/// True if the culture's script writes upper case and lower case, as Latin, Greek and Cyrillic do
-	/// and as Arabic, Hebrew and the Indic scripts do not. Asked because casing is what tells a
-	/// language's own borrowings from the foreign names a scraped corpus carries — <c>carrière</c> is
-	/// written in lower case, <c>Curaçao</c> never is — so a caller that leans on that evidence has
-	/// none to lean on in a unicameral script and must not pretend otherwise.
-	/// <para>
-	/// Decided from the standard exemplar set rather than from the script code, because the question is
-	/// about the letters this language actually writes.
-	/// </para>
-	/// </summary>
-	public static bool IsCasedScript(CultureInfo culture) =>
-		CasedScripts.GetOrAdd(culture.Name, _ =>
-		{
-			IntPtr set = SetFor(culture, includeAuxiliary: false);
-			int size = uset_size(set);
-			for (int i = 0; i < size; i++)
-			{
-				int codePoint = uset_charAt(set, i);
-				// -1 is how ICU reports an index that lands on one of the set's multi-character
-				// strings ("ij" for Dutch) rather than on a code point of its own.
-				if (codePoint < 0)
-					continue;
-				UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(char.ConvertFromUtf32(codePoint), 0);
-				if (category is UnicodeCategory.UppercaseLetter or UnicodeCategory.LowercaseLetter)
-					return true;
-			}
-			return false;
-		});
-
-	/// <summary>
 	/// True if <paramref name="character"/> is a letter of the culture's own alphabet — CLDR's standard
 	/// exemplar set, which is the letters needed to write the language's own words and nothing else.
-	/// The auxiliary set is deliberately not consulted: this is the question "does the language write
-	/// this letter", where <see cref="IsValidWord"/> asks the looser "may a word of this language
-	/// contain this letter", and a borrowing like <c>carrière</c> answers those two differently.
+	/// The auxiliary set is deliberately not consulted: that is where the borrowings live, the <c>è</c>
+	/// of <c>carrière</c> and the <c>ç</c> of <c>Curaçao</c>, and a letter that only a borrowing needs
+	/// is not worth a key on a keyboard somebody drives one dwell at a time.
 	/// </summary>
 	public static bool IsStandardLetter(CultureInfo culture, char character) =>
 		uset_contains(SetFor(culture, includeAuxiliary: false), character) != 0;
-
-	/// <summary>
-	/// True if <paramref name="character"/> is the kind of character that can stand as a key: a letter
-	/// someone spells a word out of, rather than a glyph that only shapes the letters around it. The
-	/// tatweel <c>ـ</c> is the one this exists for — Arabic justification, not a letter, yet a news
-	/// corpus repeats it thousands of times in <c>بـ</c> and <c>الـ</c>, and it sits in CLDR's auxiliary
-	/// set where a corpus-frequency test would happily promote it to a key.
-	/// <para>
-	/// Only ever asked of a character trying to earn a key out of the corpus. A character CLDR puts in
-	/// the standard set is not second-guessed, and must not be: <c>ModifierLetter</c> is the category of
-	/// the Hawaiian ʻokina, of the Thai and Lao repetition marks and of the Japanese ー, each of them a
-	/// letter of its language that words cannot be spelled without.
-	/// </para>
-	/// </summary>
-	public static bool IsKeyableLetter(char character) =>
-		CharUnicodeInfo.GetUnicodeCategory(character) is
-			UnicodeCategory.UppercaseLetter or
-			UnicodeCategory.LowercaseLetter or
-			UnicodeCategory.TitlecaseLetter or
-			UnicodeCategory.OtherLetter;
 
 	/// <summary>
 	/// True if <paramref name="character"/> is a combining mark rather than a letter of its own — the
@@ -239,12 +188,6 @@ public static class IcuAlphabet
 
 	[DllImport("icu.dll", CallingConvention = CallingConvention.Cdecl)]
 	private static extern sbyte uset_contains(IntPtr set, int codePoint);
-
-	[DllImport("icu.dll", CallingConvention = CallingConvention.Cdecl)]
-	private static extern int uset_size(IntPtr set);
-
-	[DllImport("icu.dll", CallingConvention = CallingConvention.Cdecl)]
-	private static extern int uset_charAt(IntPtr set, int charIndex);
 
 	[DllImport("icu.dll", CallingConvention = CallingConvention.Cdecl)]
 	private static extern void uset_addAll(IntPtr set, IntPtr additionalSet);
