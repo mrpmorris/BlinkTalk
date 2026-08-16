@@ -39,6 +39,7 @@ public sealed class KeyboardLayout
 		new Dictionary<Language, LanguageKeyboard>
 		{
 			[Language.Arabic] = ArabicKeyboard.Keyboard,
+			[Language.Dutch] = DutchKeyboard.Keyboard,
 			[Language.English] = EnglishKeyboard.Keyboard,
 			[Language.French] = FrenchKeyboard.Keyboard,
 			[Language.German] = GermanKeyboard.Keyboard,

@@ -200,6 +200,31 @@ public class KeyboardLayoutTests
         Assert.Contains("Œ", TextOf(layout.Rows[2]));
     }
 
+    [Fact]
+    public void DutchTypesItsTremaAndBothStressAccentsAsKeys()
+    {
+        var layout = KeyboardLayout.Create(Language.Dutch, KeyboardLayoutStyle.Alphabetical);
+
+        Assert.Empty(layout.Decorators);
+        // The acute of "één" and the grave of "carrière" — the latter is the one CLDR files as
+        // auxiliary rather than standard, so a keyboard rebuilt from the standard set alone loses it.
+        Assert.Contains("É", TextOf(layout.Rows[0]));
+        Assert.Contains("È", TextOf(layout.Rows[0]));
+        Assert.Contains("Ï", TextOf(layout.Rows[1]));
+    }
+
+    [Fact]
+    public void DutchSpellsIjAsTwoLettersRatherThanADigraphKey()
+    {
+        // Same call Spanish makes for CH and LL: the word list spells IJ as I then J, so a key of its
+        // own would type something no seeded word matches.
+        string[] letters = CharactersOf(Language.Dutch, KeyboardLayoutStyle.Alphabetical);
+
+        Assert.DoesNotContain("IJ", letters);
+        Assert.Contains("I", letters);
+        Assert.Contains("J", letters);
+    }
+
     /// <summary>
     /// The languages whose letters were transcribed after English: a keyboard that still answers with
     /// English's letters is the fallback in <c>KeyboardLayout.For</c> showing through, which no test
@@ -207,6 +232,7 @@ public class KeyboardLayoutTests
     /// </summary>
     [Theory]
     [InlineData(Language.Arabic)]
+    [InlineData(Language.Dutch)]
     [InlineData(Language.French)]
     [InlineData(Language.German)]
     [InlineData(Language.Portuguese)]

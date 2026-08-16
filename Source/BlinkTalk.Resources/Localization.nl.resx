@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Camera_CameraPermissionWasDenied" xml:space="preserve">
+    <value>Toestemming voor de camera is geweigerd. Schakel de camera voor BlinkTalk in bij de instellingen van uw apparaat en open deze pagina daarna opnieuw.</value>
+  </data>
+  <data name="Camera_CameraReady" xml:space="preserve">
+    <value>Camera gereed. Druk op Trainen en volg de aanwijzingen.</value>
+  </data>
+  <data name="Camera_CouldNotStartTheCameraX0Format" xml:space="preserve">
+    <value>Kan de camera niet starten: {0}</value>
+  </data>
+  <data name="Camera_DetectedX0GestureFormat" xml:space="preserve">
+    <value>Training geslaagd! Ik heb uw gebaar “{0}” herkend. Zorg dat ‘Camera gebruiken’ is aangevinkt zodat u het kunt gebruiken.</value>
+  </data>
+  <data name="Camera_EyeGesture" xml:space="preserve">
+    <value>Ooggebaar</value>
+  </data>
+  <data name="Camera_HoldTimeX0SecondsFormat" xml:space="preserve">
+    <value>Vasthoudtijd: {0:0.0} seconden</value>
+  </data>
+  <data name="Camera_Instructions_CouldNotDetectGesture" xml:space="preserve">
+    <value>Ik kon geen duidelijk, herhaalbaar gebaar herkennen - laten we het opnieuw proberen.</value>
+  </data>
+  <data name="Camera_Instructions_LookAtCamera" xml:space="preserve">
+    <value>Kijk naar het scherm en ontspan uw gezicht. Kijk niet naar de camera.</value>
+  </data>
+  <data name="Camera_Instructions_MakeIndicatingGesture" xml:space="preserve">
+    <value>Maak nu uw aangeefgebaar en houd het vast tot ik zeg dat u mag ontspannen. Ik raad u aan omhoog te kijken.</value>
+  </data>
+  <data name="Camera_Instructions_NowRelax" xml:space="preserve">
+    <value>Ontspan nu.</value>
+  </data>
+  <data name="Camera_LearntGesture" xml:space="preserve">
+    <value>Geleerd gebaar</value>
+  </data>
+  <data name="Camera_StartingCamera" xml:space="preserve">
+    <value>Camera wordt gestart</value>
+  </data>
+  <data name="Camera_TestingInstructions" xml:space="preserve">
+    <value>Houd uw gebaar vast; de balk vult zich met de tijd. Zet de schuifregelaar waar u wilt dat hij afgaat. U hoort een piep zodra de balk die stand bereikt.</value>
+  </data>
+  <data name="Camera_Train" xml:space="preserve">
+    <value>Trainen</value>
+  </data>
+  <data name="Camera_TrainFirst" xml:space="preserve">
+    <value>Eerst trainen</value>
+  </data>
+  <data name="Camera_Training" xml:space="preserve">
+    <value>Bezig met trainen</value>
+  </data>
+  <data name="Camera_TrainingFailedX0Format" xml:space="preserve">
+    <value>Training mislukt: {0}</value>
+  </data>
+  <data name="Camera_UseCamera" xml:space="preserve">
+    <value>Camera gebruiken</value>
+  </data>
+  <data name="Gesture_Blink" xml:space="preserve">
+    <value>knipperen</value>
+  </data>
+  <data name="Gesture_LookSideways" xml:space="preserve">
+    <value>opzij kijken</value>
+  </data>
+  <data name="Gesture_LookUp" xml:space="preserve">
+    <value>omhoog kijken</value>
+  </data>
+  <data name="Gesture_RaiseEyebrows" xml:space="preserve">
+    <value>wenkbrauwen optrekken</value>
+  </data>
+  <data name="Gesture_Smile" xml:space="preserve">
+    <value>glimlachen</value>
+  </data>
+  <data name="NotFound_ErrorDescription" xml:space="preserve">
+    <value>De applicatie probeerde een pagina te openen die niet bestaat. Meld dit probleem alstublieft.</value>
+  </data>
+  <data name="NotFound_NotFound" xml:space="preserve">
+    <value>Niet gevonden</value>
+  </data>
+  <data name="Settings_AssistantPressesSpaceBarOnKeyboard" xml:space="preserve">
+    <value>Begeleider drukt op de spatiebalk van het toetsenbord</value>
+  </data>
+  <data name="Settings_AssistantTapsScreenOrClicksMouse" xml:space="preserve">
+    <value>Begeleider tikt op het scherm of klikt met de muis</value>
+  </data>
+  <data name="Settings_IndicatorMethod" xml:space="preserve">
+    <value>Aangeefmethode</value>
+  </data>
+  <data name="Settings_KeyboardLayout" xml:space="preserve">
+    <value>Toetsenbordindeling</value>
+  </data>
+  <data name="Settings_KeyboardLayout_Alphabetical" xml:space="preserve">
+    <value>Alfabetisch</value>
+  </data>
+  <data name="Settings_KeyboardLayout_Speed" xml:space="preserve">
+    <value>Snelheid</value>
+  </data>
+  <data name="Settings_Language" xml:space="preserve">
+    <value>Taal</value>
+  </data>
+  <data name="Settings_ScanSpeed" xml:space="preserve">
+    <value>Scansnelheid</value>
+  </data>
+  <data name="Settings_ScanSpeed_Description" xml:space="preserve">
+    <value>Dit is het aantal seconden dat wordt gewacht voordat de selectie naar het volgende item gaat. Lager is sneller.</value>
+  </data>
+  <data name="Settings_ScanSpeed_ScanSpeedX0SecondsPerStepFormat" xml:space="preserve">
+    <value>Scansnelheid: {0:0.0} seconden per stap</value>
+  </data>
+  <data name="Settings_DownloadingLanguagePackX0Format" xml:space="preserve">
+    <value>Taalpakket downloaden: {0}</value>
+  </data>
+  <data name="Settings_LanguagePackDownloadFailed" xml:space="preserve">
+    <value>Het taalpakket kon niet worden gedownload. Controleer uw internetverbinding en probeer het opnieuw.</value>
+  </data>
+  <data name="Settings_SetUpCamera" xml:space="preserve">
+    <value>Camera instellen</value>
+  </data>
+  <data name="Settings_Title" xml:space="preserve">
+    <value>Instellingen</value>
+  </data>
+  <data name="Settings_UseCameraToDetectEyeGesture" xml:space="preserve">
+    <value>Camera gebruiken om ooggebaar te herkennen</value>
+  </data>
+  <data name="Shared_Cancel" xml:space="preserve">
+    <value>Annuleren</value>
+  </data>
+  <data name="Shared_Done" xml:space="preserve">
+    <value>Klaar</value>
+  </data>
+</root>

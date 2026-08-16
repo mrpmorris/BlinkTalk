@@ -42,6 +42,7 @@ public static class AppLanguage
 		"en",
 		"es",
 		"fr",
+		"nl",
 		"pt",
 		"pt-BR"
 	];
@@ -154,6 +155,7 @@ public static class AppLanguage
 			"de" => Language.German,
 			"es" => Language.Spanish,
 			"fr" => Language.French,
+			"nl" => Language.Dutch,
 			"pt" => Language.Portuguese,
 			_ => null
 		};

@@ -26,6 +26,7 @@ namespace BlinkTalk.Application;
 public enum Language
 {
     Arabic,
+    Dutch,
     English,
     French,
     German,

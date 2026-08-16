@@ -74,7 +74,28 @@ if (confirm != "y" && confirm != "Y")
 	return;
 }
 
+// A letter has to appear in this many lower-case words, this many times over, before the corpus is
+// taken as evidence that the language writes it. One sighting proves nothing — a scraped corpus
+// carries a dialect spelling and a stray French phrase — while a letter the language truly writes
+// turns up in ordinary words over and over.
+const int MinimumLowerCaseUse = 20;
+const int MinimumLowerCaseWords = 3;
+
 string text = File.ReadAllText(Path.Combine(packsDir, txtFile), Encoding.UTF8);
+
+// Repair the tail of a corpus that was written as UTF-8 and read back as Latin-1, which turns each
+// curly quote into "â€™" and each euro sign into "â‚¬". This has to run before the filters below:
+// they would strip the € and the ™ and leave a bare â welded to the word, which then reads as a
+// letter the language writes ("zo’n" arriving as "zoâ") and earns Â a key it has not earned.
+text = text
+	.Replace("â€™", "’")
+	.Replace("â€˜", "‘")
+	.Replace("â€œ", "“")
+	.Replace("â€\u009D", "”") // U+009D: what a Latin-1 reader makes of the byte 1252 spells as ”
+	.Replace("â€“", "–")
+	.Replace("â€”", "—")
+	.Replace("â€¦", "…")
+	.Replace("â‚¬", "€");
 
 // Get rid of lines that are only numbers
 text = Regex.Replace(text, @"^\d+\t\d+\t.*\r?\n", "", RegexOptions.Multiline);
@@ -94,23 +115,60 @@ text = Regex.Replace(text, @"^[^,\r\n]*[^\w',\d\r\n][^,\r\n]*,\d+\r?\n", "", Reg
 text = Regex.Replace(text, @"^[^,\r\n\d]+\d+[^,\r\n]*,\d+\r?\n", "", RegexOptions.Multiline);
 // Get rid of single char entries
 text = Regex.Replace(text, @"^.?,\d+\r?\n", "", RegexOptions.Multiline);
+// What is left of a curly apostrophe whose trailing bytes were stripped before the corpus reached us:
+// "zo’n" arrives as "zoâ", "auto’s" as "autoâ". The repair table above cannot touch these — the bytes
+// that said which quote it was are gone, and so are the letters that followed it — and the intact
+// spellings are in the corpus many times over, so what is left is dropped rather than mended. Only a
+// trailing â is treated as damage: château and bâtonnage carry the same letter mid-word and are real.
+text = Regex.Replace(text, @"^[^,\r\n]*â,\d+\r?\n", "", RegexOptions.Multiline | RegexOptions.IgnoreCase);
+
+// Whether this language's script has upper and lower case, and so whether the corpus can be asked
+// which of its letters belong to the language and which it only borrows for names. It cannot be asked
+// in Arabic, where every word looks alike, so nothing beyond CLDR's standard set is admitted there at
+// all: the auxiliary set for ar carries the Persian ک and ی, and the tatweel ـ, which is a
+// justification glyph rather than a letter and which a news corpus repeats thousands of times in بـ
+// and الـ. Each would take a key on a keyboard someone drives one dwell at a time.
+bool localeIsCased = IcuAlphabet.IsCasedScript(locale);
+if (!localeIsCased)
+	Console.WriteLine($"\n{locale.Name} is written in a unicameral script, so only CLDR's standard letters are used.");
 
 string[] lines = text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 Dictionary<string, long> merged = new Dictionary<string, long>();
+// How much of each letter's use is in words that are lower case throughout — the evidence that decides
+// which letters earn keys further down. Collected here because this is the last place the corpus's own
+// casing survives: everything downstream works in upper case.
+Dictionary<char, long> lowerCaseUse = new Dictionary<char, long>();
+Dictionary<char, HashSet<string>> lowerCaseWords = new Dictionary<char, HashSet<string>>();
 foreach (string line in lines)
 {
 	string[] parts = line.Split(',');
 	if (parts.Length == 2 && long.TryParse(parts[1].Trim(), out long count))
 	{
-		string word = parts[0].ToUpper(locale);
+		string original = parts[0];
+		string word = original.ToUpper(locale);
 		// Remove lines that have characters not valid for the selected locale ( ' is allowed).
 		// The auxiliary set is included because naturalised loanwords are ordinary vocabulary a user
 		// will want to type: CLDR keeps è out of the Dutch standard set, which drops carrière, scène
-		// and crème, and does the same for other locales' borrowings.
-		if (!IcuAlphabet.IsValidWord(locale, word.Replace("'", ""), includeAuxiliary: true))
+		// and crème, and does the same for other locales' borrowings. Only for a cased script, though
+		// — see localeIsCased.
+		if (!IcuAlphabet.IsValidWord(locale, word.Replace("'", ""), includeAuxiliary: localeIsCased))
 			continue;
 		merged.TryGetValue(word, out long existing);
 		merged[word] = existing + count;
+
+		// A word with no capital in it anywhere is not a name. Deliberately harsh: a common noun that
+		// only ever starts a sentence is counted as a name too, which costs its letters nothing,
+		// because a letter the language writes appears mid-sentence in some other word soon enough.
+		if (original.Any(char.IsUpper))
+			continue;
+		foreach (char ch in word.Distinct())
+		{
+			lowerCaseUse.TryGetValue(ch, out long cur);
+			lowerCaseUse[ch] = cur + count;
+			if (!lowerCaseWords.TryGetValue(ch, out HashSet<string>? words))
+				lowerCaseWords[ch] = words = new HashSet<string>();
+			words.Add(word);
+		}
 	}
 }
 
@@ -134,11 +192,40 @@ foreach (KeyValuePair<string, long> kv in sorted)
 	}
 }
 
+// A letter earns a key if the language writes it, not merely if the corpus contains it. A scraped
+// corpus carries Curaçao, Bjørn and España along with the language's own words, and each of their
+// letters would cost every user a wider grid to scan across for as long as the pack lives.
+//
+// CLDR's standard exemplar set answers first and unconditionally: those letters are the language's own
+// by definition. Everything else has to earn its place out of the corpus, and the test is casing rather
+// than frequency. Frequency cannot separate them — in Dutch, Ç outranks Ê — but casing can: every Ç
+// word is a proper noun, while enquête and crêpe are ordinary vocabulary. A letter that never once
+// appears in a word that is lower case throughout is a letter this language only borrows for names.
+// In a unicameral script every word is "lower case throughout", so the evidence half would wave
+// everything through rather than nothing; there the standard set is the whole answer.
+bool EarnsAKey(char letter) =>
+	IcuAlphabet.IsStandardLetter(locale, letter)
+	|| (localeIsCased
+		&& IcuAlphabet.IsKeyableLetter(letter)
+		&& lowerCaseUse.GetValueOrDefault(letter) >= MinimumLowerCaseUse
+		&& lowerCaseWords.GetValueOrDefault(letter)?.Count >= MinimumLowerCaseWords);
+
 // Combining marks are not keys of their own: the app offers them through the decorator popup, so they
 // leave the letter grid and are listed on their own at the end. Only the marks the corpus actually
 // uses are listed, because every extra one is another item the person has to wait out while scanning.
 char[] markOrder = counts.Where(kv => IcuAlphabet.IsCombiningMark(kv.Key)).OrderByDescending(kv => kv.Value).Select(kv => kv.Key).ToArray();
-char[] freqOrder = counts.Where(kv => !IcuAlphabet.IsCombiningMark(kv.Key)).OrderByDescending(kv => kv.Value).Select(kv => kv.Key).ToArray();
+char[] freqOrder = counts.Where(kv => !IcuAlphabet.IsCombiningMark(kv.Key) && EarnsAKey(kv.Key)).OrderByDescending(kv => kv.Value).Select(kv => kv.Key).ToArray();
+
+// What the corpus threw away, so a letter that was expected on the keyboard and is not there can be
+// traced to the rule that dropped it rather than looked for in the layouts as a letter that vanished.
+char[] rejected = counts.Keys.Where(ch => !IcuAlphabet.IsCombiningMark(ch) && !EarnsAKey(ch)).OrderByDescending(ch => counts[ch]).ToArray();
+if (rejected.Length > 0)
+{
+	Console.WriteLine();
+	Console.WriteLine($"Letters the corpus uses only in names, left off the keyboard ({rejected.Length}):");
+	foreach (char ch in rejected)
+		Console.WriteLine($"  {ch}  {counts[ch],9:N0} uses, {lowerCaseUse.GetValueOrDefault(ch),7:N0} of them in {lowerCaseWords.GetValueOrDefault(ch)?.Count ?? 0} lower-case words");
+}
 StringComparer comp = StringComparer.Create(locale, CompareOptions.IgnoreNonSpace);
 char[] alphaOrder = freqOrder.OrderBy(l => l.ToString(), comp).ToArray();
 
