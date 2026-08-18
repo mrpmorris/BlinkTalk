@@ -214,11 +214,57 @@ jobs:
             BlinkTalk-android.apk
             BlinkTalk-GooglePlayStore.aab
 
-  # ── 5. Release ────────────────────────────────────────────────────────────
+  # ── 5. Build – macOS ──────────────────────────────────────────────────────
+  # Produces:
+  #   • BlinkTalk-macos.pkg — Mac Catalyst package
+  build-macos:
+    needs: test
+    runs-on: macos-latest
+    env:
+      VERSION: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Install MAUI Mac Catalyst workload
+        run: dotnet workload install maui-maccatalyst
+
+      - name: Compute version code
+        run: |
+          IFS='.' read -ra P <<< "$VERSION"
+          echo "VERSION_CODE=$((${P[0]} * 10000 + ${P[1]} * 100 + ${P[2]}))" >> "$GITHUB_ENV"
+
+      - name: Build macOS package
+        run: |
+          dotnet publish Source/BlinkTalk/BlinkTalk.csproj \
+            -f net10.0-maccatalyst \
+            -c Release \
+            -p:ApplicationDisplayVersion="$VERSION" \
+            -p:ApplicationVersion="$VERSION_CODE" \
+            -o publish/macos
+
+      - name: Locate and rename package
+        run: |
+          PKG=$(find publish/macos Source/BlinkTalk/bin/Release/net10.0-maccatalyst -type f -name "*.pkg" | head -1)
+          if [ -z "$PKG" ]; then
+            echo "::error::No .pkg found after publish."
+            exit 1
+          fi
+          cp "$PKG" "BlinkTalk-macos.pkg"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-artifacts
+          path: BlinkTalk-macos.pkg
+
+  # ── 6. Release ────────────────────────────────────────────────────────────
   # Creates a GitHub Release and attaches all build artifacts.
   # Only runs if every preceding job succeeded.
   release:
-    needs: [build-windows, build-android]
+    needs: [build-windows, build-android, build-macos]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -233,6 +279,10 @@ jobs:
         with:
           name: android-artifacts
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: macos-artifacts
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -242,3 +292,4 @@ jobs:
             BlinkTalk-windows.msi
             BlinkTalk-android.apk
             BlinkTalk-GooglePlayStore.aab
+            BlinkTalk-macos.pkg
