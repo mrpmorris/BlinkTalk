@@ -260,11 +260,103 @@ jobs:
           name: macos-artifacts
           path: BlinkTalk-macos.pkg
 
-  # ── 6. Release ────────────────────────────────────────────────────────────
+  # ── 6. Build – iOS ───────────────────────────────────────────────────────
+  # Produces:
+  #   • BlinkTalk-ios.ipa — iOS app archive
+  #
+  # Required secrets (the job fails if any are absent — otherwise the IPA is
+  # not code-signed and cannot be distributed or submitted to the App Store):
+  #   IOS_CERTIFICATE          – Base64-encoded P12 distribution certificate.
+  #   IOS_CERTIFICATE_PASSWORD – P12 certificate password.
+  #   IOS_PROVISIONING_PROFILE – Base64-encoded .mobileprovision file.
+  build-ios:
+    needs: test
+    runs-on: macos-latest
+    env:
+      VERSION: ${{ github.ref_name }}
+      CERT_B64: ${{ secrets.IOS_CERTIFICATE }}
+      CERT_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+      PROFILE_B64: ${{ secrets.IOS_PROVISIONING_PROFILE }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Install MAUI iOS workload
+        run: dotnet workload install maui-ios
+
+      - name: Compute version code
+        run: |
+          IFS='.' read -ra P <<< "$VERSION"
+          echo "VERSION_CODE=$((${P[0]} * 10000 + ${P[1]} * 100 + ${P[2]}))" >> "$GITHUB_ENV"
+
+      - name: Verify signing secrets
+        run: |
+          MISSING=""
+          [ -z "$CERT_B64" ]      && MISSING="$MISSING IOS_CERTIFICATE"
+          [ -z "$CERT_PASSWORD" ] && MISSING="$MISSING IOS_CERTIFICATE_PASSWORD"
+          [ -z "$PROFILE_B64" ]   && MISSING="$MISSING IOS_PROVISIONING_PROFILE"
+          if [ -n "$MISSING" ]; then
+            echo "::error::Missing repository secret(s):$MISSING. Without them the IPA cannot be distributed. Add them under Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+      - name: Install signing certificate
+        run: |
+          echo "$CERT_B64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          if [ ! -s "$RUNNER_TEMP/cert.p12" ]; then
+            echo "::error::Decoded certificate is empty – check the IOS_CERTIFICATE secret is valid base64."
+            exit 1
+          fi
+          security create-keychain -p "" build.keychain
+          security import "$RUNNER_TEMP/cert.p12" -k build.keychain -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security list-keychains -s build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+
+      - name: Install provisioning profile
+        run: |
+          echo "$PROFILE_B64" | base64 --decode > "$RUNNER_TEMP/profile.mobileprovision"
+          if [ ! -s "$RUNNER_TEMP/profile.mobileprovision" ]; then
+            echo "::error::Decoded provisioning profile is empty – check the IOS_PROVISIONING_PROFILE secret is valid base64."
+            exit 1
+          fi
+          UUID=$(grep -a -A 1 '<key>UUID</key>' "$RUNNER_TEMP/profile.mobileprovision" | tail -1 | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp "$RUNNER_TEMP/profile.mobileprovision" ~/Library/MobileDevice/Provisioning\ Profiles/"$UUID".mobileprovision
+
+      - name: Build iOS IPA
+        run: |
+          dotnet publish Source/BlinkTalk/BlinkTalk.csproj \
+            -f net10.0-ios \
+            -c Release \
+            -p:ApplicationDisplayVersion="$VERSION" \
+            -p:ApplicationVersion="$VERSION_CODE" \
+            -p:ArchiveOnBuild=true \
+            -o publish/ios
+
+      - name: Locate and rename IPA
+        run: |
+          IPA=$(find publish/ios Source/BlinkTalk/bin/Release/net10.0-ios -type f -name "*.ipa" | head -1)
+          if [ -z "$IPA" ]; then
+            echo "::error::No .ipa found after publish."
+            exit 1
+          fi
+          cp "$IPA" "BlinkTalk-ios.ipa"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-artifacts
+          path: BlinkTalk-ios.ipa
+
+  # ── 7. Release ────────────────────────────────────────────────────────────
   # Creates a GitHub Release and attaches all build artifacts.
   # Only runs if every preceding job succeeded.
   release:
-    needs: [build-windows, build-android, build-macos]
+    needs: [build-windows, build-android, build-macos, build-ios]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -283,6 +375,10 @@ jobs:
         with:
           name: macos-artifacts
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: ios-artifacts
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -293,3 +389,4 @@ jobs:
             BlinkTalk-android.apk
             BlinkTalk-GooglePlayStore.aab
             BlinkTalk-macos.pkg
+            BlinkTalk-ios.ipa
