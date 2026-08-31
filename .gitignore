@@ -1,5 +1,6 @@
 **/PublishProfiles/**
 secrets.txt
+PrivateAssets/
 **/MrPMorris.snk
 **/*ncrunch*
 
