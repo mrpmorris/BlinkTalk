@@ -308,6 +308,7 @@ jobs:
           dotnet publish Source/BlinkTalk/BlinkTalk.csproj \
             -f net10.0-maccatalyst \
             -c Release \
+            -p:PublishTargetFramework=net10.0-maccatalyst \
             -p:ApplicationDisplayVersion="$VERSION" \
             -p:ApplicationVersion="$VERSION_CODE" \
             -p:ApplicationId="com.airsoftwarelimited.blinktalk.app" \
@@ -417,6 +418,7 @@ jobs:
           dotnet publish Source/BlinkTalk/BlinkTalk.csproj \
             -f net10.0-ios \
             -c Release \
+            -p:PublishTargetFramework=net10.0-ios \
             -p:ApplicationDisplayVersion="$VERSION" \
             -p:ApplicationVersion="$VERSION_CODE" \
             -p:ApplicationId="com.airsoftwarelimited.blinktalk.app" \
