@@ -3,8 +3,8 @@ name: Release
 on:
   push:
     tags:
-      - '[0-9]+.[0-9]+.[0-9]+'
-      - '[0-9]+.[0-9]+.[0-9]+-Beta-[0-9]+'
+      - '[0-9]*.[0-9]*.[0-9]*'
+      - '[0-9]*.[0-9]*.[0-9]*-Beta-[0-9]*'
 
 jobs:
   # ── 1. Validate ────────────────────────────────────────────────────────────
@@ -73,10 +73,12 @@ jobs:
       - name: Install MAUI Windows workload
         run: dotnet workload install maui-windows
 
-      - name: Compute version code
+      - name: Compute app versions
         shell: bash
         run: |
-          IFS='.' read -ra P <<< "$VERSION"
+          VERSION_CORE="${VERSION%%-Beta-*}"
+          echo "DISPLAY_VERSION=$VERSION_CORE" >> "$GITHUB_ENV"
+          IFS='.' read -ra P <<< "$VERSION_CORE"
           echo "VERSION_CODE=$((${P[0]} * 10000 + ${P[1]} * 100 + ${P[2]}))" >> "$GITHUB_ENV"
 
       - name: Build portable (self-contained)
@@ -88,7 +90,7 @@ jobs:
             -c Release \
             -r win-x64 \
             --self-contained true \
-            -p:ApplicationDisplayVersion="$VERSION" \
+            -p:ApplicationDisplayVersion="$DISPLAY_VERSION" \
             -p:ApplicationVersion="$VERSION_CODE" \
             -p:WindowsPackageType=None \
             -o publish/portable
@@ -98,7 +100,7 @@ jobs:
         run: |
           dotnet build Source/Installer/BlinkTalk.wixproj \
             -c Release \
-            -p:ProductVersion="$VERSION" \
+            -p:ProductVersion="$DISPLAY_VERSION" \
             -p:AppPublishDir="$PWD/publish/portable" \
             -o publish/installer
           cp publish/installer/BlinkTalk-Setup.msi "BlinkTalk-windows.msi"
@@ -138,9 +140,11 @@ jobs:
       - name: Install MAUI Android workload
         run: dotnet workload install maui-android
 
-      - name: Compute version code
+      - name: Compute app versions
         run: |
-          IFS='.' read -ra P <<< "$VERSION"
+          VERSION_CORE="${VERSION%%-Beta-*}"
+          echo "DISPLAY_VERSION=$VERSION_CORE" >> "$GITHUB_ENV"
+          IFS='.' read -ra P <<< "$VERSION_CORE"
           echo "VERSION_CODE=$((${P[0]} * 10000 + ${P[1]} * 100 + ${P[2]}))" >> "$GITHUB_ENV"
 
       - name: Verify signing secrets
@@ -169,7 +173,7 @@ jobs:
             "Source/BlinkTalk/BlinkTalk.csproj"
             "-f" "net10.0-android"
             "-c" "Release"
-            "-p:ApplicationDisplayVersion=$VERSION"
+            "-p:ApplicationDisplayVersion=$DISPLAY_VERSION"
             "-p:ApplicationVersion=$VERSION_CODE"
             # MSBuild treats a raw ';' here as a switch separator on Unix, so encode it.
             "-p:AndroidPackageFormats=apk%3Baab"
@@ -245,9 +249,11 @@ jobs:
       - name: Install MAUI Mac Catalyst workload
         run: dotnet workload install maui-maccatalyst
 
-      - name: Compute version code
+      - name: Compute app versions
         run: |
-          IFS='.' read -ra P <<< "$VERSION"
+          VERSION_CORE="${VERSION%%-Beta-*}"
+          echo "DISPLAY_VERSION=$VERSION_CORE" >> "$GITHUB_ENV"
+          IFS='.' read -ra P <<< "$VERSION_CORE"
           echo "VERSION_CODE=$((${P[0]} * 10000 + ${P[1]} * 100 + ${P[2]}))" >> "$GITHUB_ENV"
 
       - name: Verify signing secrets
@@ -309,7 +315,7 @@ jobs:
             -f net10.0-maccatalyst \
             -c Release \
             -p:PublishTargetFramework=net10.0-maccatalyst \
-            -p:ApplicationDisplayVersion="$VERSION" \
+            -p:ApplicationDisplayVersion="$DISPLAY_VERSION" \
             -p:ApplicationVersion="$VERSION_CODE" \
             -p:ApplicationId="com.airsoftwarelimited.blinktalk.app" \
             -p:MtouchEnableSGenConc=true \
@@ -369,9 +375,11 @@ jobs:
       - name: Install MAUI iOS workload
         run: dotnet workload install maui-ios
 
-      - name: Compute version code
+      - name: Compute app versions
         run: |
-          IFS='.' read -ra P <<< "$VERSION"
+          VERSION_CORE="${VERSION%%-Beta-*}"
+          echo "DISPLAY_VERSION=$VERSION_CORE" >> "$GITHUB_ENV"
+          IFS='.' read -ra P <<< "$VERSION_CORE"
           echo "VERSION_CODE=$((${P[0]} * 10000 + ${P[1]} * 100 + ${P[2]}))" >> "$GITHUB_ENV"
 
       - name: Verify signing secrets
@@ -419,7 +427,7 @@ jobs:
             -f net10.0-ios \
             -c Release \
             -p:PublishTargetFramework=net10.0-ios \
-            -p:ApplicationDisplayVersion="$VERSION" \
+            -p:ApplicationDisplayVersion="$DISPLAY_VERSION" \
             -p:ApplicationVersion="$VERSION_CODE" \
             -p:ApplicationId="com.airsoftwarelimited.blinktalk.app" \
             -p:ApplicationTeamId="MMC8RNW6ZC" \
