@@ -219,9 +219,11 @@ jobs:
   #   • BlinkTalk-macos.pkg — Mac Catalyst package (App Store distribution)
   #
   # Required secrets:
-  #   MAC_CERTIFICATE          – Base64-encoded P12 distribution certificate.
-  #   MAC_CERTIFICATE_PASSWORD – P12 certificate password.
-  #   MAC_PROVISIONING_PROFILE – Base64-encoded .provisionprofile file.
+  #   MAC_CERTIFICATE                  – Base64-encoded Apple Distribution P12 certificate (code signing).
+  #   MAC_CERTIFICATE_PASSWORD         – Password for the Apple Distribution P12.
+  #   MAC_INSTALLER_CERTIFICATE        – Base64-encoded Mac Installer Distribution P12 certificate (package signing).
+  #   MAC_INSTALLER_CERTIFICATE_PASSWORD – Password for the Mac Installer Distribution P12.
+  #   MAC_PROVISIONING_PROFILE         – Base64-encoded .provisionprofile file.
   build-macos:
     needs: test
     runs-on: macos-latest
@@ -229,6 +231,8 @@ jobs:
       VERSION: ${{ github.ref_name }}
       CERT_B64: ${{ secrets.MAC_CERTIFICATE }}
       CERT_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+      INSTALLER_CERT_B64: ${{ secrets.MAC_INSTALLER_CERTIFICATE }}
+      INSTALLER_CERT_PASSWORD: ${{ secrets.MAC_INSTALLER_CERTIFICATE_PASSWORD }}
       PROFILE_B64: ${{ secrets.MAC_PROVISIONING_PROFILE }}
     steps:
       - uses: actions/checkout@v5
@@ -248,29 +252,43 @@ jobs:
       - name: Verify signing secrets
         run: |
           MISSING=""
-          [ -z "$CERT_B64" ]      && MISSING="$MISSING MAC_CERTIFICATE"
-          [ -z "$CERT_PASSWORD" ] && MISSING="$MISSING MAC_CERTIFICATE_PASSWORD"
-          [ -z "$PROFILE_B64" ]   && MISSING="$MISSING MAC_PROVISIONING_PROFILE"
+          [ -z "$CERT_B64" ]               && MISSING="$MISSING MAC_CERTIFICATE"
+          [ -z "$CERT_PASSWORD" ]          && MISSING="$MISSING MAC_CERTIFICATE_PASSWORD"
+          [ -z "$INSTALLER_CERT_B64" ]     && MISSING="$MISSING MAC_INSTALLER_CERTIFICATE"
+          [ -z "$INSTALLER_CERT_PASSWORD" ] && MISSING="$MISSING MAC_INSTALLER_CERTIFICATE_PASSWORD"
+          [ -z "$PROFILE_B64" ]            && MISSING="$MISSING MAC_PROVISIONING_PROFILE"
           if [ -n "$MISSING" ]; then
             echo "::error::Missing repository secret(s):$MISSING. Without them the package cannot be distributed. Add them under Settings → Secrets and variables → Actions."
             exit 1
           fi
 
-      - name: Install signing certificate
+      - name: Install signing certificates
         run: |
+          # Decode Apple Distribution certificate (used for code signing)
           echo "$CERT_B64" | base64 --decode > "$RUNNER_TEMP/mac-cert.p12"
           if [ ! -s "$RUNNER_TEMP/mac-cert.p12" ]; then
             echo "::error::Decoded certificate is empty – check the MAC_CERTIFICATE secret is valid base64."
             exit 1
           fi
+          # Decode Mac Installer Distribution certificate (used for package signing)
+          echo "$INSTALLER_CERT_B64" | base64 --decode > "$RUNNER_TEMP/mac-installer-cert.p12"
+          if [ ! -s "$RUNNER_TEMP/mac-installer-cert.p12" ]; then
+            echo "::error::Decoded installer certificate is empty – check the MAC_INSTALLER_CERTIFICATE secret is valid base64."
+            exit 1
+          fi
           security create-keychain -p "" build.keychain
-          security import "$RUNNER_TEMP/mac-cert.p12" -k build.keychain -P "$CERT_PASSWORD" -T /usr/bin/codesign -T /usr/bin/productbuild
+          security import "$RUNNER_TEMP/mac-cert.p12" -k build.keychain -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security import "$RUNNER_TEMP/mac-installer-cert.p12" -k build.keychain -P "$INSTALLER_CERT_PASSWORD" -T /usr/bin/productbuild
           security list-keychains -s build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
           security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
-          IDENTITY=$(security find-identity -v -p codesigning build.keychain | grep -o '"[^"]*"' | head -1 | tr -d '"')
-          echo "CODESIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+          # Extract the Apple Distribution identity (codesigning) - first match
+          CODESIGN_IDENTITY=$(security find-identity -v -p codesigning build.keychain | grep "Apple Distribution" | grep -o '"[^"]*"' | head -1 | tr -d '"')
+          # Extract the Mac Installer Distribution identity (packaging)
+          INSTALLER_IDENTITY=$(security find-identity -v build.keychain | grep "Mac Installer Distribution" | grep -o '"[^"]*"' | head -1 | tr -d '"')
+          echo "CODESIGN_IDENTITY=$CODESIGN_IDENTITY" >> "$GITHUB_ENV"
+          echo "INSTALLER_IDENTITY=$INSTALLER_IDENTITY" >> "$GITHUB_ENV"
 
       - name: Install provisioning profile
         run: |
@@ -297,7 +315,7 @@ jobs:
             -p:EnablePackageSigning=true \
             -p:CodesignKey="$CODESIGN_IDENTITY" \
             -p:CodesignProvision="$PROFILE_UUID" \
-            -p:PackageSigningKey="$CODESIGN_IDENTITY" \
+            -p:PackageSigningKey="$INSTALLER_IDENTITY" \
             -p:CodesignEntitlements="Platforms/MacCatalyst/Entitlements.plist" \
             -p:ApplicationTeamId="MMC8RNW6ZC" \
             -o publish/macos
@@ -315,7 +333,7 @@ jobs:
         if: always()
         run: |
           security delete-keychain build.keychain 2>/dev/null || true
-          rm -f "$RUNNER_TEMP/mac-cert.p12" "$RUNNER_TEMP/profile.provisionprofile"
+          rm -f "$RUNNER_TEMP/mac-cert.p12" "$RUNNER_TEMP/mac-installer-cert.p12" "$RUNNER_TEMP/profile.provisionprofile"
 
       - uses: actions/upload-artifact@v4
         with:
