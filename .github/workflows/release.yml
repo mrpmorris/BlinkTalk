@@ -309,24 +309,70 @@ jobs:
           cp "$RUNNER_TEMP/profile.provisionprofile" ~/Library/MobileDevice/Provisioning\ Profiles/"$UUID".provisionprofile
           echo "PROFILE_UUID=$UUID" >> "$GITHUB_ENV"
 
-      - name: Build macOS package
+      # TEMPORARY DIAGNOSTICS: the publish below has been hanging for 2+ hours in CI past the
+      # point where ILLink finishes (it completes in ~30s). Nothing between ILLink and the end
+      # of the build prints anything at default verbosity, so we can't tell which step is stuck
+      # from the plain log. This runs the publish in the background, takes a non-destructive
+      # `sample` of any `codesign` process every minute (this does NOT kill it - "Terminate
+      # orphan process (codesign)" in prior cancelled runs shows codesign is the process still
+      # alive when the job is killed), and keeps a binlog + diagnostic-verbosity log for later
+      # target/task timing analysis. Remove this whole diagnostics wrapper (revert to a plain
+      # `dotnet publish ...` call) once the blocking operation has been identified.
+      - name: Build macOS package (with diagnostics)
         run: |
-          dotnet publish Source/BlinkTalk/BlinkTalk.csproj \
-            -f net10.0-maccatalyst \
-            -c Release \
-            -p:PublishTargetFramework=net10.0-maccatalyst \
-            -p:ApplicationDisplayVersion="$DISPLAY_VERSION" \
-            -p:ApplicationVersion="$VERSION_CODE" \
-            -p:ApplicationId="com.airsoftwarelimited.blinktalk.app" \
-            -p:MtouchEnableSGenConc=true \
-            -p:EnableCodeSigning=true \
-            -p:EnablePackageSigning=true \
-            -p:CodesignKey="$CODESIGN_IDENTITY" \
-            -p:CodesignProvision="$PROFILE_UUID" \
-            -p:PackageSigningKey="$INSTALLER_IDENTITY" \
-            -p:CodesignEntitlements="Platforms/MacCatalyst/Entitlements.plist" \
-            -p:ApplicationTeamId="MMC8RNW6ZC" \
-            -o publish/macos
+          mkdir -p "$RUNNER_TEMP/diag"
+          set +e
+          (
+            dotnet publish Source/BlinkTalk/BlinkTalk.csproj \
+              -f net10.0-maccatalyst \
+              -c Release \
+              -p:PublishTargetFramework=net10.0-maccatalyst \
+              -p:ApplicationDisplayVersion="$DISPLAY_VERSION" \
+              -p:ApplicationVersion="$VERSION_CODE" \
+              -p:ApplicationId="com.airsoftwarelimited.blinktalk.app" \
+              -p:MtouchEnableSGenConc=true \
+              -p:EnableCodeSigning=true \
+              -p:EnablePackageSigning=true \
+              -p:CodesignKey="$CODESIGN_IDENTITY" \
+              -p:CodesignProvision="$PROFILE_UUID" \
+              -p:PackageSigningKey="$INSTALLER_IDENTITY" \
+              -p:CodesignEntitlements="Platforms/MacCatalyst/Entitlements.plist" \
+              -p:ApplicationTeamId="MMC8RNW6ZC" \
+              -v:diag \
+              -bl:"$RUNNER_TEMP/diag/publish.binlog" \
+              -o publish/macos \
+              > "$RUNNER_TEMP/diag/publish.log" 2>&1
+            echo $? > "$RUNNER_TEMP/diag/publish.exitcode"
+          ) &
+          PUBLISH_PID=$!
+          ELAPSED=0
+          while kill -0 "$PUBLISH_PID" 2>/dev/null; do
+            sleep 60
+            ELAPSED=$((ELAPSED + 60))
+            {
+              echo "=== t+${ELAPSED}s: process tree ==="
+              ps -Ao pid,ppid,etime,pcpu,command | grep -E 'codesign|productbuild|pkgbuild|mtouch|ILLink|clang|libtool|ld64|mono|dotnet' | grep -v grep
+            } >> "$RUNNER_TEMP/diag/ps-snapshots.txt"
+            for CODESIGN_PID in $(pgrep -x codesign); do
+              SAMPLE_FILE="$RUNNER_TEMP/diag/codesign-sample-$CODESIGN_PID.txt"
+              [ -f "$SAMPLE_FILE" ] || sample "$CODESIGN_PID" 5 -o "$SAMPLE_FILE" 2>>"$RUNNER_TEMP/diag/sample.err" || true
+            done
+          done
+          wait "$PUBLISH_PID"
+          tail -n 200 "$RUNNER_TEMP/diag/publish.log"
+          exit "$(cat "$RUNNER_TEMP/diag/publish.exitcode")"
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build-diagnostics
+          path: |
+            ${{ runner.temp }}/diag/ps-snapshots.txt
+            ${{ runner.temp }}/diag/codesign-sample-*.txt
+            ${{ runner.temp }}/diag/publish.binlog
+            ${{ runner.temp }}/diag/publish.log
+          if-no-files-found: ignore
 
       - name: Locate and rename package
         run: |
@@ -421,20 +467,61 @@ jobs:
           cp "$RUNNER_TEMP/profile.mobileprovision" ~/Library/MobileDevice/Provisioning\ Profiles/"$UUID".mobileprovision
           echo "PROFILE_UUID=$UUID" >> "$GITHUB_ENV"
 
-      - name: Build iOS IPA
+      # TEMPORARY DIAGNOSTICS: see the matching comment on the macOS job. Same technique: run the
+      # publish in the background, take a non-destructive `sample` of any `codesign` process every
+      # minute, and keep a binlog + diagnostic-verbosity log. Remove this wrapper (revert to a
+      # plain `dotnet publish ...` call) once the blocking operation has been identified.
+      - name: Build iOS IPA (with diagnostics)
         run: |
-          dotnet publish Source/BlinkTalk/BlinkTalk.csproj \
-            -f net10.0-ios \
-            -c Release \
-            -p:PublishTargetFramework=net10.0-ios \
-            -p:ApplicationDisplayVersion="$DISPLAY_VERSION" \
-            -p:ApplicationVersion="$VERSION_CODE" \
-            -p:ApplicationId="com.airsoftwarelimited.blinktalk.app" \
-            -p:ApplicationTeamId="MMC8RNW6ZC" \
-            -p:CodesignKey="$CODESIGN_IDENTITY" \
-            -p:CodesignProvision="$PROFILE_UUID" \
-            -p:ArchiveOnBuild=true \
-            -o publish/ios
+          mkdir -p "$RUNNER_TEMP/diag"
+          set +e
+          (
+            dotnet publish Source/BlinkTalk/BlinkTalk.csproj \
+              -f net10.0-ios \
+              -c Release \
+              -p:PublishTargetFramework=net10.0-ios \
+              -p:ApplicationDisplayVersion="$DISPLAY_VERSION" \
+              -p:ApplicationVersion="$VERSION_CODE" \
+              -p:ApplicationId="com.airsoftwarelimited.blinktalk.app" \
+              -p:ApplicationTeamId="MMC8RNW6ZC" \
+              -p:CodesignKey="$CODESIGN_IDENTITY" \
+              -p:CodesignProvision="$PROFILE_UUID" \
+              -p:ArchiveOnBuild=true \
+              -v:diag \
+              -bl:"$RUNNER_TEMP/diag/publish.binlog" \
+              -o publish/ios \
+              > "$RUNNER_TEMP/diag/publish.log" 2>&1
+            echo $? > "$RUNNER_TEMP/diag/publish.exitcode"
+          ) &
+          PUBLISH_PID=$!
+          ELAPSED=0
+          while kill -0 "$PUBLISH_PID" 2>/dev/null; do
+            sleep 60
+            ELAPSED=$((ELAPSED + 60))
+            {
+              echo "=== t+${ELAPSED}s: process tree ==="
+              ps -Ao pid,ppid,etime,pcpu,command | grep -E 'codesign|mtouch|ILLink|clang|libtool|ld64|mono|dotnet' | grep -v grep
+            } >> "$RUNNER_TEMP/diag/ps-snapshots.txt"
+            for CODESIGN_PID in $(pgrep -x codesign); do
+              SAMPLE_FILE="$RUNNER_TEMP/diag/codesign-sample-$CODESIGN_PID.txt"
+              [ -f "$SAMPLE_FILE" ] || sample "$CODESIGN_PID" 5 -o "$SAMPLE_FILE" 2>>"$RUNNER_TEMP/diag/sample.err" || true
+            done
+          done
+          wait "$PUBLISH_PID"
+          tail -n 200 "$RUNNER_TEMP/diag/publish.log"
+          exit "$(cat "$RUNNER_TEMP/diag/publish.exitcode")"
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-diagnostics
+          path: |
+            ${{ runner.temp }}/diag/ps-snapshots.txt
+            ${{ runner.temp }}/diag/codesign-sample-*.txt
+            ${{ runner.temp }}/diag/publish.binlog
+            ${{ runner.temp }}/diag/publish.log
+          if-no-files-found: ignore
 
       - name: Locate and rename IPA
         run: |
