@@ -56,6 +56,12 @@
         <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
     </PropertyGroup>
 
+    <!-- MobileILStrip hangs in the hosted iOS Release publish after ILLink succeeds.
+         This skips only post-AOT method-body stripping; normal ILLink trimming remains enabled. -->
+    <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios'">
+        <EnableAssemblyILStripping>false</EnableAssemblyILStripping>
+    </PropertyGroup>
+
     <ItemGroup>
         <!-- App Icon -->
         <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.png" Color="#F1F1F1" />
