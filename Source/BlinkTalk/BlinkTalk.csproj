@@ -62,16 +62,12 @@
         <EnableAssemblyILStripping>false</EnableAssemblyILStripping>
     </PropertyGroup>
 
-    <!-- The ILLink managed-code trimmer itself (the "Optimizing assemblies for size. This
-         process might take a while." message logged by the SDK's ILLinkRunning resource, before
-         the _RunILLink target invokes the ILLink task) can hang for 1+ hours on the hosted iOS/Mac
-         Catalyst Release runners for this app, independently of the EnableAssemblyILStripping
-         setting above (which only covers the later, AOT-only, MobileILStrip step). PublishTrimmed
-         is the property that gates whether _RunILLink runs at all, so disabling it here skips
-         managed trimming entirely - but only for iOS/Mac Catalyst Release publishes; trimming
-         stays on (and unaffected) for every other target framework and configuration. -->
-    <PropertyGroup Condition="('$(TargetFramework)' == 'net10.0-ios' or '$(TargetFramework)' == 'net10.0-maccatalyst') and '$(Configuration)' == 'Release'">
-        <PublishTrimmed>false</PublishTrimmed>
+    <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios' and '$(Configuration)' == 'Release'">
+        <MtouchLink>None</MtouchLink>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-maccatalyst' and '$(Configuration)' == 'Release'">
+        <MtouchLink>None</MtouchLink>
     </PropertyGroup>
 
     <ItemGroup>
