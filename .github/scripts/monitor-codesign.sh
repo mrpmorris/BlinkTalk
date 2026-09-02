@@ -7,17 +7,33 @@
 # the monitor script's own command line (it is invoked as
 # ".../monitor-illink.sh") and therefore only ever sampled itself.
 #
-# This script instead matches processes by their *exact resolved executable
-# path*, `/usr/bin/codesign` (via `ps -o comm=`), never by a substring grep
-# over the full command line - so it cannot match itself, its parent shell,
-# the MSBuild "Codesign" task name, or any other unrelated process/log line
-# that merely mentions the word "codesign". It also explicitly excludes its
-# own pid and its parent's pid from the candidate list as a second guard.
+# This script matches processes by *authoritatively confirming their actual
+# executable image*, never by a substring grep over the full command line -
+# so it cannot match itself, its parent shell, the MSBuild "Codesign" task
+# name, or any other unrelated process/log line that merely mentions the
+# word "codesign". It also explicitly excludes its own pid and its parent's
+# pid from the candidate list as a second guard.
+#
+# Note on `ps -o comm=`: per POSIX/BSD `ps(1)` semantics, the `comm`/`ucomm`
+# fields report only the executable's short name (e.g. "codesign"), never
+# its full path - only `command`/`args` include the path and arguments. So
+# `[ "$comm" = "/usr/bin/codesign" ]` can never match and would be a latent
+# bug. This script therefore only uses `comm` as a cheap, name-only
+# pre-filter (`${comm##*/}` = "codesign", handling either behavior) to avoid
+# running expensive checks against every process on the system, and then
+# authoritatively verifies each candidate by asking the kernel (via `lsof`,
+# not the process's self-reported argv/comm) what executable image is
+# actually mapped into that pid: a candidate is only treated as the real
+# `/usr/bin/codesign` when `lsof -p <pid>` reports a "txt" (executable text
+# segment) mapping whose path is *exactly* `/usr/bin/codesign` - an exact
+# equality check on one field of kernel-reported process/file info, not a
+# substring grep over command lines or log text.
 #
 # While a `dotnet publish` process is running, this periodically:
-#   - looks for a live process whose exact executable path is
-#     /usr/bin/codesign
-#   - once found, captures:
+#   - looks for a live process that is authoritatively confirmed (via lsof,
+#     not ps argv/comm) to be running the /usr/bin/codesign executable
+#   - once found, immediately starts the security-focused unified log
+#     stream (before any of the slower captures below), then captures:
 #       * a `ps` snapshot (pid, ppid, state, %cpu, elapsed time, rss, full
 #         command line)
 #       * the exact codesign command line (recorded separately too)
@@ -28,11 +44,13 @@
 #     find-identity, and a redacted attribute/ACL/partition-list dump that
 #     elides long/binary attribute values so no certificate or private-key
 #     material is written to the log)
-#   - streams the unified log (`log stream`), filtered to security-related
-#     subsystems/processes, for as long as a codesign process is observed
-#     alive (started only once codesign is seen, stopped once it is gone),
-#     so the log capture window is bounded to the actual hang rather than
-#     the whole job.
+#   - the unified log stream (`log stream`, filtered to security-related
+#     subsystems/processes) runs for as long as a codesign process is
+#     observed alive (started the instant codesign is first seen - before
+#     ps/ancestor/lsof/sample/keychain captures, so a fast Security.framework
+#     /securityd authorization event right at process start cannot be
+#     missed - and stopped once codesign is gone), so the log capture window
+#     is bounded to the actual hang rather than the whole job.
 #
 # This script (and its call sites) is a temporary diagnostic addition; it
 # does not change any build, trimming, signing, or timeout behavior.
@@ -59,18 +77,43 @@ log() {
   printf '%s\n' "$1" >> "$SNAPSHOT_LOG"
 }
 
-# Finds live processes whose *exact* resolved executable path is
-# /usr/bin/codesign. `ps -o comm=` reports the executable path on macOS, so
-# this is an exact-match check, not a substring grep - it cannot match this
-# monitor's own bash process, nor anything that merely contains the word
-# "codesign" (e.g. MSBuild's "Codesign" task, or this script's own log
-# lines). The monitor's own pid and its parent's pid are additionally
-# excluded explicitly as a second, belt-and-braces guard.
+# Authoritatively confirms that the given pid's actual executable image
+# (as reported by the kernel via lsof, not the process's self-reported argv
+# or comm) is exactly /usr/bin/codesign. Every "txt" entry lsof reports for
+# a process is a text/executable-segment mapping - the main executable's own
+# mapping as well as every loaded dylib/framework - but only the main
+# executable itself will have a NAME field that is *exactly*
+# "/usr/bin/codesign" (dylibs/frameworks are named differently), so this is
+# an exact-equality check on kernel-reported data, not a substring grep.
+is_exact_usr_bin_codesign() {
+  local pid="$1"
+  lsof -p "$pid" 2>/dev/null | awk '
+    $4 == "txt" && $NF == "/usr/bin/codesign" { found=1 }
+    END { exit !found }
+  '
+}
+
+# Finds live processes that are authoritatively confirmed to be running the
+# /usr/bin/codesign executable. `ps -o comm=` is used only as a cheap,
+# name-only pre-filter to shortlist candidates (per POSIX/BSD ps semantics,
+# `comm` reports just the short executable name, e.g. "codesign", not a full
+# path - so this compares basenames, not full paths, and is never treated as
+# the authoritative answer). Each shortlisted candidate is then verified via
+# is_exact_usr_bin_codesign before being reported. The monitor's own pid and
+# its parent's pid are additionally excluded explicitly as a second,
+# belt-and-braces guard, and neither this script nor "bash" nor MSBuild's
+# "Codesign" task name can ever satisfy the lsof-based check.
 find_codesign_pids() {
+  if ! command -v lsof >/dev/null 2>&1; then
+    log "lsof not available; cannot authoritatively verify codesign candidates, skipping this interval"
+    return
+  fi
   ps -axo pid=,comm= 2>/dev/null | while read -r pid comm; do
     [ "$pid" = "$MONITOR_PID" ] && continue
     [ "$pid" = "$MONITOR_PPID" ] && continue
-    if [ "$comm" = "/usr/bin/codesign" ]; then
+    exe_name="${comm##*/}"
+    [ "$exe_name" = "codesign" ] || continue
+    if is_exact_usr_bin_codesign "$pid"; then
       printf '%s\n' "$pid"
     fi
   done
@@ -137,6 +180,15 @@ while kill -0 "$WATCH_PID" 2>/dev/null; do
   fi
 
   for CODESIGN_PID in $CODESIGN_PIDS; do
+    if [ "$LOG_STREAM_ACTIVE" -eq 0 ]; then
+      log "codesign pid $CODESIGN_PID observed at $TIMESTAMP; starting security-focused unified log stream immediately (before other, slower captures) so an early authorization event cannot be missed."
+      log stream --style syslog \
+        --predicate 'subsystem == "com.apple.security" OR process == "securityd" OR process == "SecurityAgent" OR process == "codesign" OR eventMessage CONTAINS[c] "authoriz"' \
+        >> "$UNIFIED_LOG_FILE" 2>&1 &
+      LOG_STREAM_PID=$!
+      LOG_STREAM_ACTIVE=1
+    fi
+
     {
       echo "===== $TIMESTAMP (watch-pid $WATCH_PID alive) ====="
       echo "-- ps snapshot for codesign pid $CODESIGN_PID (pid ppid state %cpu etime rss command) --"
@@ -172,15 +224,6 @@ while kill -0 "$WATCH_PID" 2>/dev/null; do
     fi
 
     capture_keychain_state "$TIMESTAMP"
-
-    if [ "$LOG_STREAM_ACTIVE" -eq 0 ]; then
-      log "codesign pid $CODESIGN_PID observed at $TIMESTAMP; starting security-focused unified log stream."
-      log stream --style syslog \
-        --predicate 'subsystem == "com.apple.security" OR process == "securityd" OR process == "SecurityAgent" OR process == "codesign" OR eventMessage CONTAINS[c] "authoriz"' \
-        >> "$UNIFIED_LOG_FILE" 2>&1 &
-      LOG_STREAM_PID=$!
-      LOG_STREAM_ACTIVE=1
-    fi
   done
 
   if [ -z "$CODESIGN_PIDS" ] && [ "$LOG_STREAM_ACTIVE" -eq 1 ]; then
