@@ -326,6 +326,18 @@ jobs:
 
       - name: Build macOS package
         run: |
+          # TEMPORARY diagnostics (see .github/scripts/monitor-codesign.sh)
+          # for investigating the /usr/bin/codesign hang (0% CPU, never
+          # returns) on Mac Catalyst Release publishes. Adds a binary log, a
+          # diagnostic-verbosity file log, and periodic ps/sample/lsof/
+          # ancestor-chain/keychain-state captures of the actual codesign
+          # process (matched by exact executable path, not a substring
+          # grep), plus a bounded security-focused unified log stream while
+          # codesign is observed running.
+          DIAG_DIR="$RUNNER_TEMP/diagnostics/macos"
+          mkdir -p "$DIAG_DIR"
+
+          set +e
           dotnet publish Source/BlinkTalk/BlinkTalk.csproj \
             -f net10.0-maccatalyst \
             -c Release \
@@ -341,7 +353,31 @@ jobs:
             -p:PackageSigningKey="$INSTALLER_IDENTITY" \
             -p:CodesignEntitlements="Platforms/MacCatalyst/Entitlements.plist" \
             -p:ApplicationTeamId="MMC8RNW6ZC" \
-            -o publish/macos
+            -o publish/macos \
+            -bl:"$DIAG_DIR/macos-publish.binlog" \
+            "-flp:v=diag;logfile=$DIAG_DIR/macos-publish-diag.log" &
+          PUBLISH_PID=$!
+
+          bash "$GITHUB_WORKSPACE/.github/scripts/monitor-codesign.sh" "$DIAG_DIR" "$PUBLISH_PID" "build.keychain" 15 &
+          MONITOR_PID=$!
+
+          wait "$PUBLISH_PID"
+          PUBLISH_EXIT=$?
+          set -e
+
+          kill "$MONITOR_PID" 2>/dev/null || true
+          wait "$MONITOR_PID" 2>/dev/null || true
+
+          exit $PUBLISH_EXIT
+
+      - name: Upload macOS codesign diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-codesign-diagnostics
+          path: ${{ runner.temp }}/diagnostics/macos
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Locate and rename package
         run: |
@@ -454,6 +490,18 @@ jobs:
 
       - name: Build iOS IPA
         run: |
+          # TEMPORARY diagnostics (see .github/scripts/monitor-codesign.sh)
+          # for investigating the /usr/bin/codesign hang (0% CPU, never
+          # returns) on iOS Release publishes. Adds a binary log, a
+          # diagnostic-verbosity file log, and periodic ps/sample/lsof/
+          # ancestor-chain/keychain-state captures of the actual codesign
+          # process (matched by exact executable path, not a substring
+          # grep), plus a bounded security-focused unified log stream while
+          # codesign is observed running.
+          DIAG_DIR="$RUNNER_TEMP/diagnostics/ios"
+          mkdir -p "$DIAG_DIR"
+
+          set +e
           dotnet publish Source/BlinkTalk/BlinkTalk.csproj \
             -f net10.0-ios \
             -c Release \
@@ -465,7 +513,31 @@ jobs:
             -p:CodesignKey="$CODESIGN_IDENTITY" \
             -p:CodesignProvision="$PROFILE_UUID" \
             -p:ArchiveOnBuild=true \
-            -o publish/ios
+            -o publish/ios \
+            -bl:"$DIAG_DIR/ios-publish.binlog" \
+            "-flp:v=diag;logfile=$DIAG_DIR/ios-publish-diag.log" &
+          PUBLISH_PID=$!
+
+          bash "$GITHUB_WORKSPACE/.github/scripts/monitor-codesign.sh" "$DIAG_DIR" "$PUBLISH_PID" "build.keychain" 15 &
+          MONITOR_PID=$!
+
+          wait "$PUBLISH_PID"
+          PUBLISH_EXIT=$?
+          set -e
+
+          kill "$MONITOR_PID" 2>/dev/null || true
+          wait "$MONITOR_PID" 2>/dev/null || true
+
+          exit $PUBLISH_EXIT
+
+      - name: Upload iOS codesign diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-codesign-diagnostics
+          path: ${{ runner.temp }}/diagnostics/ios
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Locate and rename IPA
         run: |
