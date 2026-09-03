@@ -2,6 +2,7 @@
 @page "/settings"
 @using System.Globalization
 @using BlinkTalk.Application
+@using BlinkTalk.Application.Abstractions
 @using BlinkTalk.Application.Text
 @using BlinkTalk.Services
 
@@ -14,7 +15,7 @@
             <label for="language">@Localization.Settings_Language</label>
             @* @bind rather than value/@onchange: it is what makes Blazor select the matching <option> on
                first render, so the dropdown opens showing the language the app is actually running in. *@
-            <select id="language" @bind=SelectedLanguage @bind:after=OnLanguageChanged>
+            <select id="language" @bind=SelectedLanguage @bind:after=OnLanguageChangedAsync>
                 @foreach (CultureInfo language in Languages)
                 {
                     <option value=@language.Name>@language.NativeName</option>
@@ -30,6 +31,41 @@
                     <option value=@style>@LayoutLabel(style)</option>
                 }
             </select>
+        </div>
+
+        @* Only worth a dropdown where the engine offers a choice; a device with one voice (or none it
+           can name — the norm on stock Android) gets the test button alone, since "System default"
+           would be the only option. *@
+        <div class="bt-setting-field">
+            <label for="voice">@Localization.Settings_Voice</label>
+            <div class="bt-setting-inline">
+                @if (Voices.Count > 1)
+                {
+                    <select id="voice" @bind=SelectedVoiceId @bind:after=OnVoiceChangedAsync>
+                        <option value="">@Localization.Settings_Voice_SystemDefault</option>
+                        @foreach (SpeechVoiceOption voice in Voices)
+                        {
+                            <option value=@voice.Id>@voice.DisplayName</option>
+                        }
+                    </select>
+                }
+                @* Icon rather than a word: it sits beside the dropdown, where a translated label would
+                   push the two onto separate lines in the longer languages. The name it would have
+                   shown is the accessible name instead, and the tooltip. *@
+                <button class="bt-settings-secondary bt-settings-icon"
+                        type="button"
+                        title=@Localization.Settings_Voice_Test
+                        aria-label=@Localization.Settings_Voice_Test
+                        @onclick=TestVoiceAsync>
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        @* Speaker cone, then two arcs for the sound coming off it. currentColor so it
+                           follows the button's text colour in either theme. *@
+                        <path d="M4 9h3l5-4v14l-5-4H4z" fill="currentColor" />
+                        <path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"
+                              fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
         </div>
     </div>
 

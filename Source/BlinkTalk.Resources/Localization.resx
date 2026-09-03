@@ -237,6 +237,18 @@
   <data name="Settings_UseCameraToDetectEyeGesture" xml:space="preserve">
     <value>Use camera to detect eye gesture</value>
   </data>
+  <data name="Settings_Voice" xml:space="preserve">
+    <value>Voice</value>
+  </data>
+  <data name="Settings_Voice_SampleText" xml:space="preserve">
+    <value>This is how I will speak.</value>
+  </data>
+  <data name="Settings_Voice_SystemDefault" xml:space="preserve">
+    <value>System default</value>
+  </data>
+  <data name="Settings_Voice_Test" xml:space="preserve">
+    <value>Test voice</value>
+  </data>
   <data name="Shared_Cancel" xml:space="preserve">
     <value>Cancel</value>
   </data>

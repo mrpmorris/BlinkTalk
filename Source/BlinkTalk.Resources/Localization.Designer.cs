@@ -421,6 +421,42 @@ namespace BlinkTalk.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Voice.
+        /// </summary>
+        public static string Settings_Voice {
+            get {
+                return ResourceManager.GetString("Settings_Voice", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This is how I will speak..
+        /// </summary>
+        public static string Settings_Voice_SampleText {
+            get {
+                return ResourceManager.GetString("Settings_Voice_SampleText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to System default.
+        /// </summary>
+        public static string Settings_Voice_SystemDefault {
+            get {
+                return ResourceManager.GetString("Settings_Voice_SystemDefault", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Test voice.
+        /// </summary>
+        public static string Settings_Voice_Test {
+            get {
+                return ResourceManager.GetString("Settings_Voice_Test", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Cancel.
         /// </summary>
         public static string Shared_Cancel {

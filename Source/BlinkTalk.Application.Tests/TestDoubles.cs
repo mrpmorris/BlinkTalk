@@ -84,6 +84,15 @@ public sealed class FakePhraseService : IPhraseService
 public sealed class FakeTextToSpeech : ITextToSpeechService
 {
     public List<string> Spoken { get; } = new List<string>();
+
+    /// <summary>What <see cref="GetVoicesForCurrentLanguageAsync"/> reports; empty unless a test sets it.</summary>
+    public List<SpeechVoiceOption> Voices { get; } = new List<SpeechVoiceOption>();
+
+    public string? SelectedVoiceId { get; set; }
+
+    public Task<IReadOnlyList<SpeechVoiceOption>> GetVoicesForCurrentLanguageAsync() =>
+        Task.FromResult<IReadOnlyList<SpeechVoiceOption>>(Voices);
+
     public Task SpeakAsync(string text)
     {
         Spoken.Add(text);

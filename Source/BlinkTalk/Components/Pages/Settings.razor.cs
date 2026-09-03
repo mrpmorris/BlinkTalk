@@ -34,6 +34,16 @@ public partial class Settings
 	private double ScanSpeed { get; set; }
 
 	/// <summary>
+	/// The voices installed for the current language, reloaded whenever that language changes. Empty
+	/// on a device whose engine reports nothing nameable, which is normal on stock Android — the
+	/// dropdown then offers the system default alone.
+	/// </summary>
+	private IReadOnlyList<SpeechVoiceOption> Voices { get; set; } = Array.Empty<SpeechVoiceOption>();
+
+	/// <summary>Empty string is the system-default option, matching <c>&lt;option value=""&gt;</c>.</summary>
+	private string SelectedVoiceId { get; set; } = string.Empty;
+
+	/// <summary>
 	/// Written through to settings as it changes, like the scan speed: there is no database to seed
 	/// off the back of it, so there is nothing to defer until the person leaves.
 	/// </summary>
@@ -73,9 +83,11 @@ public partial class Settings
 	private readonly NavigationManager Navigation;
 	private readonly IDatabaseProvisioner Provisioner;
 	private readonly ISettingsStore SettingsStore;
+	private readonly ITextToSpeechService Speech;
 
-	public Settings(ScanController controller, CameraIndicatorConfig camera, AppDatabase database, NavigationManager navigation, ISettingsStore settingsStore, LanguagePackDownloader downloader, IDatabaseProvisioner provisioner, IKeyboardLayoutProvider keyboardLayouts)
+	public Settings(ScanController controller, CameraIndicatorConfig camera, AppDatabase database, NavigationManager navigation, ISettingsStore settingsStore, LanguagePackDownloader downloader, IDatabaseProvisioner provisioner, IKeyboardLayoutProvider keyboardLayouts, ITextToSpeechService speech)
 	{
+		Speech = speech;
 		Controller = controller;
 		Camera = camera;
 		Database = database;
@@ -98,6 +110,40 @@ public partial class Settings
 			?? Languages.FirstOrDefault(culture => culture.TwoLetterISOLanguageName == current.TwoLetterISOLanguageName))
 			?.Name ?? string.Empty;
 	}
+
+	/// <summary>
+	/// The voice list has to be asked of the platform engine, so it cannot be loaded in
+	/// <see cref="OnInitialized"/>. The page renders once without it and again once it arrives, which
+	/// is fine: the dropdown shows the system-default option in the meantime.
+	/// </summary>
+	protected override Task OnInitializedAsync() => LoadVoicesAsync();
+
+	/// <summary>
+	/// Reads the voices for whichever language the app is now running in, and the choice stored for
+	/// it. A voice stored for a language whose pack has since been removed is dropped back to the
+	/// system default here, rather than being shown as a selection the dropdown has no option for.
+	/// </summary>
+	private async Task LoadVoicesAsync()
+	{
+		Voices = await Speech.GetVoicesForCurrentLanguageAsync();
+		string? stored = Speech.SelectedVoiceId;
+		SelectedVoiceId = stored is not null && Voices.Any(voice => voice.Id == stored)
+			? stored
+			: string.Empty;
+	}
+
+	/// <summary>
+	/// Written through as it changes, like the keyboard layout: there is no database to seed off the
+	/// back of it, so there is nothing to defer until the person leaves. Speaking the sample straight
+	/// away is the point of choosing — they hear what they picked without hunting for a Test button.
+	/// </summary>
+	private async Task OnVoiceChangedAsync()
+	{
+		Speech.SelectedVoiceId = SelectedVoiceId.Length == 0 ? null : SelectedVoiceId;
+		await TestVoiceAsync();
+	}
+
+	private Task TestVoiceAsync() => Speech.SpeakAsync(Localization.Settings_Voice_SampleText);
 
 	/// <summary>
 	/// Leaving settings is where the language choice is persisted, and where the database for it is
@@ -189,12 +235,18 @@ public partial class Settings
 	/// Switches language as soon as the dropdown changes, so the person sees this page in the
 	/// language they just picked and can tell they picked the right one. The choice is only written
 	/// to settings when they leave — see <see cref="GoBack"/>.
+	/// <para>
+	/// The voice list is reloaded because it is language-specific: the voices below the dropdown are
+	/// the ones that can speak the language above it.
+	/// </para>
 	/// </summary>
-	private void OnLanguageChanged()
+	private async Task OnLanguageChangedAsync()
 	{
 		CultureInfo? culture = Languages.FirstOrDefault(language => language.Name == SelectedLanguage);
 		if (culture is not null)
 			AppLanguage.SetCurrent(culture);
+
+		await LoadVoicesAsync();
 	}
 
 	/// <summary>

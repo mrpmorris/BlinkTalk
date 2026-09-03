@@ -330,6 +330,39 @@ html, body {
     min-width: 0;
 }
 
+/* A control and its button on one line — the voice dropdown and its test button. Wraps rather than
+   shrinking the dropdown, since a voice name is what makes the entries tell apart. */
+.bt-setting-inline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1vh 2vw;
+}
+
+/* Square, so the speaker glyph is not stretched by the wide padding the worded buttons need. */
+.bt-settings-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.2vh;
+    line-height: 0;
+}
+
+.bt-settings-icon svg {
+    width: 3.4vh;
+    height: 3.4vh;
+}
+
+/* The speaker faces the reading direction, so it flips with the page like the rest of the layout. */
+[dir="rtl"] .bt-settings-icon svg {
+    transform: scaleX(-1);
+}
+
+/* The dropdowns top-align in their own column; on this line they sit level with the button. */
+.bt-setting-inline select {
+    align-self: center;
+}
+
 .bt-setting-row input[type="range"] {
     width: 100%;
     height: 4vh;

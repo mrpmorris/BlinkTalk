@@ -22,4 +22,15 @@ public static class SettingsKeys
     public const string CycleDelaySeconds = "cycleDelaySeconds";
     public const string KeyboardLayoutStyle = "keyboard.layoutStyle"; // a KeyboardLayoutStyle member name
     public const string LanguageCultureCode = "language.cultureCode"; // e.g. "fr", "en-GB"
+
+    /// <summary>
+    /// The chosen speech voice, under a key suffixed with the culture name ("speech.voice.fr") —
+    /// see <see cref="SpeechVoiceKey"/>. Per language rather than one global choice, because a voice
+    /// installed for one language cannot speak another: carrying the choice over would leave the app
+    /// mute or reading French with an English voice.
+    /// </summary>
+    public const string SpeechVoicePrefix = "speech.voice.";
+
+    /// <summary>The <see cref="SpeechVoicePrefix"/> key for one language's chosen voice.</summary>
+    public static string SpeechVoiceKey(string cultureName) => SpeechVoicePrefix + cultureName;
 }

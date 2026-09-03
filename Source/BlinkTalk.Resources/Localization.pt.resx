@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
@@ -177,6 +177,18 @@
   </data>
   <data name="Settings_UseCameraToDetectEyeGesture" xml:space="preserve">
     <value>Usar a câmara para detetar o gesto ocular</value>
+  </data>
+  <data name="Settings_Voice" xml:space="preserve">
+    <value>Voz</value>
+  </data>
+  <data name="Settings_Voice_SampleText" xml:space="preserve">
+    <value>É assim que vou falar.</value>
+  </data>
+  <data name="Settings_Voice_SystemDefault" xml:space="preserve">
+    <value>Predefinição do sistema</value>
+  </data>
+  <data name="Settings_Voice_Test" xml:space="preserve">
+    <value>Testar voz</value>
   </data>
   <data name="Shared_Cancel" xml:space="preserve">
     <value>Cancelar</value>

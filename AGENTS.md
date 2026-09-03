@@ -173,8 +173,11 @@ numbers are not load-bearing (the setting stores a culture code), which is what 
 `Preferences`. `ScanController.CycleDelaySeconds` is the scan speed; its default and the longer
 first-item dwell are in `Text/Consts`.
 
-**TTS:** `MauiTtsService` uses MAUI `TextToSpeech` — low pitch, full volume, flush-via-cancel, voice
-resolved from the current culture (exact tag → same language → language-only, cached per culture).
+**TTS:** `MauiTtsService` uses MAUI `TextToSpeech` — low pitch, full volume, flush-via-cancel. The
+voice is the one chosen on the settings page for the current language (stored per language under
+`SettingsKeys.SpeechVoicePrefix`, as an opaque `tag|name` id), falling back to the culture's best
+match when unset or no longer installed (exact tag → same language → language-only); cached per
+(culture, chosen voice).
 All-caps words are lower-cased before speaking, because engines read a short all-caps token as an
 initialism. Known gap: MAUI exposes no cross-platform speaking *rate*, so the original's slow rate
 (0.4) is not applied — that needs a per-platform shim (Android `setSpeechRate`, iOS/Mac
