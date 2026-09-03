@@ -358,7 +358,7 @@ jobs:
             "-flp:v=diag;logfile=$DIAG_DIR/macos-publish-diag.log" &
           PUBLISH_PID=$!
 
-          bash "$GITHUB_WORKSPACE/.github/scripts/monitor-codesign.sh" "$DIAG_DIR" "$PUBLISH_PID" "build.keychain" 15 &
+          bash "$GITHUB_WORKSPACE/.github/scripts/monitor-codesign.sh" "$DIAG_DIR" "$PUBLISH_PID" "$KEYCHAIN_PATH" 15 &
           MONITOR_PID=$!
 
           wait "$PUBLISH_PID"
@@ -518,7 +518,7 @@ jobs:
             "-flp:v=diag;logfile=$DIAG_DIR/ios-publish-diag.log" &
           PUBLISH_PID=$!
 
-          bash "$GITHUB_WORKSPACE/.github/scripts/monitor-codesign.sh" "$DIAG_DIR" "$PUBLISH_PID" "build.keychain" 15 &
+          bash "$GITHUB_WORKSPACE/.github/scripts/monitor-codesign.sh" "$DIAG_DIR" "$PUBLISH_PID" "$KEYCHAIN_PATH" 15 &
           MONITOR_PID=$!
 
           wait "$PUBLISH_PID"
