@@ -6,6 +6,9 @@ on:
       - '[0-9]*.[0-9]*.[0-9]*'
       - '[0-9]*.[0-9]*.[0-9]*-Beta.[0-9]*'
 
+permissions:
+  contents: read
+
 jobs:
   # ── 1. Validate ────────────────────────────────────────────────────────────
   # Reject tags that don't match N.N.N exactly and tags whose commit is not
