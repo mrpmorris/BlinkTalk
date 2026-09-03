@@ -219,187 +219,187 @@ jobs:
             BlinkTalk-android.apk
             BlinkTalk-GooglePlayStore.aab
 
-  # ── 5. Build – macOS ──────────────────────────────────────────────────────
-  # Produces:
-  #   • BlinkTalk-macos.pkg — Mac Catalyst package (App Store distribution)
-  #
-  # Required secrets:
-  #   MAC_CERTIFICATE                  – Base64-encoded Apple Distribution P12 certificate (code signing).
-  #   MAC_CERTIFICATE_PASSWORD         – Password for the Apple Distribution P12.
-  #   MAC_INSTALLER_CERTIFICATE        – Base64-encoded Mac Installer Distribution P12 certificate (package signing).
-  #   MAC_INSTALLER_CERTIFICATE_PASSWORD – Password for the Mac Installer Distribution P12.
-  #   MAC_PROVISIONING_PROFILE         – Base64-encoded .provisionprofile file.
-  build-macos:
-    needs: test
-    runs-on: macos-latest
-    env:
-      VERSION: ${{ github.ref_name }}
-      CERT_B64: ${{ secrets.MAC_CERTIFICATE }}
-      CERT_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
-      INSTALLER_CERT_B64: ${{ secrets.MAC_INSTALLER_CERTIFICATE }}
-      INSTALLER_CERT_PASSWORD: ${{ secrets.MAC_INSTALLER_CERTIFICATE_PASSWORD }}
-      PROFILE_B64: ${{ secrets.MAC_PROVISIONING_PROFILE }}
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.x'
-
-      - name: Install MAUI Mac Catalyst workload
-        run: dotnet workload install maui-maccatalyst
-
-      - name: Compute app versions
-        run: |
-          VERSION_CORE="${VERSION%%-Beta.*}"
-          echo "DISPLAY_VERSION=$VERSION_CORE" >> "$GITHUB_ENV"
-          IFS='.' read -ra P <<< "$VERSION_CORE"
-          echo "VERSION_CODE=$((${P[0]} * 10000 + ${P[1]} * 100 + ${P[2]}))" >> "$GITHUB_ENV"
-
-      - name: Verify signing secrets
-        run: |
-          MISSING=""
-          [ -z "$CERT_B64" ]               && MISSING="$MISSING MAC_CERTIFICATE"
-          [ -z "$CERT_PASSWORD" ]          && MISSING="$MISSING MAC_CERTIFICATE_PASSWORD"
-          [ -z "$INSTALLER_CERT_B64" ]     && MISSING="$MISSING MAC_INSTALLER_CERTIFICATE"
-          [ -z "$INSTALLER_CERT_PASSWORD" ] && MISSING="$MISSING MAC_INSTALLER_CERTIFICATE_PASSWORD"
-          [ -z "$PROFILE_B64" ]            && MISSING="$MISSING MAC_PROVISIONING_PROFILE"
-          if [ -n "$MISSING" ]; then
-            echo "::error::Missing repository secret(s):$MISSING. Without them the package cannot be distributed. Add them under Settings → Secrets and variables → Actions."
-            exit 1
-          fi
-
-      - name: Install signing certificates
-        run: |
-          # Decode Apple Distribution certificate (used for code signing)
-          echo "$CERT_B64" | base64 --decode > "$RUNNER_TEMP/mac-cert.p12"
-          if [ ! -s "$RUNNER_TEMP/mac-cert.p12" ]; then
-            echo "::error::Decoded certificate is empty – check the MAC_CERTIFICATE secret is valid base64."
-            exit 1
-          fi
-          # Decode Mac Installer Distribution certificate (used for package signing)
-          echo "$INSTALLER_CERT_B64" | base64 --decode > "$RUNNER_TEMP/mac-installer-cert.p12"
-          if [ ! -s "$RUNNER_TEMP/mac-installer-cert.p12" ]; then
-            echo "::error::Decoded installer certificate is empty – check the MAC_INSTALLER_CERTIFICATE secret is valid base64."
-            exit 1
-          fi
-          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
-          KEYCHAIN_PASSWORD=$(openssl rand -base64 30)
-          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
-          echo "::add-mask::$KEYCHAIN_PASSWORD"
-          echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> "$GITHUB_ENV"
-
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-
-          security import "$RUNNER_TEMP/mac-cert.p12" -k "$KEYCHAIN_PATH" -P "$CERT_PASSWORD" -A -t cert -f pkcs12
-          security import "$RUNNER_TEMP/mac-installer-cert.p12" -k "$KEYCHAIN_PATH" -P "$INSTALLER_CERT_PASSWORD" -A -t cert -f pkcs12
-          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-
-          # Preserve the existing user keychain search list rather than replacing it,
-          # so macOS tooling that relies on the login keychain keeps working.
-          EXISTING_KEYCHAINS=$(security list-keychains -d user | sed 's/[",]//g')
-          security list-keychains -d user -s "$KEYCHAIN_PATH" $EXISTING_KEYCHAINS
-          security default-keychain -d user -s "$KEYCHAIN_PATH"
-
-          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
-
-          # Extract the Apple Distribution identity (codesigning) - first match
-          CODESIGN_IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | grep "Apple Distribution" | grep -o '"[^"]*"' | head -1 | tr -d '"')
-          # Extract the Mac Installer Distribution identity (packaging)
-          INSTALLER_IDENTITY=$(security find-identity -v "$KEYCHAIN_PATH" | grep "Mac Installer Distribution" | grep -o '"[^"]*"' | head -1 | tr -d '"')
-          echo "CODESIGN_IDENTITY=$CODESIGN_IDENTITY" >> "$GITHUB_ENV"
-          echo "INSTALLER_IDENTITY=$INSTALLER_IDENTITY" >> "$GITHUB_ENV"
-
-      - name: Install provisioning profile
-        run: |
-          echo "$PROFILE_B64" | base64 --decode > "$RUNNER_TEMP/profile.provisionprofile"
-          if [ ! -s "$RUNNER_TEMP/profile.provisionprofile" ]; then
-            echo "::error::Decoded provisioning profile is empty – check the MAC_PROVISIONING_PROFILE secret is valid base64."
-            exit 1
-          fi
-          UUID=$(grep -a -A 1 '<key>UUID</key>' "$RUNNER_TEMP/profile.provisionprofile" | tail -1 | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp "$RUNNER_TEMP/profile.provisionprofile" ~/Library/MobileDevice/Provisioning\ Profiles/"$UUID".provisionprofile
-          echo "PROFILE_UUID=$UUID" >> "$GITHUB_ENV"
-
-      - name: Build macOS package
-        run: |
-          # TEMPORARY diagnostics (see .github/scripts/monitor-codesign.sh)
-          # for investigating the /usr/bin/codesign hang (0% CPU, never
-          # returns) on Mac Catalyst Release publishes. Adds a binary log, a
-          # diagnostic-verbosity file log, and periodic ps/sample/lsof/
-          # ancestor-chain/keychain-state captures of the actual codesign
-          # process (matched by exact executable path, not a substring
-          # grep), plus a bounded security-focused unified log stream while
-          # codesign is observed running.
-          DIAG_DIR="$RUNNER_TEMP/diagnostics/macos"
-          mkdir -p "$DIAG_DIR"
-
-          set +e
-          dotnet publish Source/BlinkTalk/BlinkTalk.csproj \
-            -f net10.0-maccatalyst \
-            -c Release \
-            -p:PublishTargetFramework=net10.0-maccatalyst \
-            -p:ApplicationDisplayVersion="$DISPLAY_VERSION" \
-            -p:ApplicationVersion="$VERSION_CODE" \
-            -p:ApplicationId="com.airsoftwarelimited.blinktalk.app" \
-            -p:MtouchEnableSGenConc=true \
-            -p:EnableCodeSigning=true \
-            -p:EnablePackageSigning=true \
-            -p:CodesignKey="$CODESIGN_IDENTITY" \
-            -p:CodesignProvision="$PROFILE_UUID" \
-            -p:PackageSigningKey="$INSTALLER_IDENTITY" \
-            -p:CodesignEntitlements="Platforms/MacCatalyst/Entitlements.plist" \
-            -p:ApplicationTeamId="MMC8RNW6ZC" \
-            -o publish/macos \
-            -bl:"$DIAG_DIR/macos-publish.binlog" \
-            "-flp:v=diag;logfile=$DIAG_DIR/macos-publish-diag.log" &
-          PUBLISH_PID=$!
-
-          bash "$GITHUB_WORKSPACE/.github/scripts/monitor-codesign.sh" "$DIAG_DIR" "$PUBLISH_PID" "$KEYCHAIN_PATH" 15 &
-          MONITOR_PID=$!
-
-          wait "$PUBLISH_PID"
-          PUBLISH_EXIT=$?
-          set -e
-
-          kill "$MONITOR_PID" 2>/dev/null || true
-          wait "$MONITOR_PID" 2>/dev/null || true
-
-          exit $PUBLISH_EXIT
-
-      - name: Upload macOS codesign diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-codesign-diagnostics
-          path: ${{ runner.temp }}/diagnostics/macos
-          if-no-files-found: warn
-          retention-days: 7
-
-      - name: Locate and rename package
-        run: |
-          PKG=$(find publish/macos Source/BlinkTalk/bin/Release/net10.0-maccatalyst -type f -name "*.pkg" | head -1)
-          if [ -z "$PKG" ]; then
-            echo "::error::No .pkg found after publish."
-            exit 1
-          fi
-          cp "$PKG" "BlinkTalk-macos.pkg"
-
-      - name: Clean up signing material
-        if: always()
-        run: |
-          security delete-keychain "$KEYCHAIN_PATH" 2>/dev/null || true
-          rm -f "$KEYCHAIN_PATH"
-          rm -f "$RUNNER_TEMP/mac-cert.p12" "$RUNNER_TEMP/mac-installer-cert.p12" "$RUNNER_TEMP/profile.provisionprofile"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: macos-artifacts
-          path: BlinkTalk-macos.pkg
-
+#  # ── 5. Build – macOS ──────────────────────────────────────────────────────
+#  # Produces:
+#  #   • BlinkTalk-macos.pkg — Mac Catalyst package (App Store distribution)
+#  #
+#  # Required secrets:
+#  #   MAC_CERTIFICATE                  – Base64-encoded Apple Distribution P12 certificate (code signing).
+#  #   MAC_CERTIFICATE_PASSWORD         – Password for the Apple Distribution P12.
+#  #   MAC_INSTALLER_CERTIFICATE        – Base64-encoded Mac Installer Distribution P12 certificate (package signing).
+#  #   MAC_INSTALLER_CERTIFICATE_PASSWORD – Password for the Mac Installer Distribution P12.
+#  #   MAC_PROVISIONING_PROFILE         – Base64-encoded .provisionprofile file.
+#  build-macos:
+#    needs: test
+#    runs-on: macos-latest
+#    env:
+#      VERSION: ${{ github.ref_name }}
+#      CERT_B64: ${{ secrets.MAC_CERTIFICATE }}
+#      CERT_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+#      INSTALLER_CERT_B64: ${{ secrets.MAC_INSTALLER_CERTIFICATE }}
+#      INSTALLER_CERT_PASSWORD: ${{ secrets.MAC_INSTALLER_CERTIFICATE_PASSWORD }}
+#      PROFILE_B64: ${{ secrets.MAC_PROVISIONING_PROFILE }}
+#    steps:
+#      - uses: actions/checkout@v5
+#
+#      - uses: actions/setup-dotnet@v4
+#        with:
+#          dotnet-version: '10.x'
+#
+#      - name: Install MAUI Mac Catalyst workload
+#        run: dotnet workload install maui-maccatalyst
+#
+#      - name: Compute app versions
+#        run: |
+#          VERSION_CORE="${VERSION%%-Beta.*}"
+#          echo "DISPLAY_VERSION=$VERSION_CORE" >> "$GITHUB_ENV"
+#          IFS='.' read -ra P <<< "$VERSION_CORE"
+#          echo "VERSION_CODE=$((${P[0]} * 10000 + ${P[1]} * 100 + ${P[2]}))" >> "$GITHUB_ENV"
+#
+#      - name: Verify signing secrets
+#        run: |
+#          MISSING=""
+#          [ -z "$CERT_B64" ]               && MISSING="$MISSING MAC_CERTIFICATE"
+#          [ -z "$CERT_PASSWORD" ]          && MISSING="$MISSING MAC_CERTIFICATE_PASSWORD"
+#          [ -z "$INSTALLER_CERT_B64" ]     && MISSING="$MISSING MAC_INSTALLER_CERTIFICATE"
+#          [ -z "$INSTALLER_CERT_PASSWORD" ] && MISSING="$MISSING MAC_INSTALLER_CERTIFICATE_PASSWORD"
+#          [ -z "$PROFILE_B64" ]            && MISSING="$MISSING MAC_PROVISIONING_PROFILE"
+#          if [ -n "$MISSING" ]; then
+#            echo "::error::Missing repository secret(s):$MISSING. Without them the package cannot be distributed. Add them under Settings → Secrets and variables → Actions."
+#            exit 1
+#          fi
+#
+#      - name: Install signing certificates
+#        run: |
+#          # Decode Apple Distribution certificate (used for code signing)
+#          echo "$CERT_B64" | base64 --decode > "$RUNNER_TEMP/mac-cert.p12"
+#          if [ ! -s "$RUNNER_TEMP/mac-cert.p12" ]; then
+#            echo "::error::Decoded certificate is empty – check the MAC_CERTIFICATE secret is valid base64."
+#            exit 1
+#          fi
+#          # Decode Mac Installer Distribution certificate (used for package signing)
+#          echo "$INSTALLER_CERT_B64" | base64 --decode > "$RUNNER_TEMP/mac-installer-cert.p12"
+#          if [ ! -s "$RUNNER_TEMP/mac-installer-cert.p12" ]; then
+#            echo "::error::Decoded installer certificate is empty – check the MAC_INSTALLER_CERTIFICATE secret is valid base64."
+#            exit 1
+#          fi
+#          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+#          KEYCHAIN_PASSWORD=$(openssl rand -base64 30)
+#          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+#          echo "::add-mask::$KEYCHAIN_PASSWORD"
+#          echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> "$GITHUB_ENV"
+#
+#          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+#          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+#          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+#
+#          security import "$RUNNER_TEMP/mac-cert.p12" -k "$KEYCHAIN_PATH" -P "$CERT_PASSWORD" -A -t cert -f pkcs12
+#          security import "$RUNNER_TEMP/mac-installer-cert.p12" -k "$KEYCHAIN_PATH" -P "$INSTALLER_CERT_PASSWORD" -A -t cert -f pkcs12
+#          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+#
+#          # Preserve the existing user keychain search list rather than replacing it,
+#          # so macOS tooling that relies on the login keychain keeps working.
+#          EXISTING_KEYCHAINS=$(security list-keychains -d user | sed 's/[",]//g')
+#          security list-keychains -d user -s "$KEYCHAIN_PATH" $EXISTING_KEYCHAINS
+#          security default-keychain -d user -s "$KEYCHAIN_PATH"
+#
+#          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+#
+#          # Extract the Apple Distribution identity (codesigning) - first match
+#          CODESIGN_IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | grep "Apple Distribution" | grep -o '"[^"]*"' | head -1 | tr -d '"')
+#          # Extract the Mac Installer Distribution identity (packaging)
+#          INSTALLER_IDENTITY=$(security find-identity -v "$KEYCHAIN_PATH" | grep "Mac Installer Distribution" | grep -o '"[^"]*"' | head -1 | tr -d '"')
+#          echo "CODESIGN_IDENTITY=$CODESIGN_IDENTITY" >> "$GITHUB_ENV"
+#          echo "INSTALLER_IDENTITY=$INSTALLER_IDENTITY" >> "$GITHUB_ENV"
+#
+#      - name: Install provisioning profile
+#        run: |
+#          echo "$PROFILE_B64" | base64 --decode > "$RUNNER_TEMP/profile.provisionprofile"
+#          if [ ! -s "$RUNNER_TEMP/profile.provisionprofile" ]; then
+#            echo "::error::Decoded provisioning profile is empty – check the MAC_PROVISIONING_PROFILE secret is valid base64."
+#            exit 1
+#          fi
+#          UUID=$(grep -a -A 1 '<key>UUID</key>' "$RUNNER_TEMP/profile.provisionprofile" | tail -1 | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
+#          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+#          cp "$RUNNER_TEMP/profile.provisionprofile" ~/Library/MobileDevice/Provisioning\ Profiles/"$UUID".provisionprofile
+#          echo "PROFILE_UUID=$UUID" >> "$GITHUB_ENV"
+#
+#      - name: Build macOS package
+#        run: |
+#          # TEMPORARY diagnostics (see .github/scripts/monitor-codesign.sh)
+#          # for investigating the /usr/bin/codesign hang (0% CPU, never
+#          # returns) on Mac Catalyst Release publishes. Adds a binary log, a
+#          # diagnostic-verbosity file log, and periodic ps/sample/lsof/
+#          # ancestor-chain/keychain-state captures of the actual codesign
+#          # process (matched by exact executable path, not a substring
+#          # grep), plus a bounded security-focused unified log stream while
+#          # codesign is observed running.
+#          DIAG_DIR="$RUNNER_TEMP/diagnostics/macos"
+#          mkdir -p "$DIAG_DIR"
+#
+#          set +e
+#          dotnet publish Source/BlinkTalk/BlinkTalk.csproj \
+#            -f net10.0-maccatalyst \
+#            -c Release \
+#            -p:PublishTargetFramework=net10.0-maccatalyst \
+#            -p:ApplicationDisplayVersion="$DISPLAY_VERSION" \
+#            -p:ApplicationVersion="$VERSION_CODE" \
+#            -p:ApplicationId="com.airsoftwarelimited.blinktalk.app" \
+#            -p:MtouchEnableSGenConc=true \
+#            -p:EnableCodeSigning=true \
+#            -p:EnablePackageSigning=true \
+#            -p:CodesignKey="$CODESIGN_IDENTITY" \
+#            -p:CodesignProvision="$PROFILE_UUID" \
+#            -p:PackageSigningKey="$INSTALLER_IDENTITY" \
+#            -p:CodesignEntitlements="Platforms/MacCatalyst/Entitlements.plist" \
+#            -p:ApplicationTeamId="MMC8RNW6ZC" \
+#            -o publish/macos \
+#            -bl:"$DIAG_DIR/macos-publish.binlog" \
+#            "-flp:v=diag;logfile=$DIAG_DIR/macos-publish-diag.log" &
+#          PUBLISH_PID=$!
+#
+#          bash "$GITHUB_WORKSPACE/.github/scripts/monitor-codesign.sh" "$DIAG_DIR" "$PUBLISH_PID" "$KEYCHAIN_PATH" 15 &
+#          MONITOR_PID=$!
+#
+#          wait "$PUBLISH_PID"
+#          PUBLISH_EXIT=$?
+#          set -e
+#
+#          kill "$MONITOR_PID" 2>/dev/null || true
+#          wait "$MONITOR_PID" 2>/dev/null || true
+#
+#          exit $PUBLISH_EXIT
+#
+#      - name: Upload macOS codesign diagnostics
+#        if: always()
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: macos-codesign-diagnostics
+#          path: ${{ runner.temp }}/diagnostics/macos
+#          if-no-files-found: warn
+#          retention-days: 7
+#
+#      - name: Locate and rename package
+#        run: |
+#          PKG=$(find publish/macos Source/BlinkTalk/bin/Release/net10.0-maccatalyst -type f -name "*.pkg" | head -1)
+#          if [ -z "$PKG" ]; then
+#            echo "::error::No .pkg found after publish."
+#            exit 1
+#          fi
+#          cp "$PKG" "BlinkTalk-macos.pkg"
+#
+#      - name: Clean up signing material
+#        if: always()
+#        run: |
+#          security delete-keychain "$KEYCHAIN_PATH" 2>/dev/null || true
+#          rm -f "$KEYCHAIN_PATH"
+#          rm -f "$RUNNER_TEMP/mac-cert.p12" "$RUNNER_TEMP/mac-installer-cert.p12" "$RUNNER_TEMP/profile.provisionprofile"
+#
+#      - uses: actions/upload-artifact@v4
+#        with:
+#          name: macos-artifacts
+#          path: BlinkTalk-macos.pkg
+#
   # ── 6. Build – iOS ───────────────────────────────────────────────────────
   # Produces:
   #   • BlinkTalk-ios.ipa — iOS app archive
@@ -564,7 +564,11 @@ jobs:
   # Creates a GitHub Release and attaches all build artifacts.
   # Only runs if every preceding job succeeded.
   release:
-    needs: [build-windows, build-android, build-macos, build-ios]
+    needs:
+      - build-windows
+      - build-android
+      # - build-macos
+      - build-ios
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -579,10 +583,10 @@ jobs:
         with:
           name: android-artifacts
 
-      - uses: actions/download-artifact@v4
-        with:
-          name: macos-artifacts
-
+      # - uses: actions/download-artifact@v4
+      #   with:
+      #     name: macos-artifacts
+      #
       - uses: actions/download-artifact@v4
         with:
           name: ios-artifacts
@@ -596,5 +600,5 @@ jobs:
             BlinkTalk-windows.msi
             BlinkTalk-android.apk
             BlinkTalk-GooglePlayStore.aab
-            BlinkTalk-macos.pkg
+            # BlinkTalk-macos.pkg
             BlinkTalk-ios.ipa
