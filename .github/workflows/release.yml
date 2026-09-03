@@ -400,165 +400,165 @@ jobs:
 #          name: macos-artifacts
 #          path: BlinkTalk-macos.pkg
 #
-  # ── 6. Build – iOS ───────────────────────────────────────────────────────
-  # Produces:
-  #   • BlinkTalk-ios.ipa — iOS app archive
-  #
-  # Required secrets (the job fails if any are absent — otherwise the IPA is
-  # not code-signed and cannot be distributed or submitted to the App Store):
-  #   IOS_CERTIFICATE          – Base64-encoded P12 distribution certificate.
-  #   IOS_CERTIFICATE_PASSWORD – P12 certificate password.
-  #   IOS_PROVISIONING_PROFILE – Base64-encoded .mobileprovision file.
-  build-ios:
-    needs: test
-    runs-on: macos-latest
-    env:
-      VERSION: ${{ github.ref_name }}
-      CERT_B64: ${{ secrets.IOS_CERTIFICATE }}
-      CERT_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
-      PROFILE_B64: ${{ secrets.IOS_PROVISIONING_PROFILE }}
-    steps:
-      - uses: actions/checkout@v5
+#  # ── 6. Build – iOS ───────────────────────────────────────────────────────
+#  # Produces:
+#  #   • BlinkTalk-ios.ipa — iOS app archive
+#  #
+#  # Required secrets (the job fails if any are absent — otherwise the IPA is
+#  # not code-signed and cannot be distributed or submitted to the App Store):
+#  #   IOS_CERTIFICATE          – Base64-encoded P12 distribution certificate.
+#  #   IOS_CERTIFICATE_PASSWORD – P12 certificate password.
+#  #   IOS_PROVISIONING_PROFILE – Base64-encoded .mobileprovision file.
+#  build-ios:
+#    needs: test
+#    runs-on: macos-latest
+#    env:
+#      VERSION: ${{ github.ref_name }}
+#      CERT_B64: ${{ secrets.IOS_CERTIFICATE }}
+#      CERT_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+#      PROFILE_B64: ${{ secrets.IOS_PROVISIONING_PROFILE }}
+#    steps:
+#      - uses: actions/checkout@v5
 
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.x'
+#      - uses: actions/setup-dotnet@v4
+#        with:
+#          dotnet-version: '10.x'
 
-      - name: Install MAUI iOS workload
-        run: dotnet workload install maui-ios
+#      - name: Install MAUI iOS workload
+#        run: dotnet workload install maui-ios
 
-      - name: Compute app versions
-        run: |
-          VERSION_CORE="${VERSION%%-Beta.*}"
-          echo "DISPLAY_VERSION=$VERSION_CORE" >> "$GITHUB_ENV"
-          IFS='.' read -ra P <<< "$VERSION_CORE"
-          echo "VERSION_CODE=$((${P[0]} * 10000 + ${P[1]} * 100 + ${P[2]}))" >> "$GITHUB_ENV"
+#      - name: Compute app versions
+#        run: |
+#          VERSION_CORE="${VERSION%%-Beta.*}"
+#          echo "DISPLAY_VERSION=$VERSION_CORE" >> "$GITHUB_ENV"
+#          IFS='.' read -ra P <<< "$VERSION_CORE"
+#          echo "VERSION_CODE=$((${P[0]} * 10000 + ${P[1]} * 100 + ${P[2]}))" >> "$GITHUB_ENV"
 
-      - name: Verify signing secrets
-        run: |
-          MISSING=""
-          [ -z "$CERT_B64" ]      && MISSING="$MISSING IOS_CERTIFICATE"
-          [ -z "$CERT_PASSWORD" ] && MISSING="$MISSING IOS_CERTIFICATE_PASSWORD"
-          [ -z "$PROFILE_B64" ]   && MISSING="$MISSING IOS_PROVISIONING_PROFILE"
-          if [ -n "$MISSING" ]; then
-            echo "::error::Missing repository secret(s):$MISSING. Without them the IPA cannot be distributed. Add them under Settings → Secrets and variables → Actions."
-            exit 1
-          fi
+#      - name: Verify signing secrets
+#        run: |
+#          MISSING=""
+#          [ -z "$CERT_B64" ]      && MISSING="$MISSING IOS_CERTIFICATE"
+#          [ -z "$CERT_PASSWORD" ] && MISSING="$MISSING IOS_CERTIFICATE_PASSWORD"
+#          [ -z "$PROFILE_B64" ]   && MISSING="$MISSING IOS_PROVISIONING_PROFILE"
+#          if [ -n "$MISSING" ]; then
+#            echo "::error::Missing repository secret(s):$MISSING. Without them the IPA cannot be distributed. Add them under Settings → Secrets and variables → Actions."
+#            exit 1
+#          fi
 
-      - name: Install signing certificate
-        run: |
-          echo "$CERT_B64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
-          if [ ! -s "$RUNNER_TEMP/cert.p12" ]; then
-            echo "::error::Decoded certificate is empty – check the IOS_CERTIFICATE secret is valid base64."
-            exit 1
-          fi
-          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
-          KEYCHAIN_PASSWORD=$(openssl rand -base64 30)
-          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
-          echo "::add-mask::$KEYCHAIN_PASSWORD"
-          echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> "$GITHUB_ENV"
+#      - name: Install signing certificate
+#        run: |
+#          echo "$CERT_B64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+#          if [ ! -s "$RUNNER_TEMP/cert.p12" ]; then
+#            echo "::error::Decoded certificate is empty – check the IOS_CERTIFICATE secret is valid base64."
+#            exit 1
+#          fi
+#          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+#          KEYCHAIN_PASSWORD=$(openssl rand -base64 30)
+#          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+#          echo "::add-mask::$KEYCHAIN_PASSWORD"
+#          echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> "$GITHUB_ENV"
 
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+#          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+#          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+#          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
-          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN_PATH" -P "$CERT_PASSWORD" -A -t cert -f pkcs12
-          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+#          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN_PATH" -P "$CERT_PASSWORD" -A -t cert -f pkcs12
+#          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
-          # Preserve the existing user keychain search list rather than replacing it,
-          # so macOS tooling that relies on the login keychain keeps working.
-          EXISTING_KEYCHAINS=$(security list-keychains -d user | sed 's/[",]//g')
-          security list-keychains -d user -s "$KEYCHAIN_PATH" $EXISTING_KEYCHAINS
-          security default-keychain -d user -s "$KEYCHAIN_PATH"
+#          # Preserve the existing user keychain search list rather than replacing it,
+#          # so macOS tooling that relies on the login keychain keeps working.
+#          EXISTING_KEYCHAINS=$(security list-keychains -d user | sed 's/[",]//g')
+#          security list-keychains -d user -s "$KEYCHAIN_PATH" $EXISTING_KEYCHAINS
+#          security default-keychain -d user -s "$KEYCHAIN_PATH"
 
-          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+#          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
 
-          IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | grep -o '"[^"]*"' | head -1 | tr -d '"')
-          echo "CODESIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+#          IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | grep -o '"[^"]*"' | head -1 | tr -d '"')
+#          echo "CODESIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
 
-      - name: Install provisioning profile
-        run: |
-          echo "$PROFILE_B64" | base64 --decode > "$RUNNER_TEMP/profile.mobileprovision"
-          if [ ! -s "$RUNNER_TEMP/profile.mobileprovision" ]; then
-            echo "::error::Decoded provisioning profile is empty – check the IOS_PROVISIONING_PROFILE secret is valid base64."
-            exit 1
-          fi
-          UUID=$(grep -a -A 1 '<key>UUID</key>' "$RUNNER_TEMP/profile.mobileprovision" | tail -1 | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp "$RUNNER_TEMP/profile.mobileprovision" ~/Library/MobileDevice/Provisioning\ Profiles/"$UUID".mobileprovision
-          echo "PROFILE_UUID=$UUID" >> "$GITHUB_ENV"
+#      - name: Install provisioning profile
+#        run: |
+#          echo "$PROFILE_B64" | base64 --decode > "$RUNNER_TEMP/profile.mobileprovision"
+#          if [ ! -s "$RUNNER_TEMP/profile.mobileprovision" ]; then
+#            echo "::error::Decoded provisioning profile is empty – check the IOS_PROVISIONING_PROFILE secret is valid base64."
+#            exit 1
+#          fi
+#          UUID=$(grep -a -A 1 '<key>UUID</key>' "$RUNNER_TEMP/profile.mobileprovision" | tail -1 | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
+#          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+#          cp "$RUNNER_TEMP/profile.mobileprovision" ~/Library/MobileDevice/Provisioning\ Profiles/"$UUID".mobileprovision
+#          echo "PROFILE_UUID=$UUID" >> "$GITHUB_ENV"
 
-      - name: Build iOS IPA
-        run: |
-          # TEMPORARY diagnostics (see .github/scripts/monitor-codesign.sh)
-          # for investigating the /usr/bin/codesign hang (0% CPU, never
-          # returns) on iOS Release publishes. Adds a binary log, a
-          # diagnostic-verbosity file log, and periodic ps/sample/lsof/
-          # ancestor-chain/keychain-state captures of the actual codesign
-          # process (matched by exact executable path, not a substring
-          # grep), plus a bounded security-focused unified log stream while
-          # codesign is observed running.
-          DIAG_DIR="$RUNNER_TEMP/diagnostics/ios"
-          mkdir -p "$DIAG_DIR"
+#      - name: Build iOS IPA
+#        run: |
+#          # TEMPORARY diagnostics (see .github/scripts/monitor-codesign.sh)
+#          # for investigating the /usr/bin/codesign hang (0% CPU, never
+#          # returns) on iOS Release publishes. Adds a binary log, a
+#          # diagnostic-verbosity file log, and periodic ps/sample/lsof/
+#          # ancestor-chain/keychain-state captures of the actual codesign
+#          # process (matched by exact executable path, not a substring
+#          # grep), plus a bounded security-focused unified log stream while
+#          # codesign is observed running.
+#          DIAG_DIR="$RUNNER_TEMP/diagnostics/ios"
+#          mkdir -p "$DIAG_DIR"
 
-          set +e
-          dotnet publish Source/BlinkTalk/BlinkTalk.csproj \
-            -f net10.0-ios \
-            -c Release \
-            -p:PublishTargetFramework=net10.0-ios \
-            -p:ApplicationDisplayVersion="$DISPLAY_VERSION" \
-            -p:ApplicationVersion="$VERSION_CODE" \
-            -p:ApplicationId="com.airsoftwarelimited.blinktalk.app" \
-            -p:ApplicationTeamId="MMC8RNW6ZC" \
-            -p:CodesignKey="$CODESIGN_IDENTITY" \
-            -p:CodesignProvision="$PROFILE_UUID" \
-            -p:ArchiveOnBuild=true \
-            -o publish/ios \
-            -bl:"$DIAG_DIR/ios-publish.binlog" \
-            "-flp:v=diag;logfile=$DIAG_DIR/ios-publish-diag.log" &
-          PUBLISH_PID=$!
+#          set +e
+#          dotnet publish Source/BlinkTalk/BlinkTalk.csproj \
+#            -f net10.0-ios \
+#            -c Release \
+#            -p:PublishTargetFramework=net10.0-ios \
+#            -p:ApplicationDisplayVersion="$DISPLAY_VERSION" \
+#            -p:ApplicationVersion="$VERSION_CODE" \
+#            -p:ApplicationId="com.airsoftwarelimited.blinktalk.app" \
+#            -p:ApplicationTeamId="MMC8RNW6ZC" \
+#            -p:CodesignKey="$CODESIGN_IDENTITY" \
+#            -p:CodesignProvision="$PROFILE_UUID" \
+#            -p:ArchiveOnBuild=true \
+#            -o publish/ios \
+#            -bl:"$DIAG_DIR/ios-publish.binlog" \
+#            "-flp:v=diag;logfile=$DIAG_DIR/ios-publish-diag.log" &
+#          PUBLISH_PID=$!
 
-          bash "$GITHUB_WORKSPACE/.github/scripts/monitor-codesign.sh" "$DIAG_DIR" "$PUBLISH_PID" "$KEYCHAIN_PATH" 15 &
-          MONITOR_PID=$!
+#          bash "$GITHUB_WORKSPACE/.github/scripts/monitor-codesign.sh" "$DIAG_DIR" "$PUBLISH_PID" "$KEYCHAIN_PATH" 15 &
+#          MONITOR_PID=$!
 
-          wait "$PUBLISH_PID"
-          PUBLISH_EXIT=$?
-          set -e
+#          wait "$PUBLISH_PID"
+#          PUBLISH_EXIT=$?
+#          set -e
 
-          kill "$MONITOR_PID" 2>/dev/null || true
-          wait "$MONITOR_PID" 2>/dev/null || true
+#          kill "$MONITOR_PID" 2>/dev/null || true
+#          wait "$MONITOR_PID" 2>/dev/null || true
 
-          exit $PUBLISH_EXIT
+#          exit $PUBLISH_EXIT
 
-      - name: Upload iOS codesign diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-codesign-diagnostics
-          path: ${{ runner.temp }}/diagnostics/ios
-          if-no-files-found: warn
-          retention-days: 7
+#      - name: Upload iOS codesign diagnostics
+#        if: always()
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: ios-codesign-diagnostics
+#          path: ${{ runner.temp }}/diagnostics/ios
+#          if-no-files-found: warn
+#          retention-days: 7
 
-      - name: Locate and rename IPA
-        run: |
-          IPA=$(find publish/ios Source/BlinkTalk/bin/Release/net10.0-ios -type f -name "*.ipa" | head -1)
-          if [ -z "$IPA" ]; then
-            echo "::error::No .ipa found after publish."
-            exit 1
-          fi
-          cp "$IPA" "BlinkTalk-ios.ipa"
+#      - name: Locate and rename IPA
+#        run: |
+#          IPA=$(find publish/ios Source/BlinkTalk/bin/Release/net10.0-ios -type f -name "*.ipa" | head -1)
+#          if [ -z "$IPA" ]; then
+#            echo "::error::No .ipa found after publish."
+#            exit 1
+#          fi
+#          cp "$IPA" "BlinkTalk-ios.ipa"
 
-      - name: Clean up signing material
-        if: always()
-        run: |
-          security delete-keychain "$KEYCHAIN_PATH" 2>/dev/null || true
-          rm -f "$KEYCHAIN_PATH"
-          rm -f "$RUNNER_TEMP/cert.p12" "$RUNNER_TEMP/profile.mobileprovision"
+#      - name: Clean up signing material
+#        if: always()
+#        run: |
+#          security delete-keychain "$KEYCHAIN_PATH" 2>/dev/null || true
+#          rm -f "$KEYCHAIN_PATH"
+#          rm -f "$RUNNER_TEMP/cert.p12" "$RUNNER_TEMP/profile.mobileprovision"
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ios-artifacts
-          path: BlinkTalk-ios.ipa
+#      - uses: actions/upload-artifact@v4
+#        with:
+#          name: ios-artifacts
+#          path: BlinkTalk-ios.ipa
 
   # ── 7. Release ────────────────────────────────────────────────────────────
   # Creates a GitHub Release and attaches all build artifacts.
@@ -568,7 +568,7 @@ jobs:
       - build-windows
       - build-android
       # - build-macos
-      - build-ios
+      # - build-ios
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -587,9 +587,9 @@ jobs:
       #   with:
       #     name: macos-artifacts
       #
-      - uses: actions/download-artifact@v4
-        with:
-          name: ios-artifacts
+      # - uses: actions/download-artifact@v4
+      #   with:
+      #     name: ios-artifacts
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -601,4 +601,4 @@ jobs:
             BlinkTalk-android.apk
             BlinkTalk-GooglePlayStore.aab
             # BlinkTalk-macos.pkg
-            BlinkTalk-ios.ipa
+            # BlinkTalk-ios.ipa
