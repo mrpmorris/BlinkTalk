@@ -571,7 +571,7 @@ jobs:
       - build-macos
       - build-ios
     # Only publish to the App Store for stable N.N.N releases, not -Beta.N pre-releases.
-    if: ${{ !contains(github.ref_name, '-') }}
+    if: ${{ contains(github.ref_name, '.') && !contains(github.ref_name, '-') && !contains(github.ref_name, 'Beta') }}
     runs-on: macos-latest
     steps:
       - uses: actions/download-artifact@v4
