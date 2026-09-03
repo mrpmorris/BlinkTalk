@@ -606,6 +606,7 @@ jobs:
       - build-android
       - build-macos
       - build-ios
+      - upload-to-app-store
     runs-on: ubuntu-latest
     permissions:
       contents: write
