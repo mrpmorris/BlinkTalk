@@ -570,24 +570,36 @@ jobs:
     needs:
       - build-macos
       - build-ios
-    # Only publish to the App Store for stable N.N.N releases, not -Beta.N pre-releases.
-    if: ${{ contains(github.ref_name, '.') && !contains(github.ref_name, '-') && !contains(github.ref_name, 'Beta') }}
     runs-on: macos-latest
     steps:
+      - name: Check stable release tag pattern
+        id: stable_tag
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "is_stable=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_stable=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/download-artifact@v4
+        if: ${{ steps.stable_tag.outputs.is_stable == 'true' }}
         with:
           name: macos-artifacts
 
       - uses: actions/download-artifact@v4
+        if: ${{ steps.stable_tag.outputs.is_stable == 'true' }}
         with:
           name: ios-artifacts
 
       - name: Configure App Store Connect API key
+        if: ${{ steps.stable_tag.outputs.is_stable == 'true' }}
         run: |
           mkdir -p ~/.appstoreconnect/private_keys
           printf '%s' '${{ secrets.APPSTORE_PRIVATE_KEY }}' > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APPSTORE_KEY_ID }}.p8
 
       - name: Upload iOS app
+        if: ${{ steps.stable_tag.outputs.is_stable == 'true' }}
         run: |
           xcrun altool --upload-app --type ios \
             --file BlinkTalk-ios.ipa \
@@ -595,6 +607,7 @@ jobs:
             --apiIssuer "${{ secrets.APPSTORE_ISSUER_ID }}"
 
       - name: Upload macOS app
+        if: ${{ steps.stable_tag.outputs.is_stable == 'true' }}
         run: |
           xcrun altool --upload-app --type macos \
             --file BlinkTalk-macos.pkg \
