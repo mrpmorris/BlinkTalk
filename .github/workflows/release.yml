@@ -18,7 +18,9 @@ jobs:
     steps:
       - name: Validate tag format
         run: |
-          if ! [[ "$GITHUB_REF_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-Beta\.[0-9]+)?$ ]]; then
+          if [[ "$GITHUB_REF_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-Beta\.[0-9]+)?$ ]]; then
+            echo "Tag '$GITHUB_REF_NAME' matches the required format N.N.N or N.N.N-Beta.N."
+          else
             echo "::error::Tag '$GITHUB_REF_NAME' does not match required format N.N.N or N.N.N-Beta.N."
             exit 1
           fi
