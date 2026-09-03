@@ -283,17 +283,32 @@ jobs:
             echo "::error::Decoded installer certificate is empty – check the MAC_INSTALLER_CERTIFICATE secret is valid base64."
             exit 1
           fi
-          security create-keychain -p "" build.keychain
-          security import "$RUNNER_TEMP/mac-cert.p12" -k build.keychain -P "$CERT_PASSWORD" -T /usr/bin/codesign
-          security import "$RUNNER_TEMP/mac-installer-cert.p12" -k build.keychain -P "$INSTALLER_CERT_PASSWORD" -T /usr/bin/productbuild
-          security list-keychains -s build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "" build.keychain
-          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 30)
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+          echo "::add-mask::$KEYCHAIN_PASSWORD"
+          echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> "$GITHUB_ENV"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          security import "$RUNNER_TEMP/mac-cert.p12" -k "$KEYCHAIN_PATH" -P "$CERT_PASSWORD" -A -t cert -f pkcs12
+          security import "$RUNNER_TEMP/mac-installer-cert.p12" -k "$KEYCHAIN_PATH" -P "$INSTALLER_CERT_PASSWORD" -A -t cert -f pkcs12
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Preserve the existing user keychain search list rather than replacing it,
+          # so macOS tooling that relies on the login keychain keeps working.
+          EXISTING_KEYCHAINS=$(security list-keychains -d user | sed 's/[",]//g')
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $EXISTING_KEYCHAINS
+          security default-keychain -d user -s "$KEYCHAIN_PATH"
+
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
           # Extract the Apple Distribution identity (codesigning) - first match
-          CODESIGN_IDENTITY=$(security find-identity -v -p codesigning build.keychain | grep "Apple Distribution" | grep -o '"[^"]*"' | head -1 | tr -d '"')
+          CODESIGN_IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | grep "Apple Distribution" | grep -o '"[^"]*"' | head -1 | tr -d '"')
           # Extract the Mac Installer Distribution identity (packaging)
-          INSTALLER_IDENTITY=$(security find-identity -v build.keychain | grep "Mac Installer Distribution" | grep -o '"[^"]*"' | head -1 | tr -d '"')
+          INSTALLER_IDENTITY=$(security find-identity -v "$KEYCHAIN_PATH" | grep "Mac Installer Distribution" | grep -o '"[^"]*"' | head -1 | tr -d '"')
           echo "CODESIGN_IDENTITY=$CODESIGN_IDENTITY" >> "$GITHUB_ENV"
           echo "INSTALLER_IDENTITY=$INSTALLER_IDENTITY" >> "$GITHUB_ENV"
 
@@ -343,7 +358,7 @@ jobs:
             "-flp:v=diag;logfile=$DIAG_DIR/macos-publish-diag.log" &
           PUBLISH_PID=$!
 
-          bash "$GITHUB_WORKSPACE/.github/scripts/monitor-codesign.sh" "$DIAG_DIR" "$PUBLISH_PID" "build.keychain" 15 &
+          bash "$GITHUB_WORKSPACE/.github/scripts/monitor-codesign.sh" "$DIAG_DIR" "$PUBLISH_PID" "$KEYCHAIN_PATH" 15 &
           MONITOR_PID=$!
 
           wait "$PUBLISH_PID"
@@ -376,7 +391,8 @@ jobs:
       - name: Clean up signing material
         if: always()
         run: |
-          security delete-keychain build.keychain 2>/dev/null || true
+          security delete-keychain "$KEYCHAIN_PATH" 2>/dev/null || true
+          rm -f "$KEYCHAIN_PATH"
           rm -f "$RUNNER_TEMP/mac-cert.p12" "$RUNNER_TEMP/mac-installer-cert.p12" "$RUNNER_TEMP/profile.provisionprofile"
 
       - uses: actions/upload-artifact@v4
@@ -436,13 +452,28 @@ jobs:
             echo "::error::Decoded certificate is empty – check the IOS_CERTIFICATE secret is valid base64."
             exit 1
           fi
-          security create-keychain -p "" build.keychain
-          security import "$RUNNER_TEMP/cert.p12" -k build.keychain -P "$CERT_PASSWORD" -T /usr/bin/codesign
-          security list-keychains -s build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "" build.keychain
-          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
-          IDENTITY=$(security find-identity -v -p codesigning build.keychain | grep -o '"[^"]*"' | head -1 | tr -d '"')
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 30)
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+          echo "::add-mask::$KEYCHAIN_PASSWORD"
+          echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> "$GITHUB_ENV"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN_PATH" -P "$CERT_PASSWORD" -A -t cert -f pkcs12
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Preserve the existing user keychain search list rather than replacing it,
+          # so macOS tooling that relies on the login keychain keeps working.
+          EXISTING_KEYCHAINS=$(security list-keychains -d user | sed 's/[",]//g')
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $EXISTING_KEYCHAINS
+          security default-keychain -d user -s "$KEYCHAIN_PATH"
+
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+          IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | grep -o '"[^"]*"' | head -1 | tr -d '"')
           echo "CODESIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
 
       - name: Install provisioning profile
@@ -487,7 +518,7 @@ jobs:
             "-flp:v=diag;logfile=$DIAG_DIR/ios-publish-diag.log" &
           PUBLISH_PID=$!
 
-          bash "$GITHUB_WORKSPACE/.github/scripts/monitor-codesign.sh" "$DIAG_DIR" "$PUBLISH_PID" "build.keychain" 15 &
+          bash "$GITHUB_WORKSPACE/.github/scripts/monitor-codesign.sh" "$DIAG_DIR" "$PUBLISH_PID" "$KEYCHAIN_PATH" 15 &
           MONITOR_PID=$!
 
           wait "$PUBLISH_PID"
@@ -520,7 +551,8 @@ jobs:
       - name: Clean up signing material
         if: always()
         run: |
-          security delete-keychain build.keychain 2>/dev/null || true
+          security delete-keychain "$KEYCHAIN_PATH" 2>/dev/null || true
+          rm -f "$KEYCHAIN_PATH"
           rm -f "$RUNNER_TEMP/cert.p12" "$RUNNER_TEMP/profile.mobileprovision"
 
       - uses: actions/upload-artifact@v4
