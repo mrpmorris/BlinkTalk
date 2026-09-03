@@ -568,6 +568,8 @@ jobs:
     needs:
       - build-macos
       - build-ios
+    # Only publish to the App Store for stable N.N.N releases, not -Beta.N pre-releases.
+    if: ${{ !contains(github.ref_name, '-') }}
     runs-on: macos-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -607,6 +609,14 @@ jobs:
       - build-macos
       - build-ios
       - upload-to-app-store
+    # upload-to-app-store is skipped for -Beta.N pre-releases; still allow the release job to run in that case.
+    if: |
+      always() &&
+      needs.build-windows.result == 'success' &&
+      needs.build-android.result == 'success' &&
+      needs.build-macos.result == 'success' &&
+      needs.build-ios.result == 'success' &&
+      (needs.upload-to-app-store.result == 'success' || needs.upload-to-app-store.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: write
