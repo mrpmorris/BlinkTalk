@@ -599,7 +599,29 @@ jobs:
             --apiKey "${{ secrets.APPSTORE_KEY_ID }}" \
             --apiIssuer "${{ secrets.APPSTORE_ISSUER_ID }}"
 
-  # ── 8. Release ────────────────────────────────────────────────────────────
+  # ── 8. Upload to Google Play ─────────────────────────────────────────────
+  upload-to-google-play:
+    needs:
+      - build-android
+    # Only publish to Google Play for stable N.N.N releases, not -Beta.N pre-releases.
+    if: ${{ !contains(github.ref_name, '-') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: android-artifacts
+
+      - name: Upload AAB to Google Play production
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.airsoftwarelimited.blinktalk.app
+          releaseFiles: BlinkTalk-GooglePlayStore.aab
+          tracks: production
+          releaseName: BlinkTalk ${{ github.ref_name }}
+          status: completed
+
+  # ── 9. Release ────────────────────────────────────────────────────────────
   # Creates a GitHub Release and attaches all build artifacts.
   # Only runs if every preceding job succeeded.
   release:
@@ -609,14 +631,16 @@ jobs:
       - build-macos
       - build-ios
       - upload-to-app-store
-    # upload-to-app-store is skipped for -Beta.N pre-releases; still allow the release job to run in that case.
+      - upload-to-google-play
+    # upload-to-app-store and upload-to-google-play are skipped for -Beta.N pre-releases; still allow the release job to run in that case.
     if: |
       always() &&
       needs.build-windows.result == 'success' &&
       needs.build-android.result == 'success' &&
       needs.build-macos.result == 'success' &&
       needs.build-ios.result == 'success' &&
-      (needs.upload-to-app-store.result == 'success' || needs.upload-to-app-store.result == 'skipped')
+      (needs.upload-to-app-store.result == 'success' || needs.upload-to-app-store.result == 'skipped') &&
+      (needs.upload-to-google-play.result == 'success' || needs.upload-to-google-play.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: write
