@@ -418,7 +418,7 @@ section { padding: 72px 0; }
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 24px;
-    max-width: 720px;
+    max-width: 1080px;
     margin: 0 auto;
 }
 
