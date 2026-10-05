@@ -146,10 +146,10 @@ public class ScanFlowTests
     }
 
     [Theory]
-    [InlineData(0.5, 5.0)]   // fast scan: 2x would be 1s, so it is lifted to the 5s minimum
-    [InlineData(1.0, 5.0)]
-    [InlineData(3.0, 6.0)]   // slow scan: the normal first-cycle dwell already exceeds 5s
-    public async Task BackspaceHoldLastsAtLeastFiveSeconds(double cycleSeconds, double expectedHoldSeconds)
+    [InlineData(0.5, 3.0)]   // fast scan: 2x would be 1s, so it is lifted to the 3s minimum
+    [InlineData(1.0, 3.0)]
+    [InlineData(3.0, 6.0)]   // slow scan: the normal first-cycle dwell already exceeds 3s
+    public async Task BackspaceHoldLastsAtLeastThreeSeconds(double cycleSeconds, double expectedHoldSeconds)
     {
         var gate = new StepDelay();
         var delays = new List<TimeSpan>();

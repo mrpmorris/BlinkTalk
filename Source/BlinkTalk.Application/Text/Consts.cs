@@ -19,7 +19,7 @@ public static class Consts
     /// <summary>
     /// The least time Backspace stays focused for a repeat selection, however fast the scan is set.
     /// </summary>
-    public const double MinimumBackspaceHoldSeconds = 5;
+    public const double MinimumBackspaceHoldSeconds = 3;
 
     public static TimeSpan DefaultCycleDelay => TimeSpan.FromSeconds(DefaultCycleDelaySeconds);
 }
