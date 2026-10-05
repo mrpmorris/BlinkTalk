@@ -247,10 +247,10 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.x'
+          dotnet-version: '10.0.401'
 
       - name: Install MAUI Mac Catalyst workload
-        run: dotnet workload install maui-maccatalyst --skip-manifest-update
+        run: dotnet workload install maui-maccatalyst --version 10.401.0
 
       - name: Compute app versions
         run: |
@@ -425,10 +425,10 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.x'
+          dotnet-version: '10.0.401'
 
       - name: Install MAUI iOS workload
-        run: dotnet workload install maui-ios --skip-manifest-update
+        run: dotnet workload install maui-ios --version 10.401.0
 
       - name: Compute app versions
         run: |
