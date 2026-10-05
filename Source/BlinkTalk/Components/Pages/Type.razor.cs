@@ -10,6 +10,8 @@ namespace BlinkTalk.Components.Pages;
 public partial class Type
 {
 	private readonly ScanController Controller;
+	private string DeleteFlashClass = ""; // alternates a/b per deletion; empty until the first one
+	private int LastDeleteCount;
 	private readonly IJSRuntime JS;
 	private readonly KeyboardIndicator Keyboard;
 	private int LastScrolledWord = -1; // data-word-index last scrolled into view, or -1 for "none"
@@ -138,6 +140,7 @@ public partial class Type
 
 	protected override void OnInitialized()
 	{
+		LastDeleteCount = Controller.Sentence.DeleteCount; // deletions before this page rendered don't flash
 		Controller.StateChanged += OnStateChanged;
 		Controller.Start();
 	}
@@ -158,7 +161,18 @@ public partial class Type
 			Keyboard.Trigger();
 	}
 
-	private void OnStateChanged() => InvokeAsync(StateHasChanged);
+	private void OnStateChanged() => InvokeAsync(() =>
+	{
+		// Alternate between two identical animations so back-to-back deletions each restart the
+		// flash — re-adding the class that is already applied would not.
+		int deleteCount = Controller.Sentence.DeleteCount;
+		if (deleteCount != LastDeleteCount)
+		{
+			LastDeleteCount = deleteCount;
+			DeleteFlashClass = DeleteFlashClass == "bt-delete-flash-a" ? "bt-delete-flash-b" : "bt-delete-flash-a";
+		}
+		StateHasChanged();
+	});
 
 	private string RowClass(int rowIndex) =>
 		H.Kind == HighlightKind.KeyboardRow && H.RowIndex == rowIndex ? "bt-highlight" : "";

@@ -17,6 +17,9 @@ public sealed class SentenceBuilder
     /// <summary>The word currently being typed (empty at a committed word boundary). Exposed as
     /// raw state because <see cref="ToString"/> can't distinguish it from a trailing space.</summary>
     public string CurrentWord { get; private set; } = "";
+    /// <summary>How many times Backspace has removed something. The UI compares it between renders
+    /// to flash the sentence panel, since a deletion is otherwise only visible as missing text.</summary>
+    public int DeleteCount { get; private set; }
     public bool ShouldClearOnNextInput { get; private set; }
     public IReadOnlyList<string> SuggestedWords { get; private set; } = Array.Empty<string>();
 
@@ -121,9 +124,14 @@ public sealed class SentenceBuilder
     private void Backspace()
     {
         if (CurrentWord.Length > 0)
+        {
             CurrentWord = CurrentWord.Substring(0, CurrentWord.Length - 1);
-        else
-            PopWord();
+            DeleteCount++;
+        }
+        else if (PopWord())
+        {
+            DeleteCount++;
+        }
         DoViewModelChanged();
     }
 
@@ -158,13 +166,14 @@ public sealed class SentenceBuilder
         SuggestedWords = result.Distinct(sameWord).Take(NumberOfSuggestedWords).ToList();
     }
 
-    private void PopWord()
+    private bool PopWord()
     {
         if (Words.Count == 0)
-            return;
+            return false;
         KeyValuePair<int, string> wordInfo = Words[Words.Count - 1];
         Words.RemoveAt(Words.Count - 1);
         WordService.DecreaseWordUsage(wordInfo.Key);
+        return true;
     }
 
     private void PushCurrentWord()

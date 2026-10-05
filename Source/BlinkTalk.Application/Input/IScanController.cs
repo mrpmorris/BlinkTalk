@@ -27,6 +27,9 @@ public interface IScanController
     /// <summary>Depth of the strategy stack (1-based), used to pick the highlight colour.</summary>
     int Depth { get; }
 
+    /// <summary>The scan speed: how long each item is highlighted.</summary>
+    double CycleDelaySeconds { get; }
+
     /// <summary>Creates a cycler wired to this controller's dispatcher, delay source and scan speed.</summary>
     FocusCycler NewCycler(Action<int> focusChanged, double firstCycleMultiplier = 1,
         Func<int, bool>? mayFocus = null, Action? onExhausted = null);
@@ -40,6 +43,12 @@ public interface IScanController
     /// rather than being restarted for each level passed through.
     /// </summary>
     void Pop(int levels = 1);
+
+    /// <summary>
+    /// Announces that Backspace is being held focused for a repeat selection for the given number of
+    /// seconds, or (null) that it no longer is. The UI shows a draining timer for it.
+    /// </summary>
+    void SetBackspaceHold(double? seconds);
 
     void SetChoosingDecorator(bool choosing);
 

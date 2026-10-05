@@ -18,6 +18,12 @@ public sealed class ScanController : IScanController, IDisposable
 {
     public HighlightTarget Highlight { get; private set; } = HighlightTarget.None;
 
+    /// <summary>How long the Backspace hold lasts, or null when Backspace is not being held.</summary>
+    public double? BackspaceHoldSeconds { get; private set; }
+
+    /// <summary>Increases with every Backspace hold started; tells the UI to restart its timer.</summary>
+    public int BackspaceHoldVersion { get; private set; }
+
     /// <summary>Whether the letter-decorator popup is open.</summary>
     public bool IsChoosingDecorator { get; private set; }
 
@@ -166,6 +172,16 @@ public sealed class ScanController : IScanController, IDisposable
             Sentence.Initialize();
             Push<SectionSelectorInputStrategy>();
         }
+        RaiseStateChanged();
+    }
+
+    public void SetBackspaceHold(double? seconds)
+    {
+        BackspaceHoldSeconds = seconds;
+        // Each hold gets a new version, so the UI restarts its timer for a repeated Backspace
+        // rather than carrying on with the one already running.
+        if (seconds != null)
+            BackspaceHoldVersion++;
         RaiseStateChanged();
     }
 
