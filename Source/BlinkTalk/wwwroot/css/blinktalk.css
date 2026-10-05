@@ -348,6 +348,14 @@ html, body {
     overflow: auto;
 }
 
+/* Title and Done on one line; the row inherits dir, so Done flips sides for right-to-left. */
+.bt-settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4vw;
+}
+
 .bt-settings h1 {
     margin: 0;
     font-size: 5vh;
