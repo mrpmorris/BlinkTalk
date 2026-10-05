@@ -250,7 +250,7 @@ jobs:
           dotnet-version: '10.x'
 
       - name: Install MAUI Mac Catalyst workload
-        run: dotnet workload install maui-maccatalyst
+        run: dotnet workload install maui-maccatalyst --skip-manifest-update
 
       - name: Compute app versions
         run: |
@@ -428,7 +428,7 @@ jobs:
           dotnet-version: '10.x'
 
       - name: Install MAUI iOS workload
-        run: dotnet workload install maui-ios
+        run: dotnet workload install maui-ios --skip-manifest-update
 
       - name: Compute app versions
         run: |
