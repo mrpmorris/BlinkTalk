@@ -44,6 +44,12 @@ public interface IScanController
     /// </summary>
     void Pop(int levels = 1);
 
+    /// <summary>
+    /// Announces that Backspace is being held focused for a repeat selection for the given number of
+    /// seconds, or (null) that it no longer is. The UI shows a draining timer for it.
+    /// </summary>
+    void SetBackspaceHold(double? seconds);
+
     void SetChoosingDecorator(bool choosing);
 
     void SetHighlight(HighlightTarget target);

@@ -61,6 +61,7 @@ public sealed class KeyboardColumnSelectorInputStrategy : IInputStrategy
         double multiplier = Math.Max(
             Consts.FirstCycleDelayMultiplier,
             Consts.MinimumBackspaceHoldSeconds / Controller.CycleDelaySeconds);
+        Controller.SetBackspaceHold(Controller.CycleDelaySeconds * multiplier);
         Cycler = Controller.NewCycler(
             FocusIndexChanged,
             firstCycleMultiplier: multiplier,
@@ -73,13 +74,25 @@ public sealed class KeyboardColumnSelectorInputStrategy : IInputStrategy
         ActiveRow = rowIndex;
         Configured = true;
         KeyCount = Controller.Keyboard.Rows[rowIndex].Count;
-        Holding = false;
+        EndHold();
         Cycler?.Stop();
         Cycler = Controller.NewCycler(FocusIndexChanged, firstCycleMultiplier: Consts.FirstCycleDelayMultiplier);
         Cycler.Start(KeyCount);
     }
 
-    public void Terminated() => Cycler?.Stop();
+    public void Terminated()
+    {
+        EndHold();
+        Cycler?.Stop();
+    }
+
+    private void EndHold()
+    {
+        if (!Holding)
+            return;
+        Holding = false;
+        Controller.SetBackspaceHold(null);
+    }
 
     private void FocusIndexChanged(int focusIndex)
     {

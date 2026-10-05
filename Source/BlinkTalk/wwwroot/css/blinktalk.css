@@ -150,6 +150,40 @@ html, body {
     background: #2a2f3a;
 }
 
+/* In prolonged delete mode an empty current-word box (just after a space) is hidden: nothing is
+   about to be typed there, and the Backspace key sits where it would be. The element stays in the
+   DOM — the sentence scrolling finds its sibling by it. */
+.bt-current-word.bt-empty-hidden {
+    display: none;
+}
+
+/* The Backspace key shown after the text while it is held selectable (prolonged delete mode). It
+   starts full and drains to empty over --bt-hold-seconds, the time the user has left to repeat. */
+.bt-delete-timer {
+    position: relative;
+    overflow: hidden;
+    padding: 0.2vh 1.2vw;
+    border: 0.4vh solid #ff4d4d;
+    border-radius: 1vh;
+    background: #2a2f3a;
+}
+
+.bt-delete-timer::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    inset-inline-start: 0;
+    width: 100%;
+    background: rgba(255, 77, 77, 0.55);
+    animation: bt-delete-drain var(--bt-hold-seconds) linear forwards;
+}
+
+@keyframes bt-delete-drain {
+    from { width: 100%; }
+    to { width: 0; }
+}
+
 .bt-sentence-placeholder {
     color: var(--bt-text-dim);
     font-weight: 400;

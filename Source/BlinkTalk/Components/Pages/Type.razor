@@ -30,7 +30,16 @@
                (empty after a space, showing a new word has been started). The committed text is
                wrapped so the first child is an element: the sentence panel's auto margins (see
                .bt-sentence in blinktalk.css) centre the line when it fits. *@
-            <span class="bt-committed">@CommittedText</span><span class="bt-current-word">@CurrentWord</span>
+            <span class="bt-committed">@CommittedText</span><span class="bt-current-word @(Controller.BackspaceHoldSeconds != null && CurrentWord.Length == 0 ? "bt-empty-hidden" : "")">@CurrentWord</span>
+            @if (Controller.BackspaceHoldSeconds is double holdSeconds)
+            {
+                @* Prolonged delete mode: Backspace stays selectable for a while. The key is shown at
+                   the end of the text, draining over the time left. The key restarts the animation
+                   for each repeat. *@
+                <span class="bt-delete-timer"
+                      @key="Controller.BackspaceHoldVersion"
+                      style="--bt-hold-seconds: @holdSeconds.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)s">⌫</span>
+            }
         }
     </div>
 

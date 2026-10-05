@@ -17,11 +17,13 @@ export function scrollWordIntoView(wordIndex) {
 }
 
 // Scroll the sentence to its end: the panel is a single fixed-height line that clips its
-// overflow (no scroll bar), and the current-word box is always the last thing in it, so
-// end-aligning it with the panel edge shows the whole latest tail of the sentence. Called after
-// the text changes; a missing box (empty sentence shows the placeholder instead) is ignored.
+// overflow (no scroll bar), and the last thing in it is the current-word box (or the Backspace
+// hold timer after it), so end-aligning that with the panel edge shows the whole latest tail of
+// the sentence. Called after the text changes; a missing box (empty sentence shows the
+// placeholder instead) is ignored.
 export function scrollSentenceToEnd() {
-    const current = document.querySelector(".bt-current-word");
-    if (!current) return;
-    current.scrollIntoView({ behavior: "auto", block: "nearest", inline: "end" });
+    const last = document.querySelector(".bt-sentence > .bt-current-word ~ :last-child")
+        ?? document.querySelector(".bt-current-word");
+    if (!last) return;
+    last.scrollIntoView({ behavior: "auto", block: "nearest", inline: "end" });
 }

@@ -174,6 +174,32 @@ public class ScanFlowTests
         await SelectBackspaceAsync(controller, indicator, gate);
 
         Assert.Equal(TimeSpan.FromSeconds(expectedHoldSeconds), delays[delays.Count - 1]);
+        Assert.Equal(expectedHoldSeconds, controller.BackspaceHoldSeconds);   // what the UI timer drains over
+    }
+
+    [Fact]
+    public async Task BackspaceHoldIsAnnouncedRestartedOnRepeatAndEnded()
+    {
+        var (controller, indicator, gate, _) = Build();
+        controller.Start();
+        indicator.Fire();                    // rows
+        for (int i = 0; i < 3; i++)
+        {
+            indicator.Fire();                // keys of row 0
+            indicator.Fire();                // type 'A', back to rows
+        }
+        Assert.Null(controller.BackspaceHoldSeconds);
+
+        await SelectBackspaceAsync(controller, indicator, gate);
+        Assert.NotNull(controller.BackspaceHoldSeconds);
+        int version = controller.BackspaceHoldVersion;
+
+        indicator.Fire();                    // repeat: the timer starts over
+        Assert.NotNull(controller.BackspaceHoldSeconds);
+        Assert.True(controller.BackspaceHoldVersion > version);
+
+        await gate.StepAsync();              // dwell passes: back to rows
+        Assert.Null(controller.BackspaceHoldSeconds);
     }
 
     // From the row level: scan to Backspace's row and key, and select it.
