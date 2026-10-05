@@ -8,7 +8,11 @@
 
 @* Mirrored for a right-to-left language, so labels sit with the controls they belong to. *@
 <div class="bt-settings" dir="@TextDirection">
-    <h1>@Localization.Settings_Title</h1>
+    @* Done lives beside the title, not after the last row, so it stays on screen however tall the rows get. *@
+    <div class="bt-settings-header">
+        <h1>@Localization.Settings_Title</h1>
+        <button class="bt-settings-back" @onclick=GoBackAsync>@Localization.Shared_Done</button>
+    </div>
 
     <div class="bt-setting-row bt-setting-columns">
         <div class="bt-setting-field">
@@ -100,8 +104,6 @@
             <button class="bt-settings-secondary" @onclick=GoToCamera>@Localization.Settings_SetUpCamera</button>
         </label>
     </div>
-
-    <button class="bt-settings-back" @onclick=GoBackAsync>@Localization.Shared_Done</button>
 </div>
 
 @if (IsDownloading)
