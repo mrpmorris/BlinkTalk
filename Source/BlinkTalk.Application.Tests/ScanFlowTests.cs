@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using BlinkTalk.Application.Abstractions;
 using BlinkTalk.Application.Input;
@@ -81,6 +83,121 @@ public class ScanFlowTests
         Assert.Equal(Section.Keyboard, controller.Highlight.Section);
         // Starting is silent — no spoken greeting.
         Assert.Empty(tts.Spoken);
+    }
+
+    [Fact]
+    public async Task BackspaceStaysFocusedSoItCanBeRepeated()
+    {
+        var (controller, indicator, gate, _) = Build();
+        controller.Start();
+        indicator.Fire();                    // rows
+        for (int i = 0; i < 3; i++)
+        {
+            indicator.Fire();                // keys of row 0
+            indicator.Fire();                // type (0,0), back to rows
+        }
+        Assert.Equal("AAA", controller.Sentence.ToString().Replace(" ", ""));
+
+        await SelectBackspaceAsync(controller, indicator, gate);
+        Assert.Equal("AA", controller.Sentence.ToString().Trim());
+        Assert.Equal(3, controller.Depth);   // still on the key level
+        Assert.Equal(HighlightKind.Key, controller.Highlight.Kind);
+        Assert.Equal(KeyboardKeyKind.Backspace,
+            controller.Keyboard.Rows[controller.Highlight.RowIndex][controller.Highlight.ColumnIndex].Kind);
+
+        indicator.Fire();                    // repeat within the first-cycle dwell
+        Assert.Equal("A", controller.Sentence.ToString().Trim());
+        Assert.Equal(3, controller.Depth);
+    }
+
+    [Fact]
+    public async Task BackspaceReturnsToRowsWhenNotRepeatedWithinTheFirstCycle()
+    {
+        var (controller, indicator, gate, _) = Build();
+        controller.Start();
+        indicator.Fire();                    // rows
+        indicator.Fire();                    // keys of row 0
+        indicator.Fire();                    // type 'A', back to rows
+        indicator.Fire();
+        indicator.Fire();                    // type 'A' again
+        await SelectBackspaceAsync(controller, indicator, gate);
+        Assert.Equal(3, controller.Depth);
+
+        await gate.StepAsync();              // the first-cycle dwell passes unselected
+
+        Assert.Equal(2, controller.Depth);
+        Assert.Equal(HighlightKind.KeyboardRow, controller.Highlight.Kind);
+    }
+
+    [Fact]
+    public async Task BackspaceReturnsToRowsAtOnceWhenNothingIsLeftToDelete()
+    {
+        var (controller, indicator, gate, _) = Build();
+        controller.Start();
+        indicator.Fire();                    // rows
+        indicator.Fire();                    // keys of row 0
+        indicator.Fire();                    // type 'A', back to rows
+
+        await SelectBackspaceAsync(controller, indicator, gate);
+
+        Assert.True(controller.Sentence.IsEmpty);
+        Assert.Equal(2, controller.Depth);
+        Assert.Equal(HighlightKind.KeyboardRow, controller.Highlight.Kind);
+    }
+
+    [Theory]
+    [InlineData(0.5, 5.0)]   // fast scan: 2x would be 1s, so it is lifted to the 5s minimum
+    [InlineData(1.0, 5.0)]
+    [InlineData(3.0, 6.0)]   // slow scan: the normal first-cycle dwell already exceeds 5s
+    public async Task BackspaceHoldLastsAtLeastFiveSeconds(double cycleSeconds, double expectedHoldSeconds)
+    {
+        var gate = new StepDelay();
+        var delays = new List<TimeSpan>();
+        var indicator = new FakeIndicator();
+        var settings = new FakeSettingsStore();
+        var controller = new ScanController(
+            new SentenceBuilder(new FakeWordService(), new FakePhraseService()),
+            new FixedKeyboardLayoutProvider(KeyboardLayout.CreateDefault()), new FakeTextToSpeech(),
+            settings, new InlineUIDispatcher(), new[] { indicator },
+            (span, ct) =>
+            {
+                delays.Add(span);
+                return gate.Delay(span, ct);
+            });
+        controller.CycleDelaySeconds = cycleSeconds;
+        controller.Start();
+        indicator.Fire();                    // rows
+        indicator.Fire();                    // keys of row 0
+        indicator.Fire();                    // type 'A', back to rows
+        indicator.Fire();
+        indicator.Fire();                    // type 'A' again, so Backspace leaves something to repeat on
+        await SelectBackspaceAsync(controller, indicator, gate);
+
+        Assert.Equal(TimeSpan.FromSeconds(expectedHoldSeconds), delays[delays.Count - 1]);
+    }
+
+    // From the row level: scan to Backspace's row and key, and select it.
+    private static async Task SelectBackspaceAsync(ScanController controller, FakeIndicator indicator, StepDelay gate)
+    {
+        int row = 0;
+        int column = 0;
+        for (int r = 0; r < controller.Keyboard.Rows.Count; r++)
+        {
+            for (int c = 0; c < controller.Keyboard.Rows[r].Count; c++)
+            {
+                if (controller.Keyboard.Rows[r][c].Kind == KeyboardKeyKind.Backspace)
+                {
+                    row = r;
+                    column = c;
+                }
+            }
+        }
+        for (int i = 0; i < row; i++)
+            await gate.StepAsync();
+        indicator.Fire();                    // into the row's keys
+        for (int i = 0; i < column; i++)
+            await gate.StepAsync();
+        indicator.Fire();                    // select Backspace
     }
 
     private static (ScanController controller, FakeIndicator indicator, StepDelay gate, FakeTextToSpeech tts) Build()

@@ -146,6 +146,25 @@ public class SentenceBuilderTests
         Assert.Equal("HI", sb.ToString().Trim());
     }
 
+    [Fact]
+    public void DeleteCountCountsOnlyBackspacesThatRemoveSomething()
+    {
+        var sb = Build();
+        sb.Input(KeyboardKey.Backspace);     // nothing to delete
+        Assert.Equal(0, sb.DeleteCount);
+
+        sb.Input(Key("H"));
+        Assert.Equal(0, sb.DeleteCount);     // typing is not deleting
+
+        sb.Input(KeyboardKey.Backspace);     // removes 'H'
+        Assert.Equal(1, sb.DeleteCount);
+
+        sb.Input(Key("H"));
+        sb.Input(KeyboardKey.Space);
+        sb.Input(KeyboardKey.Backspace);     // pops the word "H"
+        Assert.Equal(2, sb.DeleteCount);
+    }
+
     private static SentenceBuilder Build()
     {
         var sb = new SentenceBuilder(new FakeWordService(), new FakePhraseService());

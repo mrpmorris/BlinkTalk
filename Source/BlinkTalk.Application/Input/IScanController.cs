@@ -27,6 +27,9 @@ public interface IScanController
     /// <summary>Depth of the strategy stack (1-based), used to pick the highlight colour.</summary>
     int Depth { get; }
 
+    /// <summary>The scan speed: how long each item is highlighted.</summary>
+    double CycleDelaySeconds { get; }
+
     /// <summary>Creates a cycler wired to this controller's dispatcher, delay source and scan speed.</summary>
     FocusCycler NewCycler(Action<int> focusChanged, double firstCycleMultiplier = 1,
         Func<int, bool>? mayFocus = null, Action? onExhausted = null);

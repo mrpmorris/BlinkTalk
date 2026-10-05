@@ -118,6 +118,27 @@ html, body {
     color: var(--bt-text-dim);
 }
 
+/* Flashes the panel's border when Backspace removes something. Type.razor.cs alternates between
+   the a/b classes so consecutive deletions each restart the animation; they are identical. An
+   outline is used so the flash never shifts the layout. */
+.bt-sentence.bt-delete-flash-a {
+    animation: bt-delete-flash-a 0.6s ease-out;
+}
+
+.bt-sentence.bt-delete-flash-b {
+    animation: bt-delete-flash-b 0.6s ease-out;
+}
+
+@keyframes bt-delete-flash-a {
+    0% { outline: 0.6vh solid #ff4d4d; box-shadow: 0 0 2vh 0.4vh #ff4d4d; }
+    100% { outline: 0.6vh solid transparent; box-shadow: 0 0 0 0 transparent; }
+}
+
+@keyframes bt-delete-flash-b {
+    0% { outline: 0.6vh solid #ff4d4d; box-shadow: 0 0 2vh 0.4vh #ff4d4d; }
+    100% { outline: 0.6vh solid transparent; box-shadow: 0 0 0 0 transparent; }
+}
+
 /* The word currently being typed, boxed like a word-list tile. Sits at the end of the sentence;
    a min-width keeps it visible (as an empty box) just after a space, before the next letter. */
 .bt-current-word {

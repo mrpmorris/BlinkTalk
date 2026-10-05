@@ -1,3 +1,4 @@
+using System;
 using BlinkTalk.Application.Text;
 
 namespace BlinkTalk.Application.Input.Strategies;
@@ -18,6 +19,8 @@ public sealed class KeyboardColumnSelectorInputStrategy : IInputStrategy
     private IScanController Controller = null!;
     private FocusCycler? Cycler;
     private int FocusedColumn;
+    // True while Backspace is held focused awaiting a repeat selection.
+    private bool Holding;
     private int KeyCount;
     private SentenceBuilder Sentence = null!;
 
@@ -41,7 +44,28 @@ public sealed class KeyboardColumnSelectorInputStrategy : IInputStrategy
             return;
         }
         Sentence.Input(key);
+        // Nothing left to delete means there is nothing to repeat, so fall through to the pop.
+        if (key.Kind == KeyboardKeyKind.Backspace && !Sentence.IsEmpty)
+        {
+            HoldOnKey(FocusedColumn);
+            return;
+        }
         Controller.Pop();
+    }
+
+    // Keeps Backspace focused for one first-cycle dwell so it can be repeated. Only that key is
+    // focusable, so the cycler's second focus (FocusChangeCount 2) means the dwell passed unselected.
+    private void HoldOnKey(int column)
+    {
+        Holding = true;
+        double multiplier = Math.Max(
+            Consts.FirstCycleDelayMultiplier,
+            Consts.MinimumBackspaceHoldSeconds / Controller.CycleDelaySeconds);
+        Cycler = Controller.NewCycler(
+            FocusIndexChanged,
+            firstCycleMultiplier: multiplier,
+            mayFocus: index => index == column);
+        Cycler.Start(KeyCount);
     }
 
     public void SetActiveRow(int rowIndex)
@@ -49,6 +73,7 @@ public sealed class KeyboardColumnSelectorInputStrategy : IInputStrategy
         ActiveRow = rowIndex;
         Configured = true;
         KeyCount = Controller.Keyboard.Rows[rowIndex].Count;
+        Holding = false;
         Cycler?.Stop();
         Cycler = Controller.NewCycler(FocusIndexChanged, firstCycleMultiplier: Consts.FirstCycleDelayMultiplier);
         Cycler.Start(KeyCount);
@@ -60,7 +85,7 @@ public sealed class KeyboardColumnSelectorInputStrategy : IInputStrategy
     {
         FocusedColumn = focusIndex;
         Controller.SetHighlight(HighlightTarget.ForKey(ActiveRow, focusIndex));
-        if (Cycler!.FocusChangeCount > KeyCount + 2)
+        if (Cycler!.FocusChangeCount > (Holding ? 1 : KeyCount + 2))
             Controller.Pop();
     }
 }

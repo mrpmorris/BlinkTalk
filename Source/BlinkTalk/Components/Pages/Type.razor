@@ -19,7 +19,7 @@
             @onpointerdown=GoToSettings>⚙</button>
 
     <!-- Current sentence -->
-    <div class="bt-sentence @(Controller.Sentence.ShouldClearOnNextInput ? "bt-pending" : "")">
+    <div class="bt-sentence @(Controller.Sentence.ShouldClearOnNextInput ? "bt-pending" : "") @DeleteFlashClass">
         @if (string.IsNullOrEmpty(SentenceText))
         {
             <span class="bt-sentence-placeholder">…</span>
